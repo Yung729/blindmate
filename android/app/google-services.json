@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "561444116515",
+    "project_id": "blindmate-1fe44",
+    "storage_bucket": "blindmate-1fe44.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:561444116515:android:29c351c01a46a25c7e7996",
+        "android_client_info": {
+          "package_name": "com.example.blindmate"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAI4vsjggG4equicgcg0LICNHLhXKRcByw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
