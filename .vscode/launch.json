@@ -1,0 +1,49 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "blindmate",
+            "request": "launch",
+            "type": "dart"
+        },
+        {
+            "name": "blindmate (profile mode)",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "profile"
+        },
+        {
+            "name": "blindmate (release mode)",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "release"
+        },
+        {
+            "name": "blindmate Run chat_screen",
+            "request": "launch",
+            "type": "dart",
+            "program": "lib/pages/chat_screen.dart"
+        },
+        {
+            "name": "blindmate Run home_screen",
+            "request": "launch",
+            "type": "dart",
+            "program": "lib/pages/home_screen.dart"
+        },
+        {
+            "name": "blindmate Run login_screen",
+            "request": "launch",
+            "type": "dart",
+            "program": "lib/pages/login_screen.dart"
+        },
+        {
+            "name": "blindmate Run waiting_screen",
+            "request": "launch",
+            "type": "dart",
+            "program": "lib/pages/waiting_screen.dart"
+        },
+    ]
+}

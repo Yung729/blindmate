@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../pages/home_screen.dart';
 import '../pages/login_screen.dart';
+import '../pages/sharing_screen.dart';
 
 class NavigationController {
   static final Map<String, WidgetBuilder> routes = {

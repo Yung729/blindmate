@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../models/user_model.dart';
 import '../services/chat_service.dart';
 import 'waiting_screen.dart';
+import 'sharing_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -26,17 +27,19 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _loadUserData() async {
-  final user = _auth.currentUser;
-  if (user != null) {
-    final userDoc = await _firestore.collection('users').doc(user.uid).get();
-    if (userDoc.exists && userDoc.data() != null) {
-      setState(() {
-        _currentUser = UserModel.fromMap(userDoc.data() as Map<String, dynamic>, userDoc.id);
-      });
+    final user = _auth.currentUser;
+    if (user != null) {
+      final userDoc = await _firestore.collection('users').doc(user.uid).get();
+      if (userDoc.exists && userDoc.data() != null) {
+        setState(() {
+          _currentUser = UserModel.fromMap(
+            userDoc.data() as Map<String, dynamic>,
+            userDoc.id,
+          );
+        });
+      }
     }
   }
-}
-
 
   void _startChat() {
     if (_currentUser != null) {
@@ -44,6 +47,17 @@ class _HomeScreenState extends State<HomeScreen> {
         context,
         MaterialPageRoute(
           builder: (context) => WaitingScreen(user: _currentUser!),
+        ),
+      );
+    }
+  }
+
+    void _goToSharingScreen() { 
+    if (_currentUser != null) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => SharingScreen(user: _currentUser!),
         ),
       );
     }
@@ -84,6 +98,10 @@ class _HomeScreenState extends State<HomeScreen> {
             ElevatedButton(
               onPressed: _startChat,
               child: const Text("Start Chat"),
+            ),
+            ElevatedButton(
+              onPressed: _goToSharingScreen,
+              child: const Text("Go to Sharing Screen"),
             ),
             ElevatedButton(onPressed: _logout, child: const Text("Logout")),
           ],
