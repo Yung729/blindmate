@@ -1,0 +1,113 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'dart:math';
+import '../models/user_model.dart';
+import '../models/message_model.dart';
+
+class ChatService {
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
+  // 🔹 Update user status
+  Future<void> updateUserStatus(String userId, String status) async {
+    await _firestore.collection('users').doc(userId).update({'status': status});
+  }
+
+  // 🔹 Find a match ensuring different mental health levels
+  Future<String?> findMatch(UserModel user) async {
+    print("🔍 Searching for a match for user: ${user.userId}");
+
+    final querySnapshot =
+        await _firestore
+            .collection('users')
+            .where('status', isEqualTo: 'waiting')
+            .where('online', isEqualTo: true)
+            .get();
+
+    print("✅ Found ${querySnapshot.docs.length} potential matches");
+
+    List<UserModel> potentialMatches =
+        querySnapshot.docs
+            .where((doc) => doc.id != user.userId)
+            .map(
+              (doc) =>
+                  UserModel.fromMap(doc.data() as Map<String, dynamic>, doc.id),
+            )
+            .where(
+              (matchedUser) =>
+                  matchedUser.mentalHealthLevel != user.mentalHealthLevel,
+            )
+            .toList();
+
+    print("🎯 Filtered down to ${potentialMatches.length} valid matches");
+
+    if (potentialMatches.isNotEmpty) {
+      Random random = Random();
+      UserModel matchedUser =
+          potentialMatches[random.nextInt(potentialMatches.length)];
+
+      String chatRoomId = _firestore.collection('chats').doc().id;
+      print(
+        "🚀 Creating chat room: $chatRoomId between ${user.userId} and ${matchedUser.userId}",
+      );
+
+      // **🔹 Immediately update both users to "in_chat" before creating chat room**
+      await updateUserStatus(user.userId, 'in_chat');
+      await updateUserStatus(matchedUser.userId, 'in_chat');
+
+      // **🔹 Create the chat room**
+      await _firestore.collection('chats').doc(chatRoomId).set({
+        'users': [user.userId, matchedUser.userId],
+        'createdAt': FieldValue.serverTimestamp(),
+        'closed': false,
+      });
+
+      print("✅ Chat room $chatRoomId successfully created");
+      return chatRoomId;
+    }
+
+    print("❌ No match found");
+    return null;
+  }
+
+  // 🔹 Listen for chat updates (when chat is closed)
+  Stream<DocumentSnapshot> listenForChatUpdates(String chatRoomId) {
+    return _firestore.collection('chats').doc(chatRoomId).snapshots();
+  }
+
+  // 🔹 Send a message
+  Future<void> sendMessage(String chatRoomId, MessageModel message) async {
+    await _firestore
+        .collection('chats')
+        .doc(chatRoomId)
+        .collection('messages')
+        .add(message.toMap());
+  }
+
+  // 🔹 Get chat messages in real time
+  Stream<List<MessageModel>> getMessages(String chatRoomId) {
+    return _firestore
+        .collection('chats')
+        .doc(chatRoomId)
+        .collection('messages')
+        .orderBy('timestamp', descending: true)
+        .snapshots()
+        .map((snapshot) {
+          return snapshot.docs
+              .map((doc) => MessageModel.fromMap(doc.data()))
+              .toList();
+        });
+  }
+
+  // 🔹 Close the chat room and reset users' status
+  Future<void> closeChatRoom(String chatRoomId, List<String> users) async {
+    await _firestore.collection('chats').doc(chatRoomId).update({
+      'closed': true,
+    });
+
+    // 🔹 Ensure Firestore updates properly
+    await Future.delayed(const Duration(milliseconds: 500));
+
+    for (String userId in users) {
+      await updateUserStatus(userId, 'available');
+    }
+  }
+}

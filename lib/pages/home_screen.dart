@@ -1,8 +1,9 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import '../models/user_model.dart';
+import '../services/chat_service.dart';
 import 'waiting_screen.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -14,41 +15,50 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  String userName = "Loading...";
+  final ChatService _chatService = ChatService();
+  UserModel? _currentUser;
+  bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _loadUserName();
+    _loadUserData();
   }
 
-  Future<void> _loadUserName() async {
-    final user = _auth.currentUser;
-    if (user != null) {
-      final userDoc = await _firestore.collection('users').doc(user.uid).get();
+  Future<void> _loadUserData() async {
+  final user = _auth.currentUser;
+  if (user != null) {
+    final userDoc = await _firestore.collection('users').doc(user.uid).get();
+    if (userDoc.exists && userDoc.data() != null) {
       setState(() {
-        userName = userDoc['name'] ?? "User";
+        _currentUser = UserModel.fromMap(userDoc.data() as Map<String, dynamic>, userDoc.id);
       });
     }
   }
+}
+
 
   void _startChat() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => WaitingScreen(userId: _auth.currentUser!.uid)),
-    );
+    if (_currentUser != null) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => WaitingScreen(user: _currentUser!),
+        ),
+      );
+    }
   }
 
   void _logout() async {
-    final user = _auth.currentUser;
-    if (user != null) {
-      await _firestore.collection('users').doc(user.uid).update({'online': false});
-      await _auth.signOut();
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.clear();
-      if (context.mounted) {
-        Navigator.pushReplacementNamed(context, '/login');
-      }
+    if (_currentUser != null) {
+      await _firestore.collection('users').doc(_currentUser!.userId).update({
+        'online': false,
+        'status': 'available',
+      });
+    }
+    await _auth.signOut();
+    if (context.mounted) {
+      Navigator.pushReplacementNamed(context, '/login');
     }
   }
 
@@ -60,9 +70,21 @@ class _HomeScreenState extends State<HomeScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text("Welcome, $userName!", style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+            if (_currentUser != null)
+              Text(
+                "Welcome, ${_currentUser!.name}!",
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              )
+            else
+              const CircularProgressIndicator(),
             const SizedBox(height: 20),
-            ElevatedButton(onPressed: _startChat, child: const Text("Start Chat")),
+            ElevatedButton(
+              onPressed: _startChat,
+              child: const Text("Start Chat"),
+            ),
             ElevatedButton(onPressed: _logout, child: const Text("Logout")),
           ],
         ),
