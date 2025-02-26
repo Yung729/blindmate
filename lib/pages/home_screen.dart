@@ -1,6 +1,7 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'waiting_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -11,6 +12,8 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   String userName = "Loading...";
 
   @override
@@ -20,41 +23,31 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _loadUserName() async {
-    final user = FirebaseAuth.instance.currentUser;
+    final user = _auth.currentUser;
     if (user != null) {
+      final userDoc = await _firestore.collection('users').doc(user.uid).get();
+      setState(() {
+        userName = userDoc['name'] ?? "User";
+      });
+    }
+  }
+
+  void _startChat() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => WaitingScreen(userId: _auth.currentUser!.uid)),
+    );
+  }
+
+  void _logout() async {
+    final user = _auth.currentUser;
+    if (user != null) {
+      await _firestore.collection('users').doc(user.uid).update({'online': false});
+      await _auth.signOut();
       final prefs = await SharedPreferences.getInstance();
-      
-      // Check if username is already stored locally
-      String? cachedName = prefs.getString('currentUserName');
-      if (cachedName != null) {
-        setState(() {
-          userName = cachedName;
-        });
-        return;
-      }
-
-      // If not found locally, fetch from Firestore
-      try {
-        DocumentSnapshot userDoc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
-        if (userDoc.exists && userDoc.data() != null) {
-          String fetchedName = (userDoc.data() as Map<String, dynamic>)['name'] ?? "User";
-
-          // Save name locally
-          await prefs.setString('currentUserName', fetchedName);
-
-          setState(() {
-            userName = fetchedName;
-          });
-        } else {
-          setState(() {
-            userName = user.email ?? "User";
-          });
-        }
-      } catch (e) {
-        print("Error fetching user name: $e");
-        setState(() {
-          userName = user.email ?? "User";
-        });
+      await prefs.clear();
+      if (context.mounted) {
+        Navigator.pushReplacementNamed(context, '/login');
       }
     }
   }
@@ -62,34 +55,15 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("Blind Mate"),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: () async {
-              await FirebaseAuth.instance.signOut();
-              final prefs = await SharedPreferences.getInstance();
-              await prefs.clear();
-              if (context.mounted) {
-                Navigator.pushReplacementNamed(context, '/login');
-              }
-            },
-          ),
-        ],
-      ),
+      appBar: AppBar(title: const Text("Blind Mate")),
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Text("Welcome, $userName!", style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
             const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.pushNamed(context, '/chat');
-              },
-              child: const Text("Start Chat"),
-            ),
+            ElevatedButton(onPressed: _startChat, child: const Text("Start Chat")),
+            ElevatedButton(onPressed: _logout, child: const Text("Logout")),
           ],
         ),
       ),

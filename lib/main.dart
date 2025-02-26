@@ -1,7 +1,7 @@
 import 'package:blindmate/firebase_options.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'controllers/navigation_controller.dart';
 import 'pages/home_screen.dart';
 import 'pages/login_screen.dart';
@@ -12,15 +12,12 @@ void main() async {
     options: DefaultFirebaseOptions.currentPlatform,
   );
 
-  final prefs = await SharedPreferences.getInstance();
-  String? userId = prefs.getString('currentUserId');
-
-  runApp(MyApp(initialRoute: userId == null ? '/login' : '/home'));
+  runApp(const MyApp());
 }
 
+
 class MyApp extends StatelessWidget {
-  final String initialRoute;
-  const MyApp({super.key, required this.initialRoute});
+  const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -29,8 +26,28 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.blueAccent),
       ),
-      initialRoute: initialRoute,
-      routes: NavigationController.routes, // Use central navigation
+      home: AuthCheck(), // Check authentication state dynamically
+      routes: NavigationController.routes,
+    );
+  }
+}
+
+class AuthCheck extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<User?>(
+      stream: FirebaseAuth.instance.authStateChanges(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator()); // Show loading while checking auth
+        }
+
+        if (snapshot.hasData) {
+          return const HomeScreen(); // User is logged in
+        } else {
+          return const LoginScreen(); // No user is logged in
+        }
+      },
     );
   }
 }

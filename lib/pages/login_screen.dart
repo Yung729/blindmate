@@ -40,8 +40,15 @@ class _LoginScreenState extends State<LoginScreen> {
         String userId = user.uid;
 
         // Fetch user info from Firestore
-        DocumentSnapshot userDoc = await _firestore.collection('users').doc(userId).get();
+        DocumentSnapshot userDoc =
+            await _firestore.collection('users').doc(userId).get();
         String userName = userDoc.exists ? (userDoc['name'] ?? "User") : email;
+
+        // Mark user as online in Firestore
+        await _firestore.collection('users').doc(userId).update({
+          'online': true,
+          'lastActive': FieldValue.serverTimestamp(),
+        });
 
         // Store user info locally
         final prefs = await SharedPreferences.getInstance();
@@ -101,7 +108,7 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
             ),
             const SizedBox(height: 10),
-            
+
             TextField(
               controller: _passwordController,
               obscureText: true,
@@ -110,14 +117,11 @@ class _LoginScreenState extends State<LoginScreen> {
                 border: OutlineInputBorder(),
               ),
             ),
-            
+
             const SizedBox(height: 20),
             _isLoading
                 ? const CircularProgressIndicator()
-                : ElevatedButton(
-                    onPressed: _login,
-                    child: const Text("Login"),
-                  ),
+                : ElevatedButton(onPressed: _login, child: const Text("Login")),
             const SizedBox(height: 10),
           ],
         ),
