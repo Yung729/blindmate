@@ -55,23 +55,10 @@ class _SharingScreenState extends State<SharingScreen> {
     }
   }
 
-  void _logout() async {
-    if (_currentUser != null) {
-      await _firestore.collection('users').doc(_currentUser!.userId).update({
-        'online': false,
-        'status': 'available',
-      });
-    }
-    await _auth.signOut();
-    if (context.mounted) {
-      Navigator.pushReplacementNamed(context, '/login');
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Sharing Info")),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : Padding(
@@ -101,10 +88,7 @@ class _SharingScreenState extends State<SharingScreen> {
                   ),
                   const SizedBox(height: 20),
                   Expanded(child: _buildSharedContentList()),
-                  ElevatedButton(
-                    onPressed: _logout,
-                    child: const Text("Logout"),
-                  ),
+                  
                 ],
               ),
             ),

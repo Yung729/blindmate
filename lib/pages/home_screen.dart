@@ -2,23 +2,33 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import '../models/user_model.dart';
-import '../services/chat_service.dart';
 import 'waiting_screen.dart';
-import 'sharing_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
   @override
   _HomeScreenState createState() => _HomeScreenState();
+
+  static Future<UserModel?> fetchUserData() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return null;
+
+    final userDoc =
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .get();
+    if (!userDoc.exists) return null;
+
+    return UserModel.fromMap(userDoc.data() as Map<String, dynamic>, user.uid);
+  }
 }
 
 class _HomeScreenState extends State<HomeScreen> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final ChatService _chatService = ChatService();
   UserModel? _currentUser;
-  bool _isLoading = true;
 
   @override
   void initState() {
@@ -27,18 +37,10 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _loadUserData() async {
-    final user = _auth.currentUser;
-    if (user != null) {
-      final userDoc = await _firestore.collection('users').doc(user.uid).get();
-      if (userDoc.exists && userDoc.data() != null) {
-        setState(() {
-          _currentUser = UserModel.fromMap(
-            userDoc.data() as Map<String, dynamic>,
-            userDoc.id,
-          );
-        });
-      }
-    }
+    final user = await HomeScreen.fetchUserData();
+    setState(() {
+      _currentUser = user;
+    });
   }
 
   void _startChat() {
@@ -47,17 +49,6 @@ class _HomeScreenState extends State<HomeScreen> {
         context,
         MaterialPageRoute(
           builder: (context) => WaitingScreen(user: _currentUser!),
-        ),
-      );
-    }
-  }
-
-    void _goToSharingScreen() { 
-    if (_currentUser != null) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => SharingScreen(user: _currentUser!),
         ),
       );
     }
@@ -79,7 +70,6 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Blind Mate")),
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -99,11 +89,6 @@ class _HomeScreenState extends State<HomeScreen> {
               onPressed: _startChat,
               child: const Text("Start Chat"),
             ),
-            ElevatedButton(
-              onPressed: _goToSharingScreen,
-              child: const Text("Go to Sharing Screen"),
-            ),
-            ElevatedButton(onPressed: _logout, child: const Text("Logout")),
           ],
         ),
       ),
