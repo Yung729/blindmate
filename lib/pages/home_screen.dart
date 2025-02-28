@@ -26,8 +26,6 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   UserModel? _currentUser;
 
   @override
@@ -51,19 +49,6 @@ class _HomeScreenState extends State<HomeScreen> {
           builder: (context) => WaitingScreen(user: _currentUser!),
         ),
       );
-    }
-  }
-
-  void _logout() async {
-    if (_currentUser != null) {
-      await _firestore.collection('users').doc(_currentUser!.userId).update({
-        'online': false,
-        'status': 'available',
-      });
-    }
-    await _auth.signOut();
-    if (context.mounted) {
-      Navigator.pushReplacementNamed(context, '/login');
     }
   }
 

@@ -82,6 +82,16 @@ class ChatService {
         .add(message.toMap());
   }
 
+  Future<void> updateTypingStatus(
+    String chatRoomId,
+    String userId,
+    bool isTyping,
+  ) async {
+    await FirebaseFirestore.instance.collection('chats').doc(chatRoomId).update(
+      {'typing.$userId': isTyping},
+    );
+  }
+
   // 🔹 Get chat messages in real time
   Stream<List<MessageModel>> getMessages(String chatRoomId) {
     return _firestore
