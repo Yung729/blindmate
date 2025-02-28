@@ -9,7 +9,6 @@ import '../pages/login_screen.dart';
 class NavigationController extends StatefulWidget {
   const NavigationController({super.key});
 
-  // ✅ Keep Named Routes
   static final Map<String, WidgetBuilder> routes = {
     '/login': (context) => const LoginScreen(),
     '/home': (context) => const NavigationController(), // Redirects to the main navigation

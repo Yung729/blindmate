@@ -46,11 +46,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
         if (data != null && data['closed'] == true) {
           setState(() => partnerLeft = true);
           Future.delayed(const Duration(seconds: 2), () {
-            Navigator.pushAndRemoveUntil(
-              context,
-              MaterialPageRoute(builder: (context) => const HomeScreen()),
-              (route) => false,
-            );
+            Navigator.popUntil(context, (route) => route.isFirst);
           });
         }
       }
@@ -113,11 +109,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     }
 
     if (isManualClose) {
-      Navigator.pushAndRemoveUntil(
-        context,
-        MaterialPageRoute(builder: (context) => const HomeScreen()),
-        (route) => false,
-      );
+      Navigator.popUntil(context, (route) => route.isFirst);
     }
   }
 
