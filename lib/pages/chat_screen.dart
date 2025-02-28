@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../services/chat_service.dart';
 import '../services/emoji_service.dart';
+import '../services/giphy_service.dart';
 import '../models/message_model.dart';
 import 'home_screen.dart';
 
@@ -22,9 +23,12 @@ class ChatScreen extends StatefulWidget {
 class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   final TextEditingController _messageController = TextEditingController();
   final ChatService _chatService = ChatService();
-  final EmojiService _emojiService = EmojiService(); // 🔹 Emoji API
+  final EmojiService _emojiService = EmojiService();
+  final GiphyService _giphyService = GiphyService();
   bool _isEmojiPickerVisible = false;
+  bool _isStickerPickerVisible = false;
   List<String> _emojiList = [];
+  List<String> _stickerList = [];
   bool partnerLeft = false;
   bool _isChatOpen = true;
   bool isTyping = false;
@@ -35,7 +39,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     _loadEmojis();
     WidgetsBinding.instance.addObserver(this);
 
-    // 🔹 Listen for chat closure (partner leaving)
+    // Listen for chat closure (partner leaving)
     _chatService.listenForChatUpdates(widget.chatRoomId).listen((snapshot) {
       if (snapshot.exists && snapshot.data() != null) {
         final data = snapshot.data() as Map<String, dynamic>?;
@@ -64,6 +68,14 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     }
   }
 
+  void _loadStickers(String query) async {
+    List<String> stickers = await _giphyService.fetchStickers(query);
+    setState(() {
+      _stickerList = stickers;
+      _isStickerPickerVisible = !_isStickerPickerVisible; // Toggle picker
+    });
+  }
+
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
@@ -71,18 +83,17 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     super.dispose();
   }
 
-  // 🔹 Detect app lifecycle changes (Close chat when app is closed)
+  // Detect app lifecycle changes (Close chat when app is closed)
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.inactive ||
-        state == AppLifecycleState.detached) {
+    if (state == AppLifecycleState.inactive || state == AppLifecycleState.detached) {
       _handleExit();
     }
   }
 
-  // 🔹 Handle closing the chat room
+  // Handle closing the chat room
   Future<void> _handleExit({bool isManualClose = false}) async {
-    if (!_isChatOpen) return; // Prevent multiple updates
+    if (!_isChatOpen) return;
     _isChatOpen = false;
 
     final chatDoc = await FirebaseFirestore.instance
@@ -95,16 +106,13 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       users.remove(widget.currentUserId);
 
       if (users.isEmpty || isManualClose) {
-        // 🔥 No users left or manual close → Close chat room
         await _chatService.closeChatRoom(widget.chatRoomId, users);
       } else {
-        // 🔹 Mark user as "available" but keep chat open
         await _chatService.updateUserStatus(widget.currentUserId, 'available');
       }
     }
 
     if (isManualClose) {
-      // 🔹 Navigate back after closing chat
       Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(builder: (context) => const HomeScreen()),
@@ -113,28 +121,43 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     }
   }
 
-  void _sendMessage(String text) {
-    if (text.trim().isNotEmpty) {
-      _chatService.sendMessage(
-        widget.chatRoomId,
-        MessageModel(
-          senderId: widget.currentUserId,
-          text: text.trim(),
-          timestamp: DateTime.now(),
-        ),
-      );
+  void _sendMessage({String? text, String? stickerUrl}) {
+    if ((text == null || text.trim().isEmpty) && (stickerUrl == null || stickerUrl.isEmpty)) {
+      return;
+    }
+
+    _chatService.sendMessage(
+      widget.chatRoomId,
+      MessageModel(
+        senderId: widget.currentUserId,
+        text: text?.trim(),
+        stickerUrl: stickerUrl,
+        timestamp: DateTime.now(),
+      ),
+    );
+
+    if (text != null) {
       _messageController.clear();
       _updateTypingStatus(false);
     }
+
+    setState(() {
+      _isStickerPickerVisible = false;
+      _isEmojiPickerVisible = false;
+    });
   }
 
   void _toggleEmojiPicker() {
     setState(() {
       _isEmojiPickerVisible = !_isEmojiPickerVisible;
+      _isStickerPickerVisible = false; // Hide stickers if emojis are opened
     });
   }
 
-  // 🔹 Update typing status in Firestore
+  void _toggleStickerPicker() {
+    _loadStickers("funny"); // Load stickers with a default query
+  }
+
   void _updateTypingStatus(bool typing) {
     if (typing != isTyping) {
       setState(() => isTyping = typing);
@@ -150,14 +173,13 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   Widget build(BuildContext context) {
     return WillPopScope(
       onWillPop: () async {
-        await _handleExit(); // Handle back button exit
+        await _handleExit();
         return true;
       },
       child: Scaffold(
         appBar: AppBar(
           title: const Text("Chat"),
           actions: [
-            // 🔹 Close Chat Button
             IconButton(
               icon: const Icon(Icons.close),
               onPressed: () async {
@@ -168,48 +190,37 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
         ),
         body: Column(
           children: [
-            // 🔹 Typing Indicator
             StreamBuilder<DocumentSnapshot>(
-              stream: FirebaseFirestore.instance
-                  .collection('chats')
-                  .doc(widget.chatRoomId)
-                  .snapshots(),
+              stream: FirebaseFirestore.instance.collection('chats').doc(widget.chatRoomId).snapshots(),
               builder: (context, snapshot) {
-                if (!snapshot.hasData || snapshot.data == null)
-                  return SizedBox();
-
+                if (!snapshot.hasData || snapshot.data == null) return const SizedBox();
                 var data = snapshot.data!.data() as Map<String, dynamic>;
                 Map<String, dynamic>? typing = data['typing'];
 
-                // Find the other user's ID
                 String? otherUserId = typing?.keys.firstWhere(
                   (id) => id != widget.currentUserId,
                   orElse: () => '',
                 );
 
-                bool isOtherUserTyping =
-                    otherUserId != null && typing?[otherUserId] == true;
+                bool isOtherUserTyping = otherUserId != null && typing?[otherUserId] == true;
 
                 return isOtherUserTyping
-                    ? Padding(
-                        padding: const EdgeInsets.only(left: 10, bottom: 5),
+                    ? const Padding(
+                        padding: EdgeInsets.only(left: 10, bottom: 5),
                         child: Text(
                           "User is typing...",
                           style: TextStyle(fontSize: 14, color: Colors.grey),
                         ),
                       )
-                    : SizedBox();
+                    : const SizedBox();
               },
             ),
 
             Expanded(
-              // 🔹 Listen for messages in real-time
               child: StreamBuilder<List<MessageModel>>(
                 stream: _chatService.getMessages(widget.chatRoomId),
                 builder: (context, snapshot) {
-                  if (!snapshot.hasData) {
-                    return const Center(child: CircularProgressIndicator());
-                  }
+                  if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
 
                   List<MessageModel> messages = snapshot.data!;
 
@@ -221,23 +232,18 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                       bool isMe = message.senderId == widget.currentUserId;
 
                       return Align(
-                        alignment:
-                            isMe ? Alignment.centerRight : Alignment.centerLeft,
-                        child: Container(
-                          padding: const EdgeInsets.all(8),
-                          margin: const EdgeInsets.symmetric(
-                            vertical: 4,
-                            horizontal: 10,
-                          ),
-                          decoration: BoxDecoration(
-                            color: isMe ? Colors.blueAccent : Colors.grey[300],
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Text(
-                            message.text,
-                            style: const TextStyle(fontSize: 16),
-                          ),
-                        ),
+                        alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
+                        child: message.stickerUrl != null
+                            ? Image.network(message.stickerUrl!, height: 100)
+                            : Container(
+                                padding: const EdgeInsets.all(8),
+                                margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 10),
+                                decoration: BoxDecoration(
+                                  color: isMe ? Colors.blueAccent : Colors.grey[300],
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Text(message.text ?? "", style: const TextStyle(fontSize: 16)),
+                              ),
                       );
                     },
                   );
@@ -245,44 +251,31 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
               ),
             ),
 
-            // 🔹 Emoji Picker
-            if (_isEmojiPickerVisible)
+            if (_isStickerPickerVisible)
               SizedBox(
-                height: 100,
+                height: 120,
                 child: ListView(
                   scrollDirection: Axis.horizontal,
-                  children: _emojiList.map((emoji) {
+                  children: _stickerList.map((sticker) {
                     return GestureDetector(
-                      onTap: () => _sendMessage(emoji),
+                      onTap: () => _sendMessage(stickerUrl: sticker),
                       child: Padding(
                         padding: const EdgeInsets.all(8.0),
-                        child: Text(emoji, style: const TextStyle(fontSize: 30)),
+                        child: Image.network(sticker, height: 80),
                       ),
                     );
                   }).toList(),
                 ),
               ),
 
-            // 🔹 Message Input
             Padding(
               padding: const EdgeInsets.all(8.0),
               child: Row(
                 children: [
-                  IconButton(
-                    icon: const Icon(Icons.emoji_emotions_outlined),
-                    onPressed: _toggleEmojiPicker,
-                  ),
-                  Expanded(
-                    child: TextField(
-                      controller: _messageController,
-                      onChanged: (text) => _updateTypingStatus(text.isNotEmpty),
-                      decoration: const InputDecoration(hintText: 'Type a message...'),
-                    ),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.send),
-                    onPressed: () => _sendMessage(_messageController.text),
-                  ),
+                  IconButton(icon: const Icon(Icons.emoji_emotions_outlined), onPressed: _toggleEmojiPicker),
+                  IconButton(icon: const Icon(Icons.sticky_note_2), onPressed: _toggleStickerPicker),
+                  Expanded(child: TextField(controller: _messageController, onChanged: (text) => _updateTypingStatus(text.isNotEmpty))),
+                  IconButton(icon: const Icon(Icons.send), onPressed: () => _sendMessage(text: _messageController.text)),
                 ],
               ),
             ),
