@@ -25,19 +25,20 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   final ChatService _chatService = ChatService();
   final EmojiService _emojiService = EmojiService();
   final GiphyService _giphyService = GiphyService();
-  bool _isEmojiPickerVisible = false;
-  bool _isStickerPickerVisible = false;
+
   List<String> _emojiList = [];
   List<String> _stickerList = [];
   bool partnerLeft = false;
   bool _isChatOpen = true;
   bool isTyping = false;
+  String? otherUserId;
 
   @override
   void initState() {
     super.initState();
     _loadEmojis();
     WidgetsBinding.instance.addObserver(this);
+    _fetchChatPartner();
 
     // Listen for chat closure (partner leaving)
     _chatService.listenForChatUpdates(widget.chatRoomId).listen((snapshot) {
@@ -51,6 +52,39 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
         }
       }
     });
+  }
+
+  // Fetch the other user's ID in the chat
+  void _fetchChatPartner() async {
+    final chatDoc =
+        await FirebaseFirestore.instance
+            .collection('chats')
+            .doc(widget.chatRoomId)
+            .get();
+
+    if (chatDoc.exists) {
+      List<String> users = List<String>.from(chatDoc['users']);
+      users.remove(widget.currentUserId); // Remove current user ID
+      if (users.isNotEmpty) {
+        setState(() {
+          otherUserId =
+              users.first; // Set the remaining user as the chat partner
+        });
+      }
+    }
+  }
+
+  // Report user function
+  void _reportUser() async {
+    if (otherUserId == null) return;
+
+    await _chatService.reportUser(widget.currentUserId, otherUserId!);
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("User reported. You will not match again.")),
+    );
+
+    await _handleExit(isManualClose: true);
   }
 
   void _loadEmojis() async {
@@ -68,7 +102,6 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     List<String> stickers = await _giphyService.fetchStickers(query);
     setState(() {
       _stickerList = stickers;
-      _isStickerPickerVisible = !_isStickerPickerVisible; // Toggle picker
     });
   }
 
@@ -82,7 +115,8 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   // Detect app lifecycle changes (Close chat when app is closed)
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.inactive || state == AppLifecycleState.detached) {
+    if (state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.detached) {
       _handleExit();
     }
   }
@@ -92,10 +126,11 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     if (!_isChatOpen) return;
     _isChatOpen = false;
 
-    final chatDoc = await FirebaseFirestore.instance
-        .collection('chats')
-        .doc(widget.chatRoomId)
-        .get();
+    final chatDoc =
+        await FirebaseFirestore.instance
+            .collection('chats')
+            .doc(widget.chatRoomId)
+            .get();
 
     if (chatDoc.exists) {
       List<String> users = List<String>.from(chatDoc['users']);
@@ -114,7 +149,8 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   }
 
   void _sendMessage({String? text, String? stickerUrl}) {
-    if ((text == null || text.trim().isEmpty) && (stickerUrl == null || stickerUrl.isEmpty)) {
+    if ((text == null || text.trim().isEmpty) &&
+        (stickerUrl == null || stickerUrl.isEmpty)) {
       return;
     }
 
@@ -133,22 +169,8 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       _updateTypingStatus(false);
     }
 
-    setState(() {
-      _isStickerPickerVisible = false;
-      _isEmojiPickerVisible = false;
-    });
   }
 
-  void _toggleEmojiPicker() {
-    setState(() {
-      _isEmojiPickerVisible = !_isEmojiPickerVisible;
-      _isStickerPickerVisible = false; // Hide stickers if emojis are opened
-    });
-  }
-
-  void _toggleStickerPicker() {
-    _loadStickers("funny"); // Load stickers with a default query
-  }
 
   void _updateTypingStatus(bool typing) {
     if (typing != isTyping) {
@@ -159,6 +181,94 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
         typing,
       );
     }
+  }
+
+  // Show the Emoji & Sticker Picker as a Bottom Drawer
+  void _showEmojiStickerPicker() {
+    showModalBottomSheet(
+      context: context,
+      builder: (context) {
+        return SizedBox(
+          height: 300,
+          child: Column(
+            children: [
+              ListTile(
+                leading: const Icon(Icons.emoji_emotions),
+                title: const Text("Emoji Picker"),
+                onTap: () {
+                  Navigator.pop(context);
+                  _showEmojiPicker();
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.sticky_note_2),
+                title: const Text("Sticker Picker"),
+                onTap: () {
+                  Navigator.pop(context);
+                  _showStickerPicker();
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  // Show Emoji Picker
+  void _showEmojiPicker() {
+    showModalBottomSheet(
+      context: context,
+      builder: (context) {
+        return SizedBox(
+          height: 200,
+          child: GridView.builder(
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 8,
+            ),
+            itemCount: _emojiList.length,
+            itemBuilder: (context, index) {
+              return GestureDetector(
+                onTap: () => _sendMessage(text: _emojiList[index]),
+                child: Center(
+                  child: Text(
+                    _emojiList[index],
+                    style: const TextStyle(fontSize: 24),
+                  ),
+                ),
+              );
+            },
+          ),
+        );
+      },
+    );
+  }
+
+  // Show Sticker Picker
+  void _showStickerPicker() {
+    _loadStickers("funny");
+
+    showModalBottomSheet(
+      context: context,
+      builder: (context) {
+        return SizedBox(
+          height: 200,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            itemCount: _stickerList.length,
+            itemBuilder: (context, index) {
+              return GestureDetector(
+                onTap: () => _sendMessage(stickerUrl: _stickerList[index]),
+                child: Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Image.network(_stickerList[index], height: 100),
+                ),
+              );
+            },
+          ),
+        );
+      },
+    );
   }
 
   @override
@@ -172,6 +282,11 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
         appBar: AppBar(
           title: const Text("Chat"),
           actions: [
+            if (otherUserId != null)
+              IconButton(
+                icon: const Icon(Icons.flag, color: Colors.red),
+                onPressed: _reportUser, // 🔹 Add report button
+              ),
             IconButton(
               icon: const Icon(Icons.close),
               onPressed: () async {
@@ -183,9 +298,14 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
         body: Column(
           children: [
             StreamBuilder<DocumentSnapshot>(
-              stream: FirebaseFirestore.instance.collection('chats').doc(widget.chatRoomId).snapshots(),
+              stream:
+                  FirebaseFirestore.instance
+                      .collection('chats')
+                      .doc(widget.chatRoomId)
+                      .snapshots(),
               builder: (context, snapshot) {
-                if (!snapshot.hasData || snapshot.data == null) return const SizedBox();
+                if (!snapshot.hasData || snapshot.data == null)
+                  return const SizedBox();
                 var data = snapshot.data!.data() as Map<String, dynamic>;
                 Map<String, dynamic>? typing = data['typing'];
 
@@ -194,16 +314,17 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                   orElse: () => '',
                 );
 
-                bool isOtherUserTyping = otherUserId != null && typing?[otherUserId] == true;
+                bool isOtherUserTyping =
+                    otherUserId != null && typing?[otherUserId] == true;
 
                 return isOtherUserTyping
                     ? const Padding(
-                        padding: EdgeInsets.only(left: 10, bottom: 5),
-                        child: Text(
-                          "User is typing...",
-                          style: TextStyle(fontSize: 14, color: Colors.grey),
-                        ),
-                      )
+                      padding: EdgeInsets.only(left: 10, bottom: 5),
+                      child: Text(
+                        "User is typing...",
+                        style: TextStyle(fontSize: 14, color: Colors.grey),
+                      ),
+                    )
                     : const SizedBox();
               },
             ),
@@ -212,7 +333,8 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
               child: StreamBuilder<List<MessageModel>>(
                 stream: _chatService.getMessages(widget.chatRoomId),
                 builder: (context, snapshot) {
-                  if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+                  if (!snapshot.hasData)
+                    return const Center(child: CircularProgressIndicator());
 
                   List<MessageModel> messages = snapshot.data!;
 
@@ -224,18 +346,32 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                       bool isMe = message.senderId == widget.currentUserId;
 
                       return Align(
-                        alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
-                        child: message.stickerUrl != null
-                            ? Image.network(message.stickerUrl!, height: 100)
-                            : Container(
-                                padding: const EdgeInsets.all(8),
-                                margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 10),
-                                decoration: BoxDecoration(
-                                  color: isMe ? Colors.blueAccent : Colors.grey[300],
-                                  borderRadius: BorderRadius.circular(8),
+                        alignment:
+                            isMe ? Alignment.centerRight : Alignment.centerLeft,
+                        child:
+                            message.stickerUrl != null
+                                ? Image.network(
+                                  message.stickerUrl!,
+                                  height: 100,
+                                )
+                                : Container(
+                                  padding: const EdgeInsets.all(8),
+                                  margin: const EdgeInsets.symmetric(
+                                    vertical: 4,
+                                    horizontal: 10,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color:
+                                        isMe
+                                            ? Colors.blueAccent
+                                            : Colors.grey[300],
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Text(
+                                    message.text ?? "",
+                                    style: const TextStyle(fontSize: 16),
+                                  ),
                                 ),
-                                child: Text(message.text ?? "", style: const TextStyle(fontSize: 16)),
-                              ),
                       );
                     },
                   );
@@ -243,31 +379,26 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
               ),
             ),
 
-            if (_isStickerPickerVisible)
-              SizedBox(
-                height: 120,
-                child: ListView(
-                  scrollDirection: Axis.horizontal,
-                  children: _stickerList.map((sticker) {
-                    return GestureDetector(
-                      onTap: () => _sendMessage(stickerUrl: sticker),
-                      child: Padding(
-                        padding: const EdgeInsets.all(8.0),
-                        child: Image.network(sticker, height: 80),
-                      ),
-                    );
-                  }).toList(),
-                ),
-              ),
 
             Padding(
               padding: const EdgeInsets.all(8.0),
               child: Row(
                 children: [
-                  IconButton(icon: const Icon(Icons.emoji_emotions_outlined), onPressed: _toggleEmojiPicker),
-                  IconButton(icon: const Icon(Icons.sticky_note_2), onPressed: _toggleStickerPicker),
-                  Expanded(child: TextField(controller: _messageController, onChanged: (text) => _updateTypingStatus(text.isNotEmpty))),
-                  IconButton(icon: const Icon(Icons.send), onPressed: () => _sendMessage(text: _messageController.text)),
+                  IconButton(
+                    icon: const Icon(Icons.add),
+                    onPressed: _showEmojiStickerPicker,
+                  ),
+                  Expanded(
+                    child: TextField(
+                      controller: _messageController,
+                      onChanged: (text) => _updateTypingStatus(text.isNotEmpty),
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.send),
+                    onPressed:
+                        () => _sendMessage(text: _messageController.text),
+                  ),
                 ],
               ),
             ),

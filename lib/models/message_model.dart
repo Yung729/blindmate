@@ -26,7 +26,7 @@ class MessageModel {
     return {
       'senderId': senderId,
       if (text != null) 'text': text,
-      if (stickerUrl != null) 'stickerUrl': stickerUrl, // ✅ Store stickers correctly
+      if (stickerUrl != null) 'stickerUrl': stickerUrl, 
       'timestamp': FieldValue.serverTimestamp(),
     };
   }

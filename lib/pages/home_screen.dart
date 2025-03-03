@@ -41,7 +41,39 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
-  void _startChat() {
+  // 🔹 Show Pop-up with Matching Options
+  void _showMatchingOptions() {
+    showDialog(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: const Text("Choose Matching Type"),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ElevatedButton(
+                  onPressed: () {
+                    Navigator.pop(context); // Close dialog
+                    _startRandomMatching();
+                  },
+                  child: const Text("Random Matching"),
+                ),
+                const SizedBox(height: 10),
+                ElevatedButton(
+                  onPressed: () {
+                    Navigator.pop(context); // Close dialog
+                    _startBottleMatching();
+                  },
+                  child: const Text("Bottle Matching"),
+                ),
+              ],
+            ),
+          ),
+    );
+  }
+
+  // 🔹 Start Random Matching
+  void _startRandomMatching() {
     if (_currentUser != null) {
       Navigator.push(
         context,
@@ -50,6 +82,11 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       );
     }
+  }
+
+  // 🔹 Start Bottle Matching
+  void _startBottleMatching() {
+
   }
 
   @override
@@ -71,8 +108,8 @@ class _HomeScreenState extends State<HomeScreen> {
               const CircularProgressIndicator(),
             const SizedBox(height: 20),
             ElevatedButton(
-              onPressed: _startChat,
-              child: const Text("Start Chat"),
+              onPressed: _showMatchingOptions, // 🔹 Show pop-up first
+              child: const Text("Start Matching"),
             ),
           ],
         ),

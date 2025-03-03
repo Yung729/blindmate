@@ -15,6 +15,20 @@ class ChatService {
   Future<String?> findMatch(UserModel user) async {
     print("🔍 Searching for a match for user: ${user.userId}");
 
+    // Fetch list of users reported by the current user
+    final reportedSnapshot =
+        await _firestore
+            .collection('reports')
+            .where('reporterId', isEqualTo: user.userId)
+            .get();
+
+    List<String> reportedUsers =
+        reportedSnapshot.docs
+            .map((doc) => doc['reportedId'] as String)
+            .toList();
+
+    print("🚫 Excluding ${reportedUsers.length} reported users");
+
     final querySnapshot =
         await _firestore
             .collection('users')
@@ -33,7 +47,7 @@ class ChatService {
             )
             .where(
               (matchedUser) =>
-                  matchedUser.mentalHealthLevel != user.mentalHealthLevel,
+                  matchedUser.mentalHealthLevel != user.mentalHealthLevel &&!reportedUsers.contains(matchedUser.userId),
             )
             .toList();
 
@@ -119,5 +133,13 @@ class ChatService {
     for (String userId in users) {
       await updateUserStatus(userId, 'available');
     }
+  }
+
+  Future<void> reportUser(String reporterId, String reportedId) async {
+    await _firestore.collection('reports').add({
+      'reporterId': reporterId,
+      'reportedId': reportedId,
+      'timestamp': FieldValue.serverTimestamp(),
+    });
   }
 }
