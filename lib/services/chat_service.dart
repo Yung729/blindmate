@@ -15,19 +15,33 @@ class ChatService {
   Future<String?> findMatch(UserModel user) async {
     print("🔍 Searching for a match for user: ${user.userId}");
 
-    // Fetch list of users reported by the current user
-    final reportedSnapshot =
+    // Fetch list of users **reported by the current user**
+    final reportedByMeSnapshot =
         await _firestore
             .collection('reports')
             .where('reporterId', isEqualTo: user.userId)
             .get();
 
-    List<String> reportedUsers =
-        reportedSnapshot.docs
+    List<String> reportedByMe =
+        reportedByMeSnapshot.docs
             .map((doc) => doc['reportedId'] as String)
             .toList();
 
-    print("🚫 Excluding ${reportedUsers.length} reported users");
+    print("🚫 Users I reported: ${reportedByMe.length}");
+
+    // Fetch list of users **who reported the current user**
+    final reportedMeSnapshot =
+        await _firestore
+            .collection('reports')
+            .where('reportedId', isEqualTo: user.userId)
+            .get();
+
+    List<String> reportedMe =
+        reportedMeSnapshot.docs
+            .map((doc) => doc['reporterId'] as String)
+            .toList();
+
+    print("🚫 Users who reported me: ${reportedMe.length}");
 
     final querySnapshot =
         await _firestore
@@ -47,7 +61,9 @@ class ChatService {
             )
             .where(
               (matchedUser) =>
-                  matchedUser.mentalHealthLevel != user.mentalHealthLevel &&!reportedUsers.contains(matchedUser.userId),
+                  matchedUser.mentalHealthLevel != user.mentalHealthLevel &&
+                  !reportedByMe.contains(matchedUser.userId) &&
+                  !reportedMe.contains(matchedUser.userId),
             )
             .toList();
 

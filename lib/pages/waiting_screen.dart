@@ -13,23 +13,40 @@ class WaitingScreen extends StatefulWidget {
   _WaitingScreenState createState() => _WaitingScreenState();
 }
 
-class _WaitingScreenState extends State<WaitingScreen> {
+class _WaitingScreenState extends State<WaitingScreen> with SingleTickerProviderStateMixin {
   final ChatService _chatService = ChatService();
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  bool _isNavigating = false; // Prevent duplicate navigation
+  bool _isNavigating = false;
+
+  late AnimationController _animationController;
+  late Animation<double> _scaleAnimation;
 
   @override
   void initState() {
     super.initState();
     _startMatching();
     _listenForMatch();
+
+    // ✅ Fix: Use SingleTickerProviderStateMixin
+    _animationController = AnimationController(
+      vsync: this, 
+      duration: const Duration(seconds: 2),
+    )..repeat(reverse: true);
+
+    _scaleAnimation = Tween<double>(begin: 0.8, end: 1.2).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose(); 
+    super.dispose();
   }
 
   // 🔹 Start Searching for a Match
   void _startMatching() async {
     await _chatService.updateUserStatus(widget.user.userId, 'waiting');
-
-    // Try to find a match immediately
     String? chatRoomId = await _chatService.findMatch(widget.user);
     if (chatRoomId != null) {
       _navigateToChat(chatRoomId);
@@ -44,22 +61,27 @@ class _WaitingScreenState extends State<WaitingScreen> {
         .where('closed', isEqualTo: false)
         .snapshots()
         .listen((querySnapshot) {
-      if (querySnapshot.docs.isNotEmpty && !_isNavigating) {
-        String chatRoomId = querySnapshot.docs.first.id;
-        _navigateToChat(chatRoomId);
-      }
-    });
+          if (querySnapshot.docs.isNotEmpty && !_isNavigating) {
+            String chatRoomId = querySnapshot.docs.first.id;
+            _navigateToChat(chatRoomId);
+          }
+        });
   }
 
   // 🔹 Navigate to Chat
   void _navigateToChat(String chatRoomId) {
-    if (_isNavigating) return; // Prevent multiple navigations
+    if (_isNavigating) return;
     _isNavigating = true;
 
     if (context.mounted) {
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => ChatScreen(chatRoomId: chatRoomId, currentUserId: widget.user.userId)),
+        MaterialPageRoute(
+          builder: (context) => ChatScreen(
+            chatRoomId: chatRoomId,
+            currentUserId: widget.user.userId,
+          ),
+        ),
       );
     }
   }
@@ -67,7 +89,7 @@ class _WaitingScreenState extends State<WaitingScreen> {
   // 🔹 Allow User to Cancel
   void _cancelSearch() async {
     await _chatService.updateUserStatus(widget.user.userId, 'available');
-    if (context.mounted) {
+    if (mounted) {
       Navigator.pop(context);
     }
   }
@@ -75,18 +97,58 @@ class _WaitingScreenState extends State<WaitingScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Searching for a Match...")),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const CircularProgressIndicator(),
-            const SizedBox(height: 20),
-            const Text("Looking for a match... Please wait."),
-            const SizedBox(height: 20),
-            ElevatedButton(onPressed: _cancelSearch, child: const Text("Cancel")),
-          ],
-        ),
+      backgroundColor: Color(0xFF02ABC1),
+      body: Stack(
+        children: [
+          Center(
+            child: AnimatedBuilder(
+              animation: _scaleAnimation, // ✅ Fix: Use _scaleAnimation
+              builder: (context, child) {
+                return Transform.scale(scale: _scaleAnimation.value, child: child);
+              },
+              child: Image.asset(
+                'assets/searching.gif',
+                width: 200,
+                height: 200,
+              ),
+            ),
+          ),
+          Positioned(
+            bottom: 100,
+            left: 0,
+            right: 0,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Text(
+                  "Finding your match...",
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                ElevatedButton(
+                  onPressed: _cancelSearch,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                  ),
+                  child: const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 30, vertical: 12),
+                    child: Text(
+                      "Cancel Matching",
+                      style: TextStyle(fontSize: 16),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

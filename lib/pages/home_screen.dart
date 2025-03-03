@@ -53,7 +53,7 @@ class _HomeScreenState extends State<HomeScreen> {
               children: [
                 ElevatedButton(
                   onPressed: () {
-                    Navigator.pop(context); // Close dialog
+                    Navigator.pop(context);
                     _startRandomMatching();
                   },
                   child: const Text("Random Matching"),
@@ -61,7 +61,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 const SizedBox(height: 10),
                 ElevatedButton(
                   onPressed: () {
-                    Navigator.pop(context); // Close dialog
+                    Navigator.pop(context); 
                     _startBottleMatching();
                   },
                   child: const Text("Bottle Matching"),
@@ -108,7 +108,7 @@ class _HomeScreenState extends State<HomeScreen> {
               const CircularProgressIndicator(),
             const SizedBox(height: 20),
             ElevatedButton(
-              onPressed: _showMatchingOptions, // 🔹 Show pop-up first
+              onPressed: _showMatchingOptions, 
               child: const Text("Start Matching"),
             ),
           ],

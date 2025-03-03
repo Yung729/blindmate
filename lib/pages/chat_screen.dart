@@ -1,10 +1,10 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../services/chat_service.dart';
 import '../services/emoji_service.dart';
 import '../services/giphy_service.dart';
 import '../models/message_model.dart';
-import 'home_screen.dart';
 
 class ChatScreen extends StatefulWidget {
   final String chatRoomId;
@@ -32,6 +32,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   bool _isChatOpen = true;
   bool isTyping = false;
   String? otherUserId;
+  Timer? _inactivityTimer;
 
   @override
   void initState() {
@@ -39,6 +40,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     _loadEmojis();
     WidgetsBinding.instance.addObserver(this);
     _fetchChatPartner();
+    _startInactivityTimer();
 
     // Listen for chat closure (partner leaving)
     _chatService.listenForChatUpdates(widget.chatRoomId).listen((snapshot) {
@@ -52,6 +54,63 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
         }
       }
     });
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _messageController.dispose();
+    _inactivityTimer?.cancel();
+    super.dispose();
+  }
+
+  // Detect app lifecycle changes (Close chat when app is closed)
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.detached) {
+      _handleExit();
+    }
+  }
+
+  void _startInactivityTimer() {
+    _inactivityTimer?.cancel(); // Cancel existing timer
+    _inactivityTimer = Timer(const Duration(minutes: 1), () {
+      _showInactivityDialog();
+    });
+  }
+
+  Future<void> _showInactivityDialog() async {
+    if (!mounted) return;
+
+    bool? shouldExit = await showDialog(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: const Text("Chat Ended Due to Inactivity"),
+            content: const Text(
+              "No messages were sent for 10 minutes. This chat will now close.",
+            ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  _handleExit();
+                },
+                child: const Text("OK"),
+              ),
+            ],
+          ),
+    );
+
+    if (shouldExit == true) {
+      _handleExit();
+    }
+  }
+
+  // Call this when sending a message to reset timer
+  void _onMessageSent() {
+    _startInactivityTimer();
   }
 
   // Fetch the other user's ID in the chat
@@ -84,66 +143,64 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       const SnackBar(content: Text("User reported. You will not match again.")),
     );
 
-    await _handleExit(isManualClose: true);
+    await _handleExit();
   }
 
-  void _loadEmojis() async {
-    try {
-      List<String> emojis = await _emojiService.fetchEmojis();
-      setState(() {
-        _emojiList = emojis.take(20).toList(); // Show only 20 emojis for now
-      });
-    } catch (e) {
-      print("❌ Failed to load emojis: $e");
-    }
-  }
+  Future<void> _confirmEndChat() async {
+    bool? shouldEnd = await showDialog(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: const Text("End Chat?"),
+            content: const Text(
+              "Are you sure you want to leave this chat? This action cannot be undone.",
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text("Cancel"),
+              ),
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context, true);
+                },
+                child: const Text(
+                  "End Chat",
+                  style: TextStyle(color: Colors.red),
+                ),
+              ),
+            ],
+          ),
+    );
 
-  void _loadStickers(String query) async {
-    List<String> stickers = await _giphyService.fetchStickers(query);
-    setState(() {
-      _stickerList = stickers;
-    });
-  }
-
-  @override
-  void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
-    _messageController.dispose();
-    super.dispose();
-  }
-
-  // Detect app lifecycle changes (Close chat when app is closed)
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.inactive ||
-        state == AppLifecycleState.detached) {
+    if (shouldEnd == true) {
       _handleExit();
     }
   }
 
   // Handle closing the chat room
-  Future<void> _handleExit({bool isManualClose = false}) async {
+  Future<void> _handleExit() async {
     if (!_isChatOpen) return;
     _isChatOpen = false;
 
-    final chatDoc =
-        await FirebaseFirestore.instance
-            .collection('chats')
-            .doc(widget.chatRoomId)
-            .get();
+    final chatRef = FirebaseFirestore.instance
+        .collection('chats')
+        .doc(widget.chatRoomId);
+    final chatDoc = await chatRef.get();
 
-    if (chatDoc.exists) {
-      List<String> users = List<String>.from(chatDoc['users']);
-      users.remove(widget.currentUserId);
+    if (!chatDoc.exists) return; // Chat does not exist
 
-      if (users.isEmpty || isManualClose) {
-        await _chatService.closeChatRoom(widget.chatRoomId, users);
-      } else {
-        await _chatService.updateUserStatus(widget.currentUserId, 'available');
-      }
+    List<String> users = List<String>.from(chatDoc['users']);
+    users.remove(widget.currentUserId);
+
+    if (users.isEmpty) {
+      await _chatService.closeChatRoom(widget.chatRoomId, users);
+    } else {
+      await chatRef.update({'closed': true});
+      await _chatService.updateUserStatus(widget.currentUserId, 'available');
     }
 
-    if (isManualClose) {
+    if (mounted) {
       Navigator.popUntil(context, (route) => route.isFirst);
     }
   }
@@ -168,9 +225,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       _messageController.clear();
       _updateTypingStatus(false);
     }
-
   }
-
 
   void _updateTypingStatus(bool typing) {
     if (typing != isTyping) {
@@ -181,6 +236,24 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
         typing,
       );
     }
+  }
+
+  void _loadEmojis() async {
+    try {
+      List<String> emojis = await _emojiService.fetchEmojis();
+      setState(() {
+        _emojiList = emojis.take(20).toList(); // Show only 20 emojis for now
+      });
+    } catch (e) {
+      print("❌ Failed to load emojis: $e");
+    }
+  }
+
+  void _loadStickers(String query) async {
+    List<String> stickers = await _giphyService.fetchStickers(query);
+    setState(() {
+      _stickerList = stickers;
+    });
   }
 
   // Show the Emoji & Sticker Picker as a Bottom Drawer
@@ -289,9 +362,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
               ),
             IconButton(
               icon: const Icon(Icons.close),
-              onPressed: () async {
-                await _handleExit(isManualClose: true);
-              },
+              onPressed: _confirmEndChat,
             ),
           ],
         ),
@@ -379,7 +450,6 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
               ),
             ),
 
-
             Padding(
               padding: const EdgeInsets.all(8.0),
               child: Row(
@@ -392,6 +462,12 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                     child: TextField(
                       controller: _messageController,
                       onChanged: (text) => _updateTypingStatus(text.isNotEmpty),
+                      onSubmitted: (text) {
+                        _onMessageSent(); // Reset timer when user sends a message
+                      },
+                      decoration: const InputDecoration(
+                        hintText: "Type a message...",
+                      ),
                     ),
                   ),
                   IconButton(
