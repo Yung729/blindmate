@@ -75,7 +75,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
 
   void _startInactivityTimer() {
     _inactivityTimer?.cancel(); // Cancel existing timer
-    _inactivityTimer = Timer(const Duration(minutes: 1), () {
+    _inactivityTimer = Timer(const Duration(minutes: 10), () {
       _showInactivityDialog();
     });
   }
@@ -404,8 +404,9 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
               child: StreamBuilder<List<MessageModel>>(
                 stream: _chatService.getMessages(widget.chatRoomId),
                 builder: (context, snapshot) {
-                  if (!snapshot.hasData)
+                  if (!snapshot.hasData) {
                     return const Center(child: CircularProgressIndicator());
+                  }
 
                   List<MessageModel> messages = snapshot.data!;
 
@@ -416,33 +417,67 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                       MessageModel message = messages[index];
                       bool isMe = message.senderId == widget.currentUserId;
 
-                      return Align(
-                        alignment:
-                            isMe ? Alignment.centerRight : Alignment.centerLeft,
-                        child:
-                            message.stickerUrl != null
-                                ? Image.network(
-                                  message.stickerUrl!,
-                                  height: 100,
-                                )
-                                : Container(
-                                  padding: const EdgeInsets.all(8),
-                                  margin: const EdgeInsets.symmetric(
-                                    vertical: 4,
-                                    horizontal: 10,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color:
-                                        isMe
-                                            ? Colors.blueAccent
-                                            : Colors.grey[300],
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: Text(
-                                    message.text ?? "",
-                                    style: const TextStyle(fontSize: 16),
-                                  ),
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(
+                          vertical: 4,
+                          horizontal: 8,
+                        ),
+                        child: Row(
+                          mainAxisAlignment:
+                              isMe
+                                  ? MainAxisAlignment.end
+                                  : MainAxisAlignment.start,
+                          children: [
+                            if (!isMe) // Show profile picture for received messages
+                              CircleAvatar(
+                                radius: 20,
+                                backgroundImage: AssetImage(
+                                  'assets/default_pic.jpg',
                                 ),
+                              ),
+                            const SizedBox(width: 8),
+
+                            // Chat Bubble
+                            Flexible(
+                              child: Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color:
+                                      isMe
+                                          ? Colors.blueAccent
+                                          : Colors.grey[300],
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child:
+                                    message.stickerUrl != null
+                                        ? Image.network(
+                                          message.stickerUrl!,
+                                          height: 100,
+                                        )
+                                        : Text(
+                                          message.text ?? "",
+                                          style: TextStyle(
+                                            fontSize: 16,
+                                            color:
+                                                isMe
+                                                    ? Colors.white
+                                                    : Colors.black,
+                                          ),
+                                        ),
+                              ),
+                            ),
+
+                            const SizedBox(width: 8),
+
+                            if (isMe) // Show profile picture for sent messages
+                              CircleAvatar(
+                                radius: 20,
+                                backgroundImage: AssetImage(
+                                  'assets/default_pic.jpg',
+                                ),
+                              ),
+                          ],
+                        ),
                       );
                     },
                   );

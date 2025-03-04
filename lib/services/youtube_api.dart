@@ -1,12 +1,13 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import '../secrets.dart'; // Import secrets
 
 class YouTubeAPI {
+  static const String youtubeApiKey = "AIzaSyDHtD8kevewV98Gw4Bm4ash65L4jP_1XNY";
+
   static Future<List<Map<String, String>>> searchYouTubeMusicList(String query) async {
     var url = Uri.parse(
       "https://www.googleapis.com/youtube/v3/search?"
-      "part=snippet&q=$query&type=video&maxResults=5&key=${Secrets.youtubeApiKey}"
+      "part=snippet&q=$query&type=video&maxResults=5&key=$youtubeApiKey"
     );
 
     try {
