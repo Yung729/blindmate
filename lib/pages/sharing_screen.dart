@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
 import 'package:youtube_player_flutter/youtube_player_flutter.dart';
 import '../models/user_model.dart';
+import '../widgets/fetch_url_thumbail.dart';
 import 'create_post_screen.dart';
 import 'music_player_screen.dart';
 
@@ -82,7 +83,9 @@ class _SharingScreenState extends State<SharingScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Sharing")),
+      appBar: AppBar(
+        title: const Text("A Space For People To Share Thoughts!"),
+      ),
       body: Column(
         children: [
           _buildCreatePostButton(),
@@ -161,6 +164,14 @@ class _SharingScreenState extends State<SharingScreen> {
             bool isCurrentUserPost = data['userId'] == _currentUser?.userId;
             String? videoId = _extractYouTubeVideoId(data['musicUrl'] ?? "");
 
+            // Extract URL from content if present
+            RegExp urlRegExp = RegExp(
+              r'(https?:\/\/[^\s]+)',
+              caseSensitive: false,
+            );
+            Match? urlMatch = urlRegExp.firstMatch(data['content'] ?? '');
+            String? detectedUrl = urlMatch?.group(0);
+
             return Padding(
               padding: const EdgeInsets.symmetric(
                 vertical: 12.0,
@@ -175,9 +186,11 @@ class _SharingScreenState extends State<SharingScreen> {
                         backgroundImage: AssetImage('assets/default_pic.jpg'),
                       ),
                       const SizedBox(width: 10),
-                      const Text(
-                        "Anonymous User",
-                        style: TextStyle(fontWeight: FontWeight.bold),
+                      Text(
+                        data['userId'] == _currentUser?.userId
+                            ? "Me"
+                            : "Depression People",
+                        style: const TextStyle(fontWeight: FontWeight.bold),
                       ),
                       const Spacer(),
                       if (isCurrentUserPost) ...[
@@ -195,9 +208,14 @@ class _SharingScreenState extends State<SharingScreen> {
                     ],
                   ),
                   const SizedBox(height: 8),
+
+                  // Display text content
                   if (data['content'] != null && data['content'].isNotEmpty)
                     Text(data['content']),
+
                   const SizedBox(height: 8),
+
+                  // If the content contains a YouTube link, show a YouTube preview
                   if (videoId != null)
                     GestureDetector(
                       onTap:
@@ -223,6 +241,11 @@ class _SharingScreenState extends State<SharingScreen> {
                         ],
                       ),
                     ),
+
+                  // If the content has a general URL (not YouTube), fetch metadata
+                  if (detectedUrl != null && videoId == null)
+                    buildLinkPreview(detectedUrl),
+
                   const SizedBox(height: 8),
                   Text(
                     formattedDate,
