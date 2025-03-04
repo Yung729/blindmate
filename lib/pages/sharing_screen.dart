@@ -1,8 +1,11 @@
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
+import 'package:youtube_player_flutter/youtube_player_flutter.dart';
 import '../models/user_model.dart';
+import 'create_post_screen.dart';
+import 'music_player_screen.dart';
 
 class SharingScreen extends StatefulWidget {
   final UserModel user;
@@ -14,12 +17,9 @@ class SharingScreen extends StatefulWidget {
 }
 
 class _SharingScreenState extends State<SharingScreen> {
-  final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
   UserModel? _currentUser;
-  final TextEditingController _textController = TextEditingController();
-  bool _isLoading = true;
-  bool _isPublic = true;
 
   @override
   void initState() {
@@ -31,45 +31,28 @@ class _SharingScreenState extends State<SharingScreen> {
     final user = _auth.currentUser;
     if (user != null) {
       final userDoc = await _firestore.collection('users').doc(user.uid).get();
-      if (userDoc.exists && userDoc.data() != null) {
+      if (userDoc.exists) {
         setState(() {
           _currentUser = UserModel.fromMap(
             userDoc.data() as Map<String, dynamic>,
             userDoc.id,
           );
-          _isLoading = false;
         });
       }
     }
   }
 
-  void _shareContent() async {
-    if (_currentUser != null && _textController.text.isNotEmpty) {
-      await _firestore.collection('shared_content').add({
-        'userId': _currentUser!.userId,
-        'userName': _currentUser!.name,
-        'content': _textController.text,
-        'timestamp': FieldValue.serverTimestamp(),
-        'likes': [],
-        'visibility': _isPublic ? 'public' : 'private',
-      });
-      _textController.clear();
+  void _navigateToCreatePost() async {
+    final newPost = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => CreatePostScreen(user: widget.user),
+      ),
+    );
+
+    if (newPost != null) {
+      await _firestore.collection('shared_content').add(newPost);
     }
-  }
-
-  Future<void> _toggleLike(String postId, List<dynamic> likes) async {
-    final userId = _currentUser?.userId;
-    if (userId == null) return;
-
-    if (likes.contains(userId)) {
-      likes.remove(userId);
-    } else {
-      likes.add(userId);
-    }
-
-    await _firestore.collection('shared_content').doc(postId).update({
-      'likes': likes,
-    });
   }
 
   Future<void> _deletePost(String postId) async {
@@ -77,57 +60,66 @@ class _SharingScreenState extends State<SharingScreen> {
   }
 
   Future<void> _toggleVisibility(
-      String postId,
-      String? currentVisibility,
-      ) async {
-    if (currentVisibility == null) {
-      currentVisibility = 'public'; // Default to 'public' if null
-    }
+    String postId,
+    String currentVisibility,
+  ) async {
+    String newVisibility = currentVisibility == 'public' ? 'private' : 'public';
+    await _firestore.collection('shared_content').doc(postId).update({
+      'visibility': newVisibility,
+    });
+  }
 
-    String? newVisibility = await showDialog<String>(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text("Change Visibility"),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ListTile(
-                title: const Text("Public"),
-                leading: Radio<String>(
-                  value: 'public',
-                  groupValue: currentVisibility,
-                  onChanged: (value) => Navigator.pop(context, value),
-                ),
-              ),
-              ListTile(
-                title: const Text("Private"),
-                leading: Radio<String>(
-                  value: 'private',
-                  groupValue: currentVisibility,
-                  onChanged: (value) => Navigator.pop(context, value),
-                ),
-              ),
-            ],
-          ),
-        );
-      },
+  String? _extractYouTubeVideoId(String url) {
+    RegExp regExp = RegExp(
+      r'(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?/ ]{11})',
+      caseSensitive: false,
+      multiLine: false,
     );
-
-    if (newVisibility != null && newVisibility != currentVisibility) {
-      await _firestore.collection('shared_content').doc(postId).update({
-        'visibility': newVisibility,
-      });
-    }
+    Match? match = regExp.firstMatch(url);
+    return match?.group(1);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(title: const Text("Sharing")),
       body: Column(
         children: [
+          _buildCreatePostButton(),
           Expanded(child: _buildSharedContentList()),
-          _buildInputField(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCreatePostButton() {
+    return Padding(
+      padding: const EdgeInsets.all(10.0),
+      child: Row(
+        children: [
+          const CircleAvatar(
+            backgroundImage: AssetImage('assets/default_pic.jpg'),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: GestureDetector(
+              onTap: _navigateToCreatePost,
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  vertical: 10,
+                  horizontal: 15,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.grey[200],
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: const Text(
+                  "What's on your mind?",
+                  style: TextStyle(color: Colors.black54),
+                ),
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -135,19 +127,22 @@ class _SharingScreenState extends State<SharingScreen> {
 
   Widget _buildSharedContentList() {
     return StreamBuilder<QuerySnapshot>(
-      stream: _firestore
-          .collection('shared_content')
-          .orderBy('timestamp', descending: true)
-          .snapshots(),
+      stream:
+          _firestore
+              .collection('shared_content')
+              .orderBy('timestamp', descending: true)
+              .snapshots(),
       builder: (context, snapshot) {
         if (!snapshot.hasData) {
           return const Center(child: CircularProgressIndicator());
         }
-        final sharedPosts = snapshot.data!.docs.where((doc) {
-          final data = doc.data() as Map<String, dynamic>;
-          return data['visibility'] == 'public' ||
-              data['userId'] == _currentUser?.userId;
-        }).toList();
+
+        final sharedPosts =
+            snapshot.data!.docs.where((doc) {
+              final data = doc.data() as Map<String, dynamic>;
+              return data['visibility'] == 'public' ||
+                  data['userId'] == _currentUser?.userId;
+            }).toList();
 
         return ListView.builder(
           itemCount: sharedPosts.length,
@@ -155,15 +150,16 @@ class _SharingScreenState extends State<SharingScreen> {
             final post = sharedPosts[index];
             final postId = post.id;
             final data = post.data() as Map<String, dynamic>;
-            final likes = List<String>.from(data['likes'] ?? []);
-            final isLiked =
-                _currentUser != null && likes.contains(_currentUser!.userId);
             final timestamp = data['timestamp'] as Timestamp?;
-            final formattedDate = timestamp != null
-                ? DateFormat('dd MMM yyyy, hh:mm a').format(timestamp.toDate())
-                : "Unknown date";
-            final visibility = (data['visibility'] ?? 'public') as String;
-            final isOwner = data['userId'] == _currentUser?.userId;
+            final formattedDate =
+                timestamp != null
+                    ? DateFormat(
+                      'dd MMM yyyy, hh:mm a',
+                    ).format(timestamp.toDate())
+                    : "Unknown date";
+
+            bool isCurrentUserPost = data['userId'] == _currentUser?.userId;
+            String? videoId = _extractYouTubeVideoId(data['musicUrl'] ?? "");
 
             return Padding(
               padding: const EdgeInsets.symmetric(
@@ -179,44 +175,58 @@ class _SharingScreenState extends State<SharingScreen> {
                         backgroundImage: AssetImage('assets/default_pic.jpg'),
                       ),
                       const SizedBox(width: 10),
-                      Text(
-                        data['userName'],
-                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      const Text(
+                        "Anonymous User",
+                        style: TextStyle(fontWeight: FontWeight.bold),
                       ),
-                      if (isOwner)
+                      const Spacer(),
+                      if (isCurrentUserPost) ...[
                         IconButton(
-                          icon: Icon(
-                            visibility == 'public' ? Icons.lock_open : Icons.lock,
-                            color: Colors.grey,
-                          ),
-                          onPressed: () => _toggleVisibility(postId, visibility),
+                          icon: const Icon(Icons.lock_outline),
+                          onPressed:
+                              () =>
+                                  _toggleVisibility(postId, data['visibility']),
                         ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Text(data['content']),
-                  const SizedBox(height: 8),
-                  Text(
-                    formattedDate,
-                    style: TextStyle(fontSize: 12, color: Colors.grey),
-                  ),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.start,
-                    children: [
-                      IconButton(
-                        icon: Icon(
-                          isLiked ? Icons.favorite : Icons.favorite_border,
-                          color: isLiked ? Colors.red : Colors.grey,
-                        ),
-                        onPressed: () => _toggleLike(postId, likes),
-                      ),
-                      Text("${likes.length}"),
-                      if (isOwner)
                         IconButton(
                           icon: const Icon(Icons.delete, color: Colors.red),
                           onPressed: () => _deletePost(postId),
                         ),
+                      ],
                     ],
+                  ),
+                  const SizedBox(height: 8),
+                  if (data['content'] != null && data['content'].isNotEmpty)
+                    Text(data['content']),
+                  const SizedBox(height: 8),
+                  if (videoId != null)
+                    GestureDetector(
+                      onTap:
+                          () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder:
+                                  (context) => MusicPlayerScreen(
+                                    youtubeUrl: data['musicUrl'],
+                                  ),
+                            ),
+                          ),
+                      child: Column(
+                        children: [
+                          Image.network(
+                            "https://img.youtube.com/vi/$videoId/0.jpg",
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            "🎵 Play Music",
+                            style: TextStyle(color: Colors.blue),
+                          ),
+                        ],
+                      ),
+                    ),
+                  const SizedBox(height: 8),
+                  Text(
+                    formattedDate,
+                    style: TextStyle(fontSize: 12, color: Colors.grey),
                   ),
                   const Divider(),
                 ],
@@ -225,37 +235,6 @@ class _SharingScreenState extends State<SharingScreen> {
           },
         );
       },
-    );
-  }
-
-  Widget _buildInputField() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border(top: BorderSide(color: Colors.grey.shade300)),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: TextField(
-              controller: _textController,
-              decoration: const InputDecoration(
-                hintText: "Say something...",
-                border: InputBorder.none,
-              ),
-            ),
-          ),
-          Switch(
-            value: _isPublic,
-            onChanged: (value) => setState(() => _isPublic = value),
-          ),
-          IconButton(
-            icon: const Icon(Icons.send, color: Colors.green),
-            onPressed: _shareContent,
-          ),
-        ],
-      ),
     );
   }
 }
