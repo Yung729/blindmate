@@ -2,9 +2,86 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:math';
 import '../models/user_model.dart';
 import '../models/message_model.dart';
+import 'dart:async';
+import 'dart:convert';
+import 'package:web_socket_channel/io.dart';
+import 'package:web_socket_channel/web_socket_channel.dart';
 
 class ChatService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final String websocketUrl =
+      "wss://blindmate-backend-production.up.railway.app";
+
+  WebSocketChannel? _channel;
+  final StreamController<List<MessageModel>> _messageStreamController =
+      StreamController.broadcast();
+
+  List<MessageModel> _messages = []; // Store all messages in memory
+
+  /// 🔹 Connect WebSocket after finding a match
+  void connectWebSocket(String chatRoomId) {
+    _channel = IOWebSocketChannel.connect(websocketUrl);
+    print("✅ WebSocket Connected to chatRoom: $chatRoomId");
+
+    final connectMessage = jsonEncode({
+      "type": "connect",
+      "chatRoomId": chatRoomId, // ✅ No need for userId
+    });
+    _channel?.sink.add(connectMessage);
+
+    _listenForMessages(chatRoomId); // ✅ Ensures real-time updates
+  }
+
+  void _listenForMessages(String chatRoomId) {
+    _channel?.stream.listen((message) {
+      try {
+        final data = jsonDecode(message);
+
+        if (data['type'] == 'message' && data['chatRoomId'] == chatRoomId) {
+          print("✅ New Message Received!");
+
+          MessageModel msg = MessageModel.fromMap(data);
+          _messages.insert(0, msg);
+          _messageStreamController.add(List.from(_messages));
+        }
+      } catch (e) {
+        print("⚠️ WebSocket Error: $e");
+      }
+    }, cancelOnError: false);
+  }
+
+  /// 🔹 Get chat messages in real time
+  Stream<List<MessageModel>> getMessages() {
+    print("🎯 getMessages() Called");
+    return _messageStreamController.stream.map((messages) {
+      return messages;
+    });
+  }
+
+  /// 🔹 Send a message via WebSocket
+  Future<void> sendMessage(
+    String userId,
+    String chatRoomId,
+    MessageModel message,
+  ) async {
+    final messageData = jsonEncode({
+      "type": "message",
+      "chatRoomId": chatRoomId, // ✅ Ensure chatRoomId is included
+      "senderId": message.senderId,
+      "text": message.text,
+      "stickerUrl": message.stickerUrl,
+      "timestamp": DateTime.now().toIso8601String(),
+    });
+    _channel?.sink.add(messageData);
+    print("🚀 Sent WebSocket Message: $messageData");
+
+    // Store message in Firestore
+    await _firestore
+        .collection('chats')
+        .doc(chatRoomId)
+        .collection('messages')
+        .add(message.toMapForFirestore());
+  }
 
   // 🔹 Update user status
   Future<void> updateUserStatus(String userId, String status) async {
@@ -91,6 +168,7 @@ class ChatService {
       });
 
       print("✅ Chat room $chatRoomId successfully created");
+
       return chatRoomId;
     }
 
@@ -103,15 +181,6 @@ class ChatService {
     return _firestore.collection('chats').doc(chatRoomId).snapshots();
   }
 
-  // 🔹 Send a message
-  Future<void> sendMessage(String chatRoomId, MessageModel message) async {
-    await _firestore
-        .collection('chats')
-        .doc(chatRoomId)
-        .collection('messages')
-        .add(message.toMap());
-  }
-
   Future<void> updateTypingStatus(
     String chatRoomId,
     String userId,
@@ -122,21 +191,6 @@ class ChatService {
     );
   }
 
-  // 🔹 Get chat messages in real time
-  Stream<List<MessageModel>> getMessages(String chatRoomId) {
-    return _firestore
-        .collection('chats')
-        .doc(chatRoomId)
-        .collection('messages')
-        .orderBy('timestamp', descending: true)
-        .snapshots()
-        .map((snapshot) {
-          return snapshot.docs
-              .map((doc) => MessageModel.fromMap(doc.data()))
-              .toList();
-        });
-  }
-
   // 🔹 Close the chat room and reset users' status
   Future<void> closeChatRoom(String chatRoomId, List<String> users) async {
     await _firestore.collection('chats').doc(chatRoomId).update({
@@ -144,11 +198,19 @@ class ChatService {
     });
 
     // 🔹 Ensure Firestore updates properly
-    await Future.delayed(const Duration(milliseconds: 500));
+    await Future.delayed(const Duration(milliseconds: 1000));
 
     for (String userId in users) {
       await updateUserStatus(userId, 'available');
     }
+
+  }
+
+  /// 🔹 Close WebSocket connection
+  void closeConnection() {
+    _channel?.sink.close();
+    _channel = null;
+    print("❌ WebSocket Disconnected");
   }
 
   Future<void> reportUser(String reporterId, String reportedId) async {

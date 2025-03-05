@@ -37,6 +37,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   @override
   void initState() {
     super.initState();
+    _chatService.connectWebSocket(widget.chatRoomId);
     _loadEmojis();
     WidgetsBinding.instance.addObserver(this);
     _fetchChatPartner();
@@ -161,9 +162,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                 child: const Text("Cancel"),
               ),
               TextButton(
-                onPressed: () {
-                  Navigator.pop(context, true);
-                },
+                onPressed: _handleExit,
                 child: const Text(
                   "End Chat",
                   style: TextStyle(color: Colors.red),
@@ -172,10 +171,6 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
             ],
           ),
     );
-
-    if (shouldEnd == true) {
-      _handleExit();
-    }
   }
 
   // Handle closing the chat room
@@ -192,6 +187,8 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
 
     List<String> users = List<String>.from(chatDoc['users']);
     users.remove(widget.currentUserId);
+
+    _chatService.closeConnection();
 
     if (users.isEmpty) {
       await _chatService.closeChatRoom(widget.chatRoomId, users);
@@ -212,6 +209,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     }
 
     _chatService.sendMessage(
+      widget.currentUserId,
       widget.chatRoomId,
       MessageModel(
         senderId: widget.currentUserId,
@@ -402,14 +400,18 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
 
             Expanded(
               child: StreamBuilder<List<MessageModel>>(
-                stream: _chatService.getMessages(widget.chatRoomId),
+                stream: _chatService.getMessages(),
                 builder: (context, snapshot) {
-                  if (!snapshot.hasData) {
-                    return const Center(child: CircularProgressIndicator());
+                  print(
+                    "🎯 StreamBuilder Updated: Has Data? ${snapshot.hasData} | Messages: ${snapshot.data?.length ?? 0}",
+                  );
+
+                  if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                    return const Center(child: Text("No messages yet."));
                   }
 
                   List<MessageModel> messages = snapshot.data!;
-
+                  print("📥 UI Updated with ${messages.length} messages");
                   return ListView.builder(
                     reverse: true,
                     itemCount: messages.length,
