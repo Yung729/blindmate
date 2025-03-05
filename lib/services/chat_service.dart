@@ -203,7 +203,6 @@ class ChatService {
     for (String userId in users) {
       await updateUserStatus(userId, 'available');
     }
-
   }
 
   /// 🔹 Close WebSocket connection
@@ -218,6 +217,20 @@ class ChatService {
       'reporterId': reporterId,
       'reportedId': reportedId,
       'timestamp': FieldValue.serverTimestamp(),
+    });
+  }
+
+  Stream<Map<String, bool>> getTypingStatus(String chatRoomId) {
+    return _firestore.collection('chats').doc(chatRoomId).snapshots().map((
+      snapshot,
+    ) {
+      if (snapshot.exists && snapshot.data() != null) {
+        final data = snapshot.data() as Map<String, dynamic>;
+        if (data.containsKey('typing')) {
+          return Map<String, bool>.from(data['typing']);
+        }
+      }
+      return {};
     });
   }
 }

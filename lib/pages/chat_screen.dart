@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:blindmate/widgets/typing_bubble.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../services/chat_service.dart';
@@ -31,6 +32,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   bool partnerLeft = false;
   bool _isChatOpen = true;
   bool isTyping = false;
+  bool isOtherUserTyping = false;
   String? otherUserId;
   Timer? _inactivityTimer;
 
@@ -42,6 +44,15 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     WidgetsBinding.instance.addObserver(this);
     _fetchChatPartner();
     _startInactivityTimer();
+
+    // Listen for typing status updates
+    _chatService.getTypingStatus(widget.chatRoomId).listen((typingData) {
+      if (typingData.containsKey(otherUserId)) {
+        setState(() {
+          isOtherUserTyping = typingData[otherUserId] == true;
+        });
+      }
+    });
 
     // Listen for chat closure (partner leaving)
     _chatService.listenForChatUpdates(widget.chatRoomId).listen((snapshot) {
@@ -366,57 +377,43 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
         ),
         body: Column(
           children: [
-            StreamBuilder<DocumentSnapshot>(
-              stream:
-                  FirebaseFirestore.instance
-                      .collection('chats')
-                      .doc(widget.chatRoomId)
-                      .snapshots(),
-              builder: (context, snapshot) {
-                if (!snapshot.hasData || snapshot.data == null)
-                  return const SizedBox();
-                var data = snapshot.data!.data() as Map<String, dynamic>;
-                Map<String, dynamic>? typing = data['typing'];
-
-                String? otherUserId = typing?.keys.firstWhere(
-                  (id) => id != widget.currentUserId,
-                  orElse: () => '',
-                );
-
-                bool isOtherUserTyping =
-                    otherUserId != null && typing?[otherUserId] == true;
-
-                return isOtherUserTyping
-                    ? const Padding(
-                      padding: EdgeInsets.only(left: 10, bottom: 5),
-                      child: Text(
-                        "User is typing...",
-                        style: TextStyle(fontSize: 14, color: Colors.grey),
-                      ),
-                    )
-                    : const SizedBox();
-              },
-            ),
-
             Expanded(
               child: StreamBuilder<List<MessageModel>>(
                 stream: _chatService.getMessages(),
                 builder: (context, snapshot) {
-                  print(
-                    "🎯 StreamBuilder Updated: Has Data? ${snapshot.hasData} | Messages: ${snapshot.data?.length ?? 0}",
-                  );
 
-                  if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                    return const Center(child: Text("No messages yet."));
-                  }
-
-                  List<MessageModel> messages = snapshot.data!;
-                  print("📥 UI Updated with ${messages.length} messages");
+                  List<MessageModel> messages = snapshot.data ?? [];
+                
                   return ListView.builder(
                     reverse: true,
-                    itemCount: messages.length,
+                    itemCount: messages.length + (isOtherUserTyping ? 1 : 0),
                     itemBuilder: (context, index) {
-                      MessageModel message = messages[index];
+                      if ((isOtherUserTyping && index == 0) || (isOtherUserTyping && messages.isEmpty)) {
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(
+                            vertical: 4,
+                            horizontal: 8,
+                          ),
+                          child: Row(
+                            mainAxisAlignment:
+                                MainAxisAlignment.start, // Align to left
+                            children: [
+                              CircleAvatar(
+                                radius: 20,
+                                backgroundImage: AssetImage(
+                                  'assets/default_pic.jpg',
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              const TypingBubble(), // Show typing animation bubble
+                            ],
+                          ),
+                        );
+                      }
+
+                      final messageIndex =
+                          isOtherUserTyping ? index - 1 : index;
+                      MessageModel message = messages[messageIndex];
                       bool isMe = message.senderId == widget.currentUserId;
 
                       return Padding(
