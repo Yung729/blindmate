@@ -29,11 +29,13 @@ class _MusicPlayerScreenState extends State<MusicPlayerScreen> {
       flags: const YoutubePlayerFlags(autoPlay: true, mute: false),
     )..addListener(_videoListener);
 
+    // Simulate getting song metadata
     setState(() {
       songTitle = "Sample Song";
       artistName = "Sample Artist";
     });
 
+    // Update progress bar every second
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (mounted) {
         setState(() {
@@ -131,7 +133,7 @@ class _MusicPlayerScreenState extends State<MusicPlayerScreen> {
                 ),
                 const SizedBox(height: 20),
 
-                // Play/Pause Button
+                // Play/Pause Button (Fixed)
                 IconButton(
                   icon: Icon(
                     _controller.value.isPlaying
@@ -142,13 +144,11 @@ class _MusicPlayerScreenState extends State<MusicPlayerScreen> {
                   ),
                   onPressed: () {
                     setState(() {
-                      _isVideoEnded = false;
-                    });
-                    _controller.seekTo(Duration.zero);
-
-                    // Delay before playing to ensure state resets
-                    Future.delayed(const Duration(milliseconds: 300), () {
-                      _controller.play();
+                      if (_controller.value.isPlaying) {
+                        _controller.pause();
+                      } else {
+                        _controller.play();
+                      }
                     });
                   },
                 ),
@@ -181,59 +181,79 @@ class _MusicPlayerScreenState extends State<MusicPlayerScreen> {
                 ),
               ],
 
-              // Progress Bar (Always Visible)
+              // Progress Bar (Always Visible, Fixed)
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
                     formatTime(_currentPosition.toInt()),
-                    style: TextStyle(color: Colors.white),
+                    style: const TextStyle(color: Colors.white),
                   ),
                   Expanded(
                     child: Slider(
                       value: _currentPosition,
                       min: 0,
-                      max: _controller.metadata.duration.inSeconds.toDouble(),
+                      max: (_controller.metadata.duration.inSeconds > 0)
+                          ? _controller.metadata.duration.inSeconds.toDouble()
+                          : 1,
                       onChanged: (value) {
                         setState(() {
                           _currentPosition = value; // Update UI immediately
                         });
                       },
                       onChangeEnd: (value) {
-                        _controller.seekTo(
-                          Duration(seconds: value.toInt()),
-                        ); // Seek only when user stops dragging
+                        _controller.seekTo(Duration(seconds: value.toInt()));
                       },
-
                       activeColor: Colors.white,
                       inactiveColor: Colors.grey,
                     ),
                   ),
                   Text(
                     formatTime(_controller.metadata.duration.inSeconds),
-                    style: TextStyle(color: Colors.white),
+                    style: const TextStyle(color: Colors.white),
                   ),
                 ],
               ),
 
+              // Show Replay & Exit buttons when video ends
               if (_isVideoEnded) ...[
-                // Buttons when video ends
-                ElevatedButton(
-                  onPressed: () {
-                    setState(() {
-                      _isVideoEnded = false;
-                      _controller.seekTo(Duration.zero);
-                      _controller.play();
-                    });
-                  },
-                  child: const Text("Replay"),
-                ),
-                const SizedBox(height: 10),
-                ElevatedButton(
-                  onPressed: () {
-                    Navigator.pop(context);
-                  },
-                  child: const Text("Exit"),
+                const SizedBox(height: 20),
+                Column(
+                  children: [
+                    ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.white24,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 10,
+                        ),
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          _isVideoEnded = false;
+                          _controller.seekTo(Duration.zero);
+                          _controller.play();
+                        });
+                      },
+                      icon: const Icon(Icons.replay, color: Colors.white),
+                      label: const Text("Replay", style: TextStyle(color: Colors.white)),
+                    ),
+                    const SizedBox(height: 10),
+                    ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.red,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 10,
+                        ),
+                      ),
+                      onPressed: () {
+                        Navigator.pop(context);
+                      },
+                      icon: const Icon(Icons.exit_to_app, color: Colors.white),
+                      label: const Text("Exit", style: TextStyle(color: Colors.white)),
+                    ),
+                  ],
                 ),
               ],
             ],

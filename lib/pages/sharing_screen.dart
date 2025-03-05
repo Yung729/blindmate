@@ -1,12 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:intl/intl.dart';
-import 'package:youtube_player_flutter/youtube_player_flutter.dart';
 import '../models/user_model.dart';
+import '../widgets/floating_music_player.dart';
 import '../widgets/fetch_url_thumbail.dart';
-import 'create_post_screen.dart';
-import 'music_player_screen.dart';
 
 class SharingScreen extends StatefulWidget {
   final UserModel user;
@@ -21,6 +18,7 @@ class _SharingScreenState extends State<SharingScreen> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
   UserModel? _currentUser;
+  String? _currentMusicUrl;
 
   @override
   void initState() {
@@ -43,55 +41,38 @@ class _SharingScreenState extends State<SharingScreen> {
     }
   }
 
-  void _navigateToCreatePost() async {
-    final newPost = await Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => CreatePostScreen(user: widget.user),
-      ),
-    );
-
-    if (newPost != null) {
-      await _firestore.collection('shared_content').add(newPost);
-    }
-  }
-
-  Future<void> _deletePost(String postId) async {
-    await _firestore.collection('shared_content').doc(postId).delete();
-  }
-
-  Future<void> _toggleVisibility(
-    String postId,
-    String currentVisibility,
-  ) async {
-    String newVisibility = currentVisibility == 'public' ? 'private' : 'public';
-    await _firestore.collection('shared_content').doc(postId).update({
-      'visibility': newVisibility,
+  void _playMusic(String youtubeUrl) {
+    setState(() {
+      _currentMusicUrl = youtubeUrl;
     });
-  }
-
-  String? _extractYouTubeVideoId(String url) {
-    RegExp regExp = RegExp(
-      r'(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?/ ]{11})',
-      caseSensitive: false,
-      multiLine: false,
-    );
-    Match? match = regExp.firstMatch(url);
-    return match?.group(1);
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text("A Space For People To Share Thoughts!"),
-      ),
-      body: Column(
-        children: [
-          _buildCreatePostButton(),
-          Expanded(child: _buildSharedContentList()),
-        ],
-      ),
+    return Stack(
+      children: [
+        Scaffold(
+          appBar: AppBar(
+            title: const Text("A Space For People To Share Thoughts!"),
+          ),
+          body: Column(
+            children: [
+              _buildCreatePostButton(),
+              Expanded(child: _buildSharedContentList()),
+            ],
+          ),
+        ),
+
+        if (_currentMusicUrl != null)
+          FloatingMusicPlayer(
+            youtubeUrl: _currentMusicUrl!,
+            onClose: () {
+              setState(() {
+                _currentMusicUrl = null;
+              });
+            },
+          ),
+      ],
     );
   }
 
@@ -106,12 +87,9 @@ class _SharingScreenState extends State<SharingScreen> {
           const SizedBox(width: 10),
           Expanded(
             child: GestureDetector(
-              onTap: _navigateToCreatePost,
+              onTap: () {},
               child: Container(
-                padding: const EdgeInsets.symmetric(
-                  vertical: 10,
-                  horizontal: 15,
-                ),
+                padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 15),
                 decoration: BoxDecoration(
                   color: Colors.grey[200],
                   borderRadius: BorderRadius.circular(20),
@@ -130,41 +108,25 @@ class _SharingScreenState extends State<SharingScreen> {
 
   Widget _buildSharedContentList() {
     return StreamBuilder<QuerySnapshot>(
-      stream:
-          _firestore
-              .collection('shared_content')
-              .orderBy('timestamp', descending: true)
-              .snapshots(),
+      stream: _firestore.collection('shared_content').orderBy('timestamp', descending: true).snapshots(),
       builder: (context, snapshot) {
         if (!snapshot.hasData) {
           return const Center(child: CircularProgressIndicator());
         }
 
-        final sharedPosts =
-            snapshot.data!.docs.where((doc) {
-              final data = doc.data() as Map<String, dynamic>;
-              return data['visibility'] == 'public' ||
-                  data['userId'] == _currentUser?.userId;
-            }).toList();
+        final sharedPosts = snapshot.data!.docs.where((doc) {
+          final data = doc.data() as Map<String, dynamic>;
+          return data['visibility'] == 'public' || data['userId'] == _currentUser?.userId;
+        }).toList();
 
         return ListView.builder(
           itemCount: sharedPosts.length,
           itemBuilder: (context, index) {
             final post = sharedPosts[index];
-            final postId = post.id;
             final data = post.data() as Map<String, dynamic>;
-            final timestamp = data['timestamp'] as Timestamp?;
-            final formattedDate =
-                timestamp != null
-                    ? DateFormat(
-                      'dd MMM yyyy, hh:mm a',
-                    ).format(timestamp.toDate())
-                    : "Unknown date";
+            final videoId = _extractYouTubeVideoId(data['musicUrl'] ?? "");
 
-            bool isCurrentUserPost = data['userId'] == _currentUser?.userId;
-            String? videoId = _extractYouTubeVideoId(data['musicUrl'] ?? "");
-
-            // Extract URL from content if present
+            // Extract general URL from content
             RegExp urlRegExp = RegExp(
               r'(https?:\/\/[^\s]+)',
               caseSensitive: false,
@@ -173,10 +135,7 @@ class _SharingScreenState extends State<SharingScreen> {
             String? detectedUrl = urlMatch?.group(0);
 
             return Padding(
-              padding: const EdgeInsets.symmetric(
-                vertical: 12.0,
-                horizontal: 16.0,
-              ),
+              padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 16.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -187,70 +146,33 @@ class _SharingScreenState extends State<SharingScreen> {
                       ),
                       const SizedBox(width: 10),
                       Text(
-                        data['userId'] == _currentUser?.userId
-                            ? "Me"
-                            : "Depression People",
+                        "Depression People",
                         style: const TextStyle(fontWeight: FontWeight.bold),
                       ),
-                      const Spacer(),
-                      if (isCurrentUserPost) ...[
-                        IconButton(
-                          icon: const Icon(Icons.lock_outline),
-                          onPressed:
-                              () =>
-                                  _toggleVisibility(postId, data['visibility']),
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.delete, color: Colors.red),
-                          onPressed: () => _deletePost(postId),
-                        ),
-                      ],
                     ],
                   ),
                   const SizedBox(height: 8),
 
-                  // Display text content
                   if (data['content'] != null && data['content'].isNotEmpty)
                     Text(data['content']),
 
                   const SizedBox(height: 8),
 
-                  // If the content contains a YouTube link, show a YouTube preview
                   if (videoId != null)
                     GestureDetector(
-                      onTap:
-                          () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder:
-                                  (context) => MusicPlayerScreen(
-                                    youtubeUrl: data['musicUrl'],
-                                  ),
-                            ),
-                          ),
+                      onTap: () => _playMusic(data['musicUrl']),
                       child: Column(
                         children: [
-                          Image.network(
-                            "https://img.youtube.com/vi/$videoId/0.jpg",
-                          ),
+                          Image.network("https://img.youtube.com/vi/$videoId/0.jpg"),
                           const SizedBox(height: 4),
-                          Text(
-                            "🎵 Play Music",
-                            style: TextStyle(color: Colors.blue),
-                          ),
+                          const Text("🎵 Play Music", style: TextStyle(color: Colors.blue)),
                         ],
                       ),
                     ),
 
-                  // If the content has a general URL (not YouTube), fetch metadata
                   if (detectedUrl != null && videoId == null)
                     buildLinkPreview(detectedUrl),
 
-                  const SizedBox(height: 8),
-                  Text(
-                    formattedDate,
-                    style: TextStyle(fontSize: 12, color: Colors.grey),
-                  ),
                   const Divider(),
                 ],
               ),
@@ -259,5 +181,15 @@ class _SharingScreenState extends State<SharingScreen> {
         );
       },
     );
+  }
+
+  String? _extractYouTubeVideoId(String url) {
+    RegExp regExp = RegExp(
+      r'(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?/ ]{11})',
+      caseSensitive: false,
+      multiLine: false,
+    );
+    Match? match = regExp.firstMatch(url);
+    return match?.group(1);
   }
 }
