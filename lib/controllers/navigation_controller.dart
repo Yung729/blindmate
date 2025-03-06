@@ -56,6 +56,7 @@ class _NavigationControllerState extends State<NavigationController> {
     await FirebaseFirestore.instance.collection('users').doc(_currentUser!.userId).update({
       'online': false,
       'status': 'available',
+      'deviceId': '',
     });
     await FirebaseAuth.instance.signOut();
     if (context.mounted) {

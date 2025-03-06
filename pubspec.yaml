@@ -46,6 +46,7 @@ dependencies:
   youtube_player_flutter: ^9.1.1
   web_socket_channel: ^3.0.2
   metadata_fetch: ^0.4.2
+  device_info_plus: ^11.3.3
 dev_dependencies:
   flutter_test:
     sdk: flutter

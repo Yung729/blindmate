@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'home_screen.dart';
+import 'package:device_info_plus/device_info_plus.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -18,6 +19,18 @@ class _LoginScreenState extends State<LoginScreen> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   bool _isLoading = false;
 
+  Future<String> _getDeviceId() async {
+    final DeviceInfoPlugin deviceInfo = DeviceInfoPlugin();
+    if (Theme.of(context).platform == TargetPlatform.android) {
+      final AndroidDeviceInfo androidInfo = await deviceInfo.androidInfo;
+      return androidInfo.id;
+    } else if (Theme.of(context).platform == TargetPlatform.iOS) {
+      final IosDeviceInfo iosInfo = await deviceInfo.iosInfo;
+      return iosInfo.identifierForVendor ?? 'unknown';
+    }
+    return 'unknown';
+  }
+
   Future<void> _login() async {
     String email = _emailController.text.trim();
     String password = _passwordController.text.trim();
@@ -29,7 +42,29 @@ class _LoginScreenState extends State<LoginScreen> {
     });
 
     try {
-      // Sign in with email & password
+      String deviceId = await _getDeviceId();
+
+      QuerySnapshot userQuery =
+          await _firestore
+              .collection('users')
+              .where('email', isEqualTo: email)
+              .limit(1)
+              .get();
+
+      if (userQuery.docs.isNotEmpty) {
+        var userDoc = userQuery.docs.first;
+        bool isOnline = userDoc['online'] ?? false;
+        String? storedDeviceId = userDoc['deviceId'];
+
+        if (isOnline && storedDeviceId != null && storedDeviceId != deviceId) {
+          _showErrorDialog("You are already logged in on another device.");
+          setState(() {
+            _isLoading = false;
+          });
+          return;
+        }
+      }
+
       UserCredential userCredential = await _auth.signInWithEmailAndPassword(
         email: email,
         password: password,
@@ -38,15 +73,14 @@ class _LoginScreenState extends State<LoginScreen> {
       User? user = userCredential.user;
       if (user != null) {
         String userId = user.uid;
+        DocumentReference userRef = _firestore.collection('users').doc(userId);
+        DocumentSnapshot userDoc = await userRef.get();
 
-        // Fetch user info from Firestore
-        DocumentSnapshot userDoc =
-            await _firestore.collection('users').doc(userId).get();
         String userName = userDoc.exists ? (userDoc['name'] ?? "User") : email;
 
-        // Mark user as online in Firestore
-        await _firestore.collection('users').doc(userId).update({
+        await userRef.update({
           'online': true,
+          'deviceId': deviceId,
           'lastActive': FieldValue.serverTimestamp(),
         });
 
@@ -55,7 +89,6 @@ class _LoginScreenState extends State<LoginScreen> {
         await prefs.setString('currentUserId', userId);
         await prefs.setString('currentUserName', userName);
 
-        // Navigate to HomeScreen
         if (context.mounted) {
           Navigator.pushReplacement(
             context,
