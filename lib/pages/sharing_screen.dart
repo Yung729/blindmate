@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../pages/create_post_screen.dart';
 import '../models/user_model.dart';
 import '../widgets/floating_music_player.dart';
 import '../widgets/fetch_url_thumbail.dart';
@@ -76,35 +77,47 @@ class _SharingScreenState extends State<SharingScreen> {
     );
   }
 
-  Widget _buildCreatePostButton() {
-    return Padding(
-      padding: const EdgeInsets.all(10.0),
-      child: Row(
-        children: [
-          const CircleAvatar(
-            backgroundImage: AssetImage('assets/default_pic.jpg'),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: GestureDetector(
-              onTap: () {},
-              child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 15),
-                decoration: BoxDecoration(
-                  color: Colors.grey[200],
-                  borderRadius: BorderRadius.circular(20),
+Widget _buildCreatePostButton() {
+  return Padding(
+    padding: const EdgeInsets.all(10.0),
+    child: Row(
+      children: [
+        const CircleAvatar(
+          backgroundImage: AssetImage('assets/default_pic.jpg'),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: GestureDetector(
+            onTap: () async {
+              final newPost = await Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => CreatePostScreen(user: widget.user),
                 ),
-                child: const Text(
-                  "What's on your mind?",
-                  style: TextStyle(color: Colors.black54),
-                ),
+              );
+
+              if (newPost != null) {
+                await _firestore.collection('shared_content').add(newPost);
+              }
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 15),
+              decoration: BoxDecoration(
+                color: Colors.grey[200],
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: const Text(
+                "What's on your mind?",
+                style: TextStyle(color: Colors.black54),
               ),
             ),
           ),
-        ],
-      ),
-    );
-  }
+        ),
+      ],
+    ),
+  );
+}
+
 
   Widget _buildSharedContentList() {
     return StreamBuilder<QuerySnapshot>(
