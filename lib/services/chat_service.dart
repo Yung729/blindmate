@@ -134,7 +134,7 @@ class ChatService {
             .where((doc) => doc.id != user.userId)
             .map(
               (doc) =>
-                  UserModel.fromMap(doc.data() as Map<String, dynamic>, doc.id),
+                  UserModel.fromMap(doc.data(), doc.id),
             )
             .where(
               (matchedUser) =>

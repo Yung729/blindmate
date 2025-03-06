@@ -1,26 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/user_model.dart';
 import '../pages/home_screen.dart';
 import '../pages/sharing_screen.dart';
-import '../pages/login_screen.dart';
+import '../utils/auth_utils.dart';
 
 class NavigationController extends StatefulWidget {
   const NavigationController({super.key});
-
-  static final Map<String, WidgetBuilder> routes = {
-    '/login': (context) => const LoginScreen(),
-    '/home': (context) => const NavigationController(), // Redirects to the main navigation
-  };
-
-  static void navigateTo(BuildContext context, String route) {
-    Navigator.pushNamed(context, route);
-  }
-
-  static void replaceWith(BuildContext context, String route) {
-    Navigator.pushReplacementNamed(context, route);
-  }
 
   @override
   State<NavigationController> createState() => _NavigationControllerState();
@@ -33,35 +18,21 @@ class _NavigationControllerState extends State<NavigationController> {
   @override
   void initState() {
     super.initState();
-    _loadUserData();
+    _fetchUserData();
   }
 
-  Future<void> _loadUserData() async {
-    final user = FirebaseAuth.instance.currentUser;
+  Future<void> _fetchUserData() async {
+    UserModel? user = await loadUserData();
     if (user == null) {
-      NavigationController.replaceWith(context, '/login'); // ✅ Redirect if not logged in
+      Future.microtask(() => 
+        Navigator.pushReplacementNamed(context, '/login')
+      ); // ✅ Fix navigation issue
       return;
     }
 
-    final userDoc =
-        await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
-    if (!userDoc.exists) return;
-
     setState(() {
-      _currentUser = UserModel.fromMap(userDoc.data() as Map<String, dynamic>, user.uid);
+      _currentUser = user;
     });
-  }
-
-  void _logout() async {
-    await FirebaseFirestore.instance.collection('users').doc(_currentUser!.userId).update({
-      'online': false,
-      'status': 'available',
-      'deviceId': '',
-    });
-    await FirebaseAuth.instance.signOut();
-    if (context.mounted) {
-      NavigationController.replaceWith(context, '/login'); // ✅ Logout redirects to Login
-    }
   }
 
   @override
@@ -83,7 +54,7 @@ class _NavigationControllerState extends State<NavigationController> {
         actions: [
           IconButton(
             icon: const Icon(Icons.exit_to_app), // 🚪 Exit door icon
-            onPressed: _logout,
+            onPressed: () => logoutUser(context, _currentUser!.userId),
             tooltip: 'Logout',
           ),
         ],

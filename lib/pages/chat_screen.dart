@@ -159,7 +159,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   }
 
   Future<void> _confirmEndChat() async {
-    bool? shouldEnd = await showDialog(
+    await showDialog(
       context: context,
       builder:
           (context) => AlertDialog(
@@ -251,7 +251,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     try {
       List<String> emojis = await _emojiService.fetchEmojis();
       setState(() {
-        _emojiList = emojis.take(20).toList(); // Show only 20 emojis for now
+        _emojiList = emojis.take(40).toList();
       });
     } catch (e) {
       print("❌ Failed to load emojis: $e");
@@ -259,10 +259,14 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   }
 
   void _loadStickers(String query) async {
-    List<String> stickers = await _giphyService.fetchStickers(query);
-    setState(() {
-      _stickerList = stickers;
-    });
+    try {
+      List<String> stickers = await _giphyService.fetchStickers(query);
+      setState(() {
+        _stickerList = stickers;
+      });
+    } catch (e) {
+      print("❌ Failed to load STICKER: $e");
+    }
   }
 
   // Show the Emoji & Sticker Picker as a Bottom Drawer
@@ -381,14 +385,14 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
               child: StreamBuilder<List<MessageModel>>(
                 stream: _chatService.getMessages(),
                 builder: (context, snapshot) {
-
                   List<MessageModel> messages = snapshot.data ?? [];
-                
+
                   return ListView.builder(
                     reverse: true,
                     itemCount: messages.length + (isOtherUserTyping ? 1 : 0),
                     itemBuilder: (context, index) {
-                      if ((isOtherUserTyping && index == 0) || (isOtherUserTyping && messages.isEmpty)) {
+                      if ((isOtherUserTyping && index == 0) ||
+                          (isOtherUserTyping && messages.isEmpty)) {
                         return Padding(
                           padding: const EdgeInsets.symmetric(
                             vertical: 4,
