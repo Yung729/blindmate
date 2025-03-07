@@ -1,3 +1,4 @@
+import 'package:blindmate/pages/do_mission_screen.dart';
 import 'package:flutter/material.dart';
 import '../models/user_model.dart';
 import '../pages/home_screen.dart';
@@ -44,9 +45,10 @@ class _NavigationControllerState extends State<NavigationController> {
     final List<Widget> _screens = [
       const HomeScreen(),
       SharingScreen(user: _currentUser!),
+      DoMissionScreen(),
     ];
 
-    final List<String> _titles = ["Home", "Sharing"]; // ✅ Dynamic screen titles
+    final List<String> _titles = ["Home", "Sharing","Mission"]; // ✅ Dynamic screen titles
 
     return Scaffold(
       appBar: AppBar(
@@ -70,6 +72,7 @@ class _NavigationControllerState extends State<NavigationController> {
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
           BottomNavigationBarItem(icon: Icon(Icons.share), label: 'Sharing'),
+          BottomNavigationBarItem(icon: Icon(Icons.videogame_asset),label: 'Mission'),
         ],
       ),
     );
