@@ -97,22 +97,21 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
 
     bool? shouldExit = await showDialog(
       context: context,
-      builder:
-          (context) => AlertDialog(
-            title: const Text("Chat Ended Due to Inactivity"),
-            content: const Text(
-              "No messages were sent for 10 minutes. This chat will now close.",
-            ),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                  _handleExit();
-                },
-                child: const Text("OK"),
-              ),
-            ],
+      builder: (context) => AlertDialog(
+        title: const Text("Chat Ended Due to Inactivity"),
+        content: const Text(
+          "No messages were sent for 10 minutes. This chat will now close.",
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _handleExit();
+            },
+            child: const Text("OK"),
           ),
+        ],
+      ),
     );
 
     if (shouldExit == true) {
@@ -161,26 +160,25 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   Future<void> _confirmEndChat() async {
     await showDialog(
       context: context,
-      builder:
-          (context) => AlertDialog(
-            title: const Text("End Chat?"),
-            content: const Text(
-              "Are you sure you want to leave this chat? This action cannot be undone.",
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context, false),
-                child: const Text("Cancel"),
-              ),
-              TextButton(
-                onPressed: _handleExit,
-                child: const Text(
-                  "End Chat",
-                  style: TextStyle(color: Colors.red),
-                ),
-              ),
-            ],
+      builder: (context) => AlertDialog(
+        title: const Text("End Chat?"),
+        content: const Text(
+          "Are you sure you want to leave this chat? This action cannot be undone.",
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text("Cancel"),
           ),
+          TextButton(
+            onPressed: _handleExit,
+            child: const Text(
+              "End Chat",
+              style: TextStyle(color: Colors.red),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -274,25 +272,23 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     showModalBottomSheet(
       context: context,
       builder: (context) {
-        return SizedBox(
-          height: 300,
+        return DefaultTabController(
+          length: 2,
           child: Column(
             children: [
-              ListTile(
-                leading: const Icon(Icons.emoji_emotions),
-                title: const Text("Emoji Picker"),
-                onTap: () {
-                  Navigator.pop(context);
-                  _showEmojiPicker();
-                },
+              TabBar(
+                tabs: [
+                  Tab(icon: Icon(Icons.emoji_emotions)),
+                  Tab(icon: Icon(Icons.sticky_note_2)),
+                ],
               ),
-              ListTile(
-                leading: const Icon(Icons.sticky_note_2),
-                title: const Text("Sticker Picker"),
-                onTap: () {
-                  Navigator.pop(context);
-                  _showStickerPicker();
-                },
+              Expanded(
+                child: TabBarView(
+                  children: [
+                    _buildEmojiPicker(),
+                    _buildStickerPicker(),
+                  ],
+                ),
               ),
             ],
           ),
@@ -301,56 +297,42 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     );
   }
 
-  // Show Emoji Picker
-  void _showEmojiPicker() {
-    showModalBottomSheet(
-      context: context,
-      builder: (context) {
-        return SizedBox(
-          height: 200,
-          child: GridView.builder(
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 8,
+  Widget _buildEmojiPicker() {
+    return GridView.builder(
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 8,
+      ),
+      itemCount: _emojiList.length,
+      itemBuilder: (context, index) {
+        return GestureDetector(
+          onTap: () => _sendMessage(text: _emojiList[index]),
+          child: Center(
+            child: Text(
+              _emojiList[index],
+              style: const TextStyle(fontSize: 20), // Adjusted font size
             ),
-            itemCount: _emojiList.length,
-            itemBuilder: (context, index) {
-              return GestureDetector(
-                onTap: () => _sendMessage(text: _emojiList[index]),
-                child: Center(
-                  child: Text(
-                    _emojiList[index],
-                    style: const TextStyle(fontSize: 24),
-                  ),
-                ),
-              );
-            },
           ),
         );
       },
     );
   }
 
-  // Show Sticker Picker
-  void _showStickerPicker() {
+  Widget _buildStickerPicker() {
     _loadStickers("funny");
 
-    showModalBottomSheet(
-      context: context,
-      builder: (context) {
-        return SizedBox(
-          height: 200,
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            itemCount: _stickerList.length,
-            itemBuilder: (context, index) {
-              return GestureDetector(
-                onTap: () => _sendMessage(stickerUrl: _stickerList[index]),
-                child: Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: Image.network(_stickerList[index], height: 100),
-                ),
-              );
-            },
+    return ListView.builder(
+      scrollDirection: Axis.horizontal,
+      itemCount: _stickerList.length,
+      itemBuilder: (context, index) {
+        return GestureDetector(
+          onTap: () => _sendMessage(stickerUrl: _stickerList[index]),
+          child: Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Image.network(
+              _stickerList[index],
+              height: 80, // Adjusted height
+              width: 80, // Adjusted width
+            ),
           ),
         );
       },
@@ -367,6 +349,15 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       child: Scaffold(
         appBar: AppBar(
           title: const Text("Chat"),
+          flexibleSpace: Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Colors.blueAccent, Colors.lightBlueAccent],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+            ),
+          ),
           actions: [
             if (otherUserId != null)
               IconButton(
@@ -379,20 +370,55 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
             ),
           ],
         ),
-        body: Column(
-          children: [
-            Expanded(
-              child: StreamBuilder<List<MessageModel>>(
-                stream: _chatService.getMessages(),
-                builder: (context, snapshot) {
-                  List<MessageModel> messages = snapshot.data ?? [];
+        body: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Colors.white, Colors.blue[50]!],
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+            ),
+          ),
+          child: Column(
+            children: [
+              Expanded(
+                child: StreamBuilder<List<MessageModel>>(
+                  stream: _chatService.getMessages(),
+                  builder: (context, snapshot) {
+                    List<MessageModel> messages = snapshot.data ?? [];
 
-                  return ListView.builder(
-                    reverse: true,
-                    itemCount: messages.length + (isOtherUserTyping ? 1 : 0),
-                    itemBuilder: (context, index) {
-                      if ((isOtherUserTyping && index == 0) ||
-                          (isOtherUserTyping && messages.isEmpty)) {
+                    return ListView.builder(
+                      reverse: true,
+                      itemCount: messages.length + (isOtherUserTyping ? 1 : 0),
+                      itemBuilder: (context, index) {
+                        if ((isOtherUserTyping && index == 0) ||
+                            (isOtherUserTyping && messages.isEmpty)) {
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(
+                              vertical: 4,
+                              horizontal: 8,
+                            ),
+                            child: Row(
+                              mainAxisAlignment:
+                                  MainAxisAlignment.start, // Align to left
+                              children: [
+                                CircleAvatar(
+                                  radius: 20,
+                                  backgroundImage: AssetImage(
+                                    'assets/default_pic.jpg',
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                const TypingBubble(), // Show typing animation bubble
+                              ],
+                            ),
+                          );
+                        }
+
+                        final messageIndex =
+                            isOtherUserTyping ? index - 1 : index;
+                        MessageModel message = messages[messageIndex];
+                        bool isMe = message.senderId == widget.currentUserId;
+
                         return Padding(
                           padding: const EdgeInsets.symmetric(
                             vertical: 4,
@@ -400,123 +426,94 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                           ),
                           child: Row(
                             mainAxisAlignment:
-                                MainAxisAlignment.start, // Align to left
+                                isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
                             children: [
-                              CircleAvatar(
-                                radius: 20,
-                                backgroundImage: AssetImage(
-                                  'assets/default_pic.jpg',
+                              if (!isMe) // Show profile picture for received messages
+                                CircleAvatar(
+                                  radius: 20,
+                                  backgroundImage: AssetImage(
+                                    'assets/default_pic.jpg',
+                                  ),
                                 ),
-                              ),
                               const SizedBox(width: 8),
-                              const TypingBubble(), // Show typing animation bubble
-                            ],
-                          ),
-                        );
-                      }
 
-                      final messageIndex =
-                          isOtherUserTyping ? index - 1 : index;
-                      MessageModel message = messages[messageIndex];
-                      bool isMe = message.senderId == widget.currentUserId;
-
-                      return Padding(
-                        padding: const EdgeInsets.symmetric(
-                          vertical: 4,
-                          horizontal: 8,
-                        ),
-                        child: Row(
-                          mainAxisAlignment:
-                              isMe
-                                  ? MainAxisAlignment.end
-                                  : MainAxisAlignment.start,
-                          children: [
-                            if (!isMe) // Show profile picture for received messages
-                              CircleAvatar(
-                                radius: 20,
-                                backgroundImage: AssetImage(
-                                  'assets/default_pic.jpg',
-                                ),
-                              ),
-                            const SizedBox(width: 8),
-
-                            // Chat Bubble
-                            Flexible(
-                              child: Container(
-                                padding: const EdgeInsets.all(12),
-                                decoration: BoxDecoration(
-                                  color:
-                                      isMe
-                                          ? Colors.blueAccent
-                                          : Colors.grey[300],
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child:
-                                    message.stickerUrl != null
-                                        ? Image.network(
+                              // Chat Bubble
+                              Flexible(
+                                child: Container(
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: isMe ? Colors.blueAccent : Colors.grey[300],
+                                    borderRadius: BorderRadius.circular(12),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black12,
+                                        blurRadius: 4,
+                                        offset: Offset(2, 2),
+                                      ),
+                                    ],
+                                  ),
+                                  child: message.stickerUrl != null
+                                      ? Image.network(
                                           message.stickerUrl!,
                                           height: 100,
                                         )
-                                        : Text(
+                                      : Text(
                                           message.text ?? "",
                                           style: TextStyle(
                                             fontSize: 16,
-                                            color:
-                                                isMe
-                                                    ? Colors.white
-                                                    : Colors.black,
+                                            color: isMe ? Colors.white : Colors.black,
                                           ),
                                         ),
-                              ),
-                            ),
-
-                            const SizedBox(width: 8),
-
-                            if (isMe) // Show profile picture for sent messages
-                              CircleAvatar(
-                                radius: 20,
-                                backgroundImage: AssetImage(
-                                  'assets/default_pic.jpg',
                                 ),
                               ),
-                          ],
-                        ),
-                      );
-                    },
-                  );
-                },
-              ),
-            ),
 
-            Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: Row(
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.add),
-                    onPressed: _showEmojiStickerPicker,
-                  ),
-                  Expanded(
-                    child: TextField(
-                      controller: _messageController,
-                      onChanged: (text) => _updateTypingStatus(text.isNotEmpty),
-                      onSubmitted: (text) {
-                        _onMessageSent(); // Reset timer when user sends a message
+                              const SizedBox(width: 8),
+
+                              if (isMe) // Show profile picture for sent messages
+                                CircleAvatar(
+                                  radius: 20,
+                                  backgroundImage: AssetImage(
+                                    'assets/default_pic.jpg',
+                                  ),
+                                ),
+                            ],
+                          ),
+                        );
                       },
-                      decoration: const InputDecoration(
-                        hintText: "Type a message...",
+                    );
+                  },
+                ),
+              ),
+
+              Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Row(
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.add),
+                      onPressed: _showEmojiStickerPicker,
+                    ),
+                    Expanded(
+                      child: TextField(
+                        controller: _messageController,
+                        onChanged: (text) => _updateTypingStatus(text.isNotEmpty),
+                        onSubmitted: (text) {
+                          _onMessageSent(); // Reset timer when user sends a message
+                        },
+                        decoration: const InputDecoration(
+                          hintText: "Type a message...",
+                        ),
                       ),
                     ),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.send),
-                    onPressed:
-                        () => _sendMessage(text: _messageController.text),
-                  ),
-                ],
+                    IconButton(
+                      icon: const Icon(Icons.send),
+                      onPressed: () => _sendMessage(text: _messageController.text),
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

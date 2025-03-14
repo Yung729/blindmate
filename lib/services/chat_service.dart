@@ -138,7 +138,7 @@ class ChatService {
             )
             .where(
               (matchedUser) =>
-                  matchedUser.mentalHealthLevel != user.mentalHealthLevel &&
+                  matchedUser.mentalLevel != user.mentalLevel &&
                   !reportedByMe.contains(matchedUser.userId) &&
                   !reportedMe.contains(matchedUser.userId),
             )
