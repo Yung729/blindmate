@@ -5,6 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../services/chat_service.dart';
 import '../services/emoji_service.dart';
 import '../services/giphy_service.dart';
+import '../services/matching_service.dart';
 import '../models/message_model.dart';
 
 class ChatScreen extends StatefulWidget {
@@ -24,6 +25,7 @@ class ChatScreen extends StatefulWidget {
 class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   final TextEditingController _messageController = TextEditingController();
   final ChatService _chatService = ChatService();
+  final MatchingService _matchingService = MatchingService();
   final EmojiService _emojiService = EmojiService();
   final GiphyService _giphyService = GiphyService();
 
@@ -203,7 +205,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       await _chatService.closeChatRoom(widget.chatRoomId, users);
     } else {
       await chatRef.update({'closed': true});
-      await _chatService.updateUserStatus(widget.currentUserId, 'available');
+      await _matchingService.updateUserStatus(widget.currentUserId, 'available');
     }
 
     if (mounted) {

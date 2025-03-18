@@ -1,6 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import '../services/chat_service.dart';
+import '../services/matching_service.dart';
 import '../models/user_model.dart';
 import 'chat_screen.dart';
 
@@ -14,8 +14,7 @@ class WaitingScreen extends StatefulWidget {
 }
 
 class _WaitingScreenState extends State<WaitingScreen> with SingleTickerProviderStateMixin {
-  final ChatService _chatService = ChatService();
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final MatchingService _matchingService = MatchingService();
   bool _isNavigating = false;
 
   late AnimationController _animationController;
@@ -46,8 +45,7 @@ class _WaitingScreenState extends State<WaitingScreen> with SingleTickerProvider
 
   // 🔹 Start Searching for a Match
   void _startMatching() async {
-    await _chatService.updateUserStatus(widget.user.userId, 'waiting');
-    String? chatRoomId = await _chatService.findMatch(widget.user);
+    String? chatRoomId = await _matchingService.startMatching(widget.user);
     if (chatRoomId != null) {
       _navigateToChat(chatRoomId);
     }
@@ -55,17 +53,11 @@ class _WaitingScreenState extends State<WaitingScreen> with SingleTickerProvider
 
   // 🔹 Listen for Real-Time Match Updates
   void _listenForMatch() {
-    _firestore
-        .collection('chats')
-        .where('users', arrayContains: widget.user.userId)
-        .where('closed', isEqualTo: false)
-        .snapshots()
-        .listen((querySnapshot) {
-          if (querySnapshot.docs.isNotEmpty && !_isNavigating) {
-            String chatRoomId = querySnapshot.docs.first.id;
-            _navigateToChat(chatRoomId);
-          }
-        });
+    _matchingService.listenForMatch(widget.user.userId, (chatRoomId) {
+      if (!_isNavigating) {
+        _navigateToChat(chatRoomId);
+      }
+    });
   }
 
   // 🔹 Navigate to Chat
@@ -88,7 +80,7 @@ class _WaitingScreenState extends State<WaitingScreen> with SingleTickerProvider
 
   // 🔹 Allow User to Cancel
   void _cancelSearch() async {
-    await _chatService.updateUserStatus(widget.user.userId, 'available');
+    await _matchingService.updateUserStatus(widget.user.userId, 'available');
     if (mounted) {
       Navigator.pop(context);
     }

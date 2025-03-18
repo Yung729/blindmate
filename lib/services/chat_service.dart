@@ -1,16 +1,16 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'dart:math';
-import '../models/user_model.dart';
-import '../models/message_model.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'package:web_socket_channel/io.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
+import '../models/message_model.dart';
+import '../services/matching_service.dart';
 
 class ChatService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final String websocketUrl =
       "wss://blindmate-backend-production.up.railway.app";
+  final MatchingService _matchingService = MatchingService();
 
   WebSocketChannel? _channel;
   final StreamController<List<MessageModel>> _messageStreamController =
@@ -83,99 +83,6 @@ class ChatService {
         .add(message.toMapForFirestore());
   }
 
-  // 🔹 Update user status
-  Future<void> updateUserStatus(String userId, String status) async {
-    await _firestore.collection('users').doc(userId).update({'status': status});
-  }
-
-  // 🔹 Find a match ensuring different mental health levels
-  Future<String?> findMatch(UserModel user) async {
-    print("🔍 Searching for a match for user: ${user.userId}");
-
-    // Fetch list of users **reported by the current user**
-    final reportedByMeSnapshot =
-        await _firestore
-            .collection('reports')
-            .where('reporterId', isEqualTo: user.userId)
-            .get();
-
-    List<String> reportedByMe =
-        reportedByMeSnapshot.docs
-            .map((doc) => doc['reportedId'] as String)
-            .toList();
-
-    print("🚫 Users I reported: ${reportedByMe.length}");
-
-    // Fetch list of users **who reported the current user**
-    final reportedMeSnapshot =
-        await _firestore
-            .collection('reports')
-            .where('reportedId', isEqualTo: user.userId)
-            .get();
-
-    List<String> reportedMe =
-        reportedMeSnapshot.docs
-            .map((doc) => doc['reporterId'] as String)
-            .toList();
-
-    print("🚫 Users who reported me: ${reportedMe.length}");
-
-    final querySnapshot =
-        await _firestore
-            .collection('users')
-            .where('status', isEqualTo: 'waiting')
-            .where('online', isEqualTo: true)
-            .get();
-
-    print("✅ Found ${querySnapshot.docs.length} potential matches");
-
-    List<UserModel> potentialMatches =
-        querySnapshot.docs
-            .where((doc) => doc.id != user.userId)
-            .map(
-              (doc) =>
-                  UserModel.fromMap(doc.data(), doc.id),
-            )
-            .where(
-              (matchedUser) =>
-                  matchedUser.mentalLevel != user.mentalLevel &&
-                  !reportedByMe.contains(matchedUser.userId) &&
-                  !reportedMe.contains(matchedUser.userId),
-            )
-            .toList();
-
-    print("🎯 Filtered down to ${potentialMatches.length} valid matches");
-
-    if (potentialMatches.isNotEmpty) {
-      Random random = Random();
-      UserModel matchedUser =
-          potentialMatches[random.nextInt(potentialMatches.length)];
-
-      String chatRoomId = _firestore.collection('chats').doc().id;
-      print(
-        "🚀 Creating chat room: $chatRoomId between ${user.userId} and ${matchedUser.userId}",
-      );
-
-      // **🔹 Immediately update both users to "in_chat" before creating chat room**
-      await updateUserStatus(user.userId, 'in_chat');
-      await updateUserStatus(matchedUser.userId, 'in_chat');
-
-      // **🔹 Create the chat room**
-      await _firestore.collection('chats').doc(chatRoomId).set({
-        'users': [user.userId, matchedUser.userId],
-        'createdAt': FieldValue.serverTimestamp(),
-        'closed': false,
-      });
-
-      print("✅ Chat room $chatRoomId successfully created");
-
-      return chatRoomId;
-    }
-
-    print("❌ No match found");
-    return null;
-  }
-
   // 🔹 Listen for chat updates (when chat is closed)
   Stream<DocumentSnapshot> listenForChatUpdates(String chatRoomId) {
     return _firestore.collection('chats').doc(chatRoomId).snapshots();
@@ -201,7 +108,7 @@ class ChatService {
     await Future.delayed(const Duration(milliseconds: 1000));
 
     for (String userId in users) {
-      await updateUserStatus(userId, 'available');
+      await _matchingService.updateUserStatus(userId, 'available');
     }
   }
 
