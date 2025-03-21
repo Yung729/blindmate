@@ -7,6 +7,7 @@ import '../services/emoji_service.dart';
 import '../services/giphy_service.dart';
 import '../services/matching_service.dart';
 import '../models/message_model.dart';
+import '../widgets/bottom_drawer.dart';
 
 class ChatScreen extends StatefulWidget {
   final String chatRoomId;
@@ -43,6 +44,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     super.initState();
     _chatService.connectWebSocket(widget.chatRoomId);
     _loadEmojis();
+    _loadStickers("funny");
     WidgetsBinding.instance.addObserver(this);
     _fetchChatPartner();
     _startInactivityTimer();
@@ -274,68 +276,20 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     showModalBottomSheet(
       context: context,
       builder: (context) {
-        return DefaultTabController(
-          length: 2,
-          child: Column(
-            children: [
-              TabBar(
-                tabs: [
-                  Tab(icon: Icon(Icons.emoji_emotions)),
-                  Tab(icon: Icon(Icons.sticky_note_2)),
-                ],
-              ),
-              Expanded(
-                child: TabBarView(
-                  children: [
-                    _buildEmojiPicker(),
-                    _buildStickerPicker(),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildEmojiPicker() {
-    return GridView.builder(
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 8,
-      ),
-      itemCount: _emojiList.length,
-      itemBuilder: (context, index) {
-        return GestureDetector(
-          onTap: () => _sendMessage(text: _emojiList[index]),
-          child: Center(
-            child: Text(
-              _emojiList[index],
-              style: const TextStyle(fontSize: 20), // Adjusted font size
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildStickerPicker() {
-    _loadStickers("funny");
-
-    return ListView.builder(
-      scrollDirection: Axis.horizontal,
-      itemCount: _stickerList.length,
-      itemBuilder: (context, index) {
-        return GestureDetector(
-          onTap: () => _sendMessage(stickerUrl: _stickerList[index]),
-          child: Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Image.network(
-              _stickerList[index],
-              height: 80, // Adjusted height
-              width: 80, // Adjusted width
-            ),
-          ),
+        return BottomDrawer(
+          onEmojiSelected: (emoji) => _sendMessage(text: emoji),
+          onStickerSelected: (sticker) => _sendMessage(stickerUrl: sticker),
+          onPlayMiniGame: () {
+            // Implement play mini game logic
+          },
+          onShareMusic: () {
+            // Implement share music logic
+          },
+          onTripJournal: () {
+            // Implement trip journal logic
+          },
+          emojiList: _emojiList,
+          stickerList: _stickerList,
         );
       },
     );

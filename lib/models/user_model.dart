@@ -8,6 +8,7 @@ class UserModel {
   final bool online;
   final String status;
   final DateTime? lastActive; // 🔹 Added lastActive field
+  final String emotionalStatus; 
 
   UserModel({
     required this.userId,
@@ -17,6 +18,7 @@ class UserModel {
     required this.online,
     required this.status,
     this.lastActive, // Can be null if user never logged in
+    required this.emotionalStatus,
   });
 
   // 🔹 Convert Firestore Document to UserModel
@@ -32,6 +34,7 @@ class UserModel {
           data['lastActive'] != null
               ? (data['lastActive'] as Timestamp).toDate()
               : null, // 🔹 Convert Firestore Timestamp
+      emotionalStatus: data['emotionalStatus'] ?? 'neutral',
     );
   }
 

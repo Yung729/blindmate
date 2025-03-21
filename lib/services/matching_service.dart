@@ -5,7 +5,7 @@ import '../models/user_model.dart';
 class MatchingService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  // 🔹 Find a match ensuring different mental health levels
+  // 🔹 Find a match ensuring different emotional statuses
   Future<String?> findMatch(UserModel user) async {
     print("🔍 Searching for a match for user: ${user.userId}");
 
@@ -55,9 +55,9 @@ class MatchingService {
             )
             .where(
               (matchedUser) =>
-                  matchedUser.mentalLevel != user.mentalLevel &&
                   !reportedByMe.contains(matchedUser.userId) &&
-                  !reportedMe.contains(matchedUser.userId),
+                  !reportedMe.contains(matchedUser.userId) &&
+                  _isValidMatch(user.emotionalStatus, matchedUser.emotionalStatus),
             )
             .toList();
 
@@ -117,5 +117,19 @@ class MatchingService {
             onMatchFound(chatRoomId);
           }
         });
+  }
+
+  // 🔹 Check if the match is valid based on emotional status
+  bool _isValidMatch(String userEmotionalStatus, String matchedUserEmotionalStatus) {
+    const badEmotions = ['sad', 'fear', 'disgust', 'anger'];
+    bool isUserBadEmotion = badEmotions.contains(userEmotionalStatus);
+    bool isMatchedUserBadEmotion = badEmotions.contains(matchedUserEmotionalStatus);
+
+    // Avoid matching two users with bad emotional statuses together
+    if (isUserBadEmotion && isMatchedUserBadEmotion) {
+      return false;
+    }
+
+    return true;
   }
 }
