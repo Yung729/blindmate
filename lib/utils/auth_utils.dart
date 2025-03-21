@@ -3,8 +3,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:device_info_plus/device_info_plus.dart';
-import 'dialog_utils.dart'; // Import error dialog utility
-import '../models/user_model.dart';
+import '../views/UIComponents/dialog_utils.dart'; // Import error dialog utility
+import '../models/dataModels/user_model.dart';
 
 final FirebaseAuth _auth = FirebaseAuth.instance;
 final FirebaseFirestore _firestore = FirebaseFirestore.instance;

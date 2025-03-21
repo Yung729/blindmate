@@ -3,7 +3,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:web_socket_channel/io.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
-import '../models/message_model.dart';
+import '../models/dataModels/message_model.dart';
 import '../services/matching_service.dart';
 
 class ChatService {

@@ -1,6 +1,6 @@
 import 'package:blindmate/views/screens/do_mission_screen.dart';
 import 'package:flutter/material.dart';
-import '../models/user_model.dart';
+import '../models/dataModels/user_model.dart';
 import '../views/screens/home_screen.dart';
 import '../views/screens/sharing_screen.dart';
 import '../utils/auth_utils.dart';

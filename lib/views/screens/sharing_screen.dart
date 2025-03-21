@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'create_post_screen.dart';
-import '../../models/user_model.dart';
+import '../../models/dataModels/user_model.dart';
 import '../UIComponents/floating_music_player.dart';
 import '../UIComponents/fetch_url_thumbail.dart';
 

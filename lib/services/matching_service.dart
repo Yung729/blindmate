@@ -1,6 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:math';
-import '../models/user_model.dart';
+import '../models/dataModels/user_model.dart';
 
 class MatchingService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;

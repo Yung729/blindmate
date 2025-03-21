@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../services/matching_service.dart';
-import '../../models/user_model.dart';
+import '../../models/dataModels/user_model.dart';
 import 'chat_screen.dart';
 
 class WaitingScreen extends StatefulWidget {
