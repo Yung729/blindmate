@@ -1,8 +1,8 @@
-import 'package:blindmate/pages/do_mission_screen.dart';
+import 'package:blindmate/screens/do_mission_screen.dart';
 import 'package:flutter/material.dart';
 import '../models/user_model.dart';
-import '../pages/home_screen.dart';
-import '../pages/sharing_screen.dart';
+import '../screens/home_screen.dart';
+import '../screens/sharing_screen.dart';
 import '../utils/auth_utils.dart';
 
 class NavigationController extends StatefulWidget {

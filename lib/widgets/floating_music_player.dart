@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:youtube_player_flutter/youtube_player_flutter.dart';
-import '../pages/music_player_screen.dart'; // Import the full-screen player screen
+import '../screens/music_player_screen.dart'; // Import the full-screen player screen
 
 class FloatingMusicPlayer extends StatefulWidget {
   final String youtubeUrl;
