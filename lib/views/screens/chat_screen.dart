@@ -1,12 +1,12 @@
 import 'dart:async';
-import 'package:blindmate/UIComponents/typing_bubble.dart';
+import 'package:blindmate/views/UIComponents/typing_bubble.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../services/chat_service.dart';
-import '../services/emoji_service.dart';
-import '../services/giphy_service.dart';
-import '../services/matching_service.dart';
-import '../models/message_model.dart';
+import '../../services/chat_service.dart';
+import '../../services/emoji_service.dart';
+import '../../services/giphy_service.dart';
+import '../../services/matching_service.dart';
+import '../../models/message_model.dart';
 import '../UIComponents/bottom_drawer.dart';
 
 class ChatScreen extends StatefulWidget {

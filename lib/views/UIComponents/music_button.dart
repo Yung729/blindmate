@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:share_plus/share_plus.dart';
-import '../services/youtube_api.dart';  // Import YouTube API
+import '../../services/youtube_api.dart';  // Import YouTube API
 
 class MusicButton extends StatefulWidget {
   final String platform; // "YouTube" or "Deezer"

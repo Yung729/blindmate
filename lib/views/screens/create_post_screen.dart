@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
-import '../models/user_model.dart';
-import '../services/youtube_api.dart';
+import '../../models/user_model.dart';
+import '../../services/youtube_api.dart';
 
 class CreatePostScreen extends StatefulWidget {
   final UserModel user;
