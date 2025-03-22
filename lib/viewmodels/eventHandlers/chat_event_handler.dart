@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'package:blindmate/models/api/giphy_service.dart';
 import 'package:blindmate/viewmodels/eventHandlers/matching_event_handler.dart';
-import 'package:blindmate/viewmodels/state/matching_state.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../models/dataModels/message_model.dart';
@@ -36,21 +35,16 @@ class ChatEventHandler {
     dataBinding.initialize(chatRoomId);
     await fetchChatPartner();
     dataBinding.listenTypingStatus(chatRoomId, chatState.otherUserId);
-    loadStickers("happy");
+    await loadStickers("happy");
   }
 
   Future<void> fetchChatPartner() async {
-    final chatDoc =
-        await FirebaseFirestore.instance
-            .collection('chats')
-            .doc(chatRoomId)
-            .get();
-
+    final chatDoc = await FirebaseFirestore.instance.collection('chats').doc(chatRoomId).get();
     if (chatDoc.exists) {
       List<String> users = List<String>.from(chatDoc['users']);
       users.remove(currentUserId);
       if (users.isNotEmpty) {
-        chatState.setOtherUserId(users.first);
+        dataBinding.setOtherUserId(users.first);
       }
     }
   }
@@ -58,15 +52,14 @@ class ChatEventHandler {
   Future<void> loadStickers(String query) async {
     try {
       List<String> stickers = await _giphyService.fetchStickers(query);
-      chatState.setStickers(stickers);
+      dataBinding.setStickers(stickers);
     } catch (e) {
       debugPrint("❌ Failed to load stickers: $e");
     }
   }
 
   Future<void> sendMessage({String? text, String? stickerUrl}) async {
-    if ((text == null || text.trim().isEmpty) &&
-        (stickerUrl == null || stickerUrl.isEmpty)) {
+    if ((text == null || text.trim().isEmpty) && (stickerUrl == null || stickerUrl.isEmpty)) {
       return;
     }
 
@@ -77,7 +70,7 @@ class ChatEventHandler {
       timestamp: DateTime.now(),
     );
 
-    chatState.addMessage(message); // Optimistic UI update
+    dataBinding.addMessage(message); // Optimistic UI update
     await dataBinding.sendMessage(currentUserId, chatRoomId, message);
     resetInactivityTimer(); // ✅ Reset inactivity timer on sending
   }
@@ -85,22 +78,13 @@ class ChatEventHandler {
   Timer? _typingTimer;
 
   void updateTyping(bool isTyping) {
-    // Cancel the previous timer if the user is typing again
     _typingTimer?.cancel();
-
-    // Update typing status immediately to true
     if (isTyping) {
-      chatState.updateTyping(true);
       dataBinding.updateTyping(chatRoomId, currentUserId, true);
-
-      // Start a debounce timer to automatically set typing to false after delay
       _typingTimer = Timer(const Duration(seconds: 2), () {
-        chatState.updateTyping(false);
         dataBinding.updateTyping(chatRoomId, currentUserId, false);
       });
     } else {
-      // User deleted everything or stopped typing manually
-      chatState.updateTyping(false);
       dataBinding.updateTyping(chatRoomId, currentUserId, false);
     }
   }
@@ -111,21 +95,16 @@ class ChatEventHandler {
 
     print("🚪 Closing chat room for user: $currentUserId");
 
-    final chatRef = FirebaseFirestore.instance
-        .collection('chats')
-        .doc(chatRoomId);
+    final chatRef = FirebaseFirestore.instance.collection('chats').doc(chatRoomId);
     final chatDoc = await chatRef.get();
-
     if (!chatDoc.exists) return;
 
     List<String> users = List<String>.from(chatDoc['users']);
     users.remove(currentUserId);
 
-    // ✅ Close WebSocket connection
     dataBinding.closeConnection();
     print("🚪 Chat WebSocket disconnected");
 
-    // ✅ Close the chat room in Firestore
     if (users.isEmpty) {
       await dataBinding.closeChatRoom(chatRoomId); // Close room when alone
       print("✅ Chat room closed by last user");
@@ -134,11 +113,8 @@ class ChatEventHandler {
       print("✅ Chat room marked closed");
     }
 
-    // ✅ Update user status to available BEFORE clearing state
     await matchingHandler.updateUserStatus(currentUserId, 'available');
-
-    // ✅ Clear chat state after cleanup to prevent race conditions
-    chatState.clear();
+    dataBinding.clearChatState();
 
     print("✅ Chat exit complete for user: $currentUserId");
   }
@@ -158,29 +134,23 @@ class ChatEventHandler {
   Future<void> confirmEndChat(BuildContext context) async {
     await showDialog(
       context: context,
-      builder:
-          (context) => AlertDialog(
-            title: const Text("End Chat?"),
-            content: const Text(
-              "Are you sure you want to leave this chat? This action cannot be undone.",
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text("Cancel"),
-              ),
-              TextButton(
-                onPressed: () async {
-                  Navigator.pop(context);
-                  await handleExit();
-                },
-                child: const Text(
-                  "End Chat",
-                  style: TextStyle(color: Colors.red),
-                ),
-              ),
-            ],
+      builder: (context) => AlertDialog(
+        title: const Text("End Chat?"),
+        content: const Text("Are you sure you want to leave this chat? This action cannot be undone."),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Cancel"),
           ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              await handleExit();
+            },
+            child: const Text("End Chat", style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
     );
   }
 
@@ -191,8 +161,6 @@ class ChatEventHandler {
   void resetInactivityTimer() {
     _inactivityTimer?.cancel();
     _inactivityTimer = Timer(const Duration(minutes: 10), () {
-      // Can't show dialog here because there's no context.
-      // Could fire a callback or handle in another way.
       print("User inactive for 10 minutes. Chat should close.");
     });
   }
@@ -211,25 +179,22 @@ class ChatEventHandler {
   Future<void> _showInactivityDialog(BuildContext context) async {
     bool? shouldExit = await showDialog(
       context: context,
-      builder:
-          (context) => AlertDialog(
-            title: const Text("Chat Ended Due to Inactivity"),
-            content: const Text(
-              "No messages were sent for 10 minutes. This chat will now close.",
-            ),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                  handleExit();
-                  if (Navigator.canPop(context)) {
-                    Navigator.pop(context);
-                  }
-                },
-                child: const Text("OK"),
-              ),
-            ],
+      builder: (context) => AlertDialog(
+        title: const Text("Chat Ended Due to Inactivity"),
+        content: const Text("No messages were sent for 10 minutes. This chat will now close."),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              handleExit();
+              if (Navigator.canPop(context)) {
+                Navigator.pop(context);
+              }
+            },
+            child: const Text("OK"),
           ),
+        ],
+      ),
     );
 
     if (shouldExit == true) {

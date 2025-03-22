@@ -53,5 +53,4 @@ class ChatState extends ChangeNotifier {
     partnerLeft = false;
     notifyListeners();
   }
-  
 }

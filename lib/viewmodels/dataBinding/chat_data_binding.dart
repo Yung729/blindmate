@@ -35,25 +35,16 @@ class ChatDataBinding {
 
     _chatService.getTypingStatus(chatRoomId).listen((typingData) {
       bool isTyping = typingData[otherUserId] == true;
-
       chatState.setOtherUserTyping(isTyping);
       debugPrint('👀 Other user ($otherUserId) is typing: $isTyping');
     });
   }
 
-  Future<void> sendMessage(
-    String userId,
-    String chatRoomId,
-    MessageModel message,
-  ) async {
+  Future<void> sendMessage(String userId, String chatRoomId, MessageModel message) async {
     await _chatService.sendMessage(userId, chatRoomId, message);
   }
 
-  Future<void> updateTyping(
-    String chatRoomId,
-    String userId,
-    bool isTyping,
-  ) async {
+  Future<void> updateTyping(String chatRoomId, String userId, bool isTyping) async {
     await _chatService.updateTypingStatus(chatRoomId, userId, isTyping);
   }
 
@@ -67,5 +58,21 @@ class ChatDataBinding {
 
   Future<void> closeChatRoom(String chatRoomId) async {
     await _chatService.closeChatRoom(chatRoomId);
+  }
+
+  void setOtherUserId(String userId) {
+    chatState.setOtherUserId(userId);
+  }
+
+  void setStickers(List<String> stickers) {
+    chatState.setStickers(stickers);
+  }
+
+  void addMessage(MessageModel message) {
+    chatState.addMessage(message);
+  }
+
+  void clearChatState() {
+    chatState.clear();
   }
 }
