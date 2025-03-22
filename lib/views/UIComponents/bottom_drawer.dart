@@ -7,7 +7,6 @@ class BottomDrawer extends StatelessWidget {
   final Function() onShareMusic;
   final Function() onTripJournal;
 
-  final List<String> emojiList;
   final List<String> stickerList;
 
   const BottomDrawer({
@@ -17,7 +16,6 @@ class BottomDrawer extends StatelessWidget {
     required this.onPlayMiniGame,
     required this.onShareMusic,
     required this.onTripJournal,
-    required this.emojiList,
     required this.stickerList,
   });
 
@@ -39,7 +37,6 @@ class BottomDrawer extends StatelessWidget {
           Expanded(
             child: TabBarView(
               children: [
-                _buildEmojiPicker(),
                 _buildStickerPicker(),
                 _buildMiniGamePicker(),
                 _buildMusicPicker(),
@@ -52,25 +49,6 @@ class BottomDrawer extends StatelessWidget {
     );
   }
 
-  Widget _buildEmojiPicker() {
-    return GridView.builder(
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 8,
-      ),
-      itemCount: emojiList.length,
-      itemBuilder: (context, index) {
-        return GestureDetector(
-          onTap: () => onEmojiSelected(emojiList[index]),
-          child: Center(
-            child: Text(
-              emojiList[index],
-              style: const TextStyle(fontSize: 20), // Adjusted font size
-            ),
-          ),
-        );
-      },
-    );
-  }
 
   Widget _buildStickerPicker() {
     return ListView.builder(

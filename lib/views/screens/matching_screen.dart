@@ -1,19 +1,22 @@
 import 'package:flutter/material.dart';
-import '../../services/matching_service.dart';
+import 'package:provider/provider.dart';
 import '../../models/dataModels/user_model.dart';
 import 'chat_screen.dart';
+import '../../viewmodels/eventHandlers/matching_event_handler.dart';
+import '../../viewmodels/state/matching_state.dart';
 
-class WaitingScreen extends StatefulWidget {
+class MatchingScreen extends StatefulWidget {
   final UserModel user;
 
-  const WaitingScreen({super.key, required this.user});
+  const MatchingScreen({super.key, required this.user});
 
   @override
-  _WaitingScreenState createState() => _WaitingScreenState();
+  _MatchingScreenState createState() => _MatchingScreenState();
 }
 
-class _WaitingScreenState extends State<WaitingScreen> with SingleTickerProviderStateMixin {
-  final MatchingService _matchingService = MatchingService();
+class _MatchingScreenState extends State<MatchingScreen> with SingleTickerProviderStateMixin {
+  late MatchingEventHandler _matchingHandler;
+  late MatchingState _matchingState;
   bool _isNavigating = false;
 
   late AnimationController _animationController;
@@ -22,10 +25,11 @@ class _WaitingScreenState extends State<WaitingScreen> with SingleTickerProvider
   @override
   void initState() {
     super.initState();
+    _matchingState = context.read<MatchingState>();
+    _matchingHandler = MatchingEventHandler(matchingState: _matchingState );
     _startMatching();
     _listenForMatch();
 
-    // ✅ Fix: Use SingleTickerProviderStateMixin
     _animationController = AnimationController(
       vsync: this, 
       duration: const Duration(seconds: 2),
@@ -42,24 +46,19 @@ class _WaitingScreenState extends State<WaitingScreen> with SingleTickerProvider
     super.dispose();
   }
 
-  // 🔹 Start Searching for a Match
   void _startMatching() async {
-    String? chatRoomId = await _matchingService.startMatching(widget.user);
-    if (chatRoomId != null) {
-      _navigateToChat(chatRoomId);
-    }
+    await _matchingHandler.startMatching(widget.user);
   }
 
-  // 🔹 Listen for Real-Time Match Updates
   void _listenForMatch() {
-    _matchingService.listenForMatch(widget.user.userId, (chatRoomId) {
-      if (!_isNavigating) {
-        _navigateToChat(chatRoomId);
+    _matchingHandler.listenForMatch(widget.user.userId);
+    _matchingState.addListener(() {
+      if (_matchingState.chatRoomId != null && !_isNavigating) {
+        _navigateToChat(_matchingState.chatRoomId!);
       }
     });
   }
 
-  // 🔹 Navigate to Chat
   void _navigateToChat(String chatRoomId) {
     if (_isNavigating) return;
     _isNavigating = true;
@@ -77,9 +76,8 @@ class _WaitingScreenState extends State<WaitingScreen> with SingleTickerProvider
     }
   }
 
-  // 🔹 Allow User to Cancel
   void _cancelSearch() async {
-    await _matchingService.updateUserStatus(widget.user.userId, 'available');
+    await _matchingHandler.updateUserStatus(widget.user.userId, 'available');
     if (mounted) {
       Navigator.pop(context);
     }
@@ -93,7 +91,7 @@ class _WaitingScreenState extends State<WaitingScreen> with SingleTickerProvider
         children: [
           Center(
             child: AnimatedBuilder(
-              animation: _scaleAnimation, // ✅ Fix: Use _scaleAnimation
+              animation: _scaleAnimation,
               builder: (context, child) {
                 return Transform.scale(scale: _scaleAnimation.value, child: child);
               },

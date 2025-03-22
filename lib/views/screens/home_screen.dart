@@ -2,7 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import '../../models/dataModels/user_model.dart';
-import 'waiting_screen.dart';
+import 'matching_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -78,7 +78,7 @@ class _HomeScreenState extends State<HomeScreen> {
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => WaitingScreen(user: _currentUser!),
+          builder: (context) => MatchingScreen(user: _currentUser!),
         ),
       );
     }

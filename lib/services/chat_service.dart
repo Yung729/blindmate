@@ -4,13 +4,11 @@ import 'dart:convert';
 import 'package:web_socket_channel/io.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 import '../models/dataModels/message_model.dart';
-import '../services/matching_service.dart';
 
 class ChatService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final String websocketUrl =
       "wss://blindmate-backend-production.up.railway.app";
-  final MatchingService _matchingService = MatchingService();
 
   WebSocketChannel? _channel;
   final StreamController<List<MessageModel>> _messageStreamController =
@@ -99,17 +97,10 @@ class ChatService {
   }
 
   // 🔹 Close the chat room and reset users' status
-  Future<void> closeChatRoom(String chatRoomId, List<String> users) async {
+  Future<void> closeChatRoom(String chatRoomId) async {
     await _firestore.collection('chats').doc(chatRoomId).update({
       'closed': true,
     });
-
-    // 🔹 Ensure Firestore updates properly
-    await Future.delayed(const Duration(milliseconds: 1000));
-
-    for (String userId in users) {
-      await _matchingService.updateUserStatus(userId, 'available');
-    }
   }
 
   /// 🔹 Close WebSocket connection

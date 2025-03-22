@@ -1,9 +1,15 @@
-import 'package:blindmate/firebase_options.dart';
-import 'package:firebase_core/firebase_core.dart';
+import 'package:blindmate/viewmodels/state/matching_state.dart';
 import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'controllers/navigation_controller.dart';
+import 'package:provider/provider.dart';
+
+import 'firebase_options.dart';
 import 'views/screens/login_screen.dart';
+import 'views/navigation_controller.dart';
+
+// ViewModels
+import 'viewmodels/state/chat_state.dart'; // You can add more!
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -11,7 +17,16 @@ void main() async {
     options: DefaultFirebaseOptions.currentPlatform,
   );
 
-  runApp(const MyApp());
+  runApp(
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => ChatState()),
+        ChangeNotifierProvider(create: (_) => MatchingState()),
+        // ✅ Add more ViewModels here as needed
+      ],
+      child: const MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
@@ -20,6 +35,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      debugShowCheckedModeBanner: false,
       title: 'Blind Mate',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.blueAccent),
@@ -32,16 +48,18 @@ class MyApp extends StatelessWidget {
         stream: FirebaseAuth.instance.authStateChanges(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Scaffold(body: Center(child: CircularProgressIndicator()));
+            return const Scaffold(
+              body: Center(child: CircularProgressIndicator()),
+            );
           }
+
           if (snapshot.hasData) {
-            return const NavigationController(); // ✅ Load Bottom Navigation
+            return const NavigationController(); // ✅ You can wrap with more providers here if needed.
           }
-          return const LoginScreen(); // Show login if not logged in
+
+          return const LoginScreen();
         },
       ),
     );
   }
 }
-
-
