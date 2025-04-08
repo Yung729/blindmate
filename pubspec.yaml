@@ -48,6 +48,7 @@ dependencies:
   metadata_fetch: ^0.4.2
   device_info_plus: ^11.3.3
   provider: ^6.1.2
+  dart_openai: ^4.0.0
 dev_dependencies:
   flutter_test:
     sdk: flutter

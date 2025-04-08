@@ -10,7 +10,8 @@ import 'views/navigation_controller.dart';
 
 // ViewModels
 import 'viewmodels/state/chat_state.dart';
-import 'viewmodels/state/home_state.dart'; // You can add more!
+import 'viewmodels/state/home_state.dart'; 
+import 'viewmodels/state/current_user_state.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -24,7 +25,8 @@ void main() async {
         ChangeNotifierProvider(create: (_) => ChatState()),
         ChangeNotifierProvider(create: (_) => MatchingState()),
         ChangeNotifierProvider(create: (_) => HomeState()),
-        // ✅ Add more ViewModels here as needed
+        ChangeNotifierProvider(create: (_) => CurrentUserState()),
+        // Add more providers as needed
       ],
       child: const MyApp(),
     ),

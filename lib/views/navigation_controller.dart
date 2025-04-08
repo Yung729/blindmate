@@ -1,9 +1,11 @@
-import 'package:blindmate/views/screens/do_mission_screen.dart';
 import 'package:flutter/material.dart';
-import '../models/dataModels/user_model.dart';
+import 'package:provider/provider.dart';
 import 'screens/home_screen.dart';
 import 'screens/sharing_screen.dart';
-import '../utils/auth_utils.dart';
+import 'screens/do_mission_screen.dart';
+import '../viewmodels/state/current_user_state.dart';
+import '../viewmodels/eventHandlers/current_user_event_handler.dart';
+import '../viewmodels/dataBinding/current_user_data_binding.dart';
 
 class NavigationController extends StatefulWidget {
   const NavigationController({super.key});
@@ -13,55 +15,57 @@ class NavigationController extends StatefulWidget {
 }
 
 class _NavigationControllerState extends State<NavigationController> {
+  late CurrentUserEventHandler _userEventHandler;
+
   int _currentIndex = 0;
-  UserModel? _currentUser;
 
   @override
   void initState() {
     super.initState();
-    _fetchUserData();
+    final currentUserState = context.read<CurrentUserState>();
+    final dataBinding = CurrentUserDataBinding();
+    _userEventHandler = CurrentUserEventHandler(
+      currentUserState: currentUserState,
+      dataBinding: dataBinding,
+    );
+    _initializeUser();
   }
 
-  Future<void> _fetchUserData() async {
-    UserModel? user = await loadUserData();
-    if (user == null) {
-      Future.microtask(() => 
-        Navigator.pushReplacementNamed(context, '/login')
-      ); // ✅ Fix navigation issue
-      return;
+  Future<void> _initializeUser() async {
+    await _userEventHandler.fetchUserData(context);
+    if (mounted) {
+      setState(() {});
     }
-
-    setState(() {
-      _currentUser = user;
-    });
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_currentUser == null) {
+    final currentUserState = context.watch<CurrentUserState>();
+
+    if (currentUserState.currentUser == null) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
-    final List<Widget> _screens = [
+    final List<Widget> screens = [
       const HomeScreen(),
-      SharingScreen(user: _currentUser!),
-      DoMissionScreen(),
+      SharingScreen(user: currentUserState.currentUser!),
+      const DoMissionScreen(),
     ];
 
-    final List<String> _titles = ["Home", "Sharing","Mission"]; // ✅ Dynamic screen titles
+    final List<String> titles = ["Home", "Sharing", "Mission"];
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(_titles[_currentIndex]), // ✅ Change title based on screen
+        title: Text(titles[_currentIndex]),
         actions: [
           IconButton(
-            icon: const Icon(Icons.exit_to_app), // 🚪 Exit door icon
-            onPressed: () => logoutUser(context, _currentUser!.userId),
+            icon: const Icon(Icons.exit_to_app),
+            onPressed: () => _userEventHandler.logoutUser(context),
             tooltip: 'Logout',
           ),
         ],
       ),
-      body: _screens[_currentIndex],
+      body: screens[_currentIndex],
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
         onTap: (index) {
@@ -72,7 +76,7 @@ class _NavigationControllerState extends State<NavigationController> {
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
           BottomNavigationBarItem(icon: Icon(Icons.share), label: 'Sharing'),
-          BottomNavigationBarItem(icon: Icon(Icons.videogame_asset),label: 'Mission'),
+          BottomNavigationBarItem(icon: Icon(Icons.videogame_asset), label: 'Mission'),
         ],
       ),
     );
