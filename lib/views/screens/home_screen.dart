@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:lottie/lottie.dart';
 import '../../viewmodels/state/home_state.dart';
 import '../../viewmodels/dataBinding/home_data_binding.dart';
 import '../../viewmodels/eventHandlers/home_event_handler.dart';
@@ -24,35 +25,6 @@ class _HomeScreenState extends State<HomeScreen> {
     _homeEventHandler.loadUserData();
   }
 
-  // 🔹 Show Pop-up with Matching Options
-  void _showMatchingOptions() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text("Choose Matching Type"),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ElevatedButton(
-              onPressed: () {
-                Navigator.pop(context);
-                _startRandomMatching();
-              },
-              child: const Text("Random Matching"),
-            ),
-            const SizedBox(height: 10),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.pop(context);
-              },
-              child: const Text("Bottle Matching"),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   // 🔹 Start Random Matching
   void _startRandomMatching() {
     final currentUser = context.read<HomeState>().currentUser;
@@ -69,31 +41,72 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Center(
-        child: Consumer<HomeState>(
-          builder: (context, homeState, child) {
-            return Column(
+      body: Stack(
+        children: [
+          // Set the sea background
+          Container(
+            decoration: const BoxDecoration(
+              image: DecorationImage(
+                image: AssetImage('assets/sea_background.webp'),
+                fit: BoxFit.cover,
+              ),
+            ),
+          ),
+          // Center the content
+          Center(
+            child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                if (homeState.currentUser != null)
-                  Text(
-                    "Welcome, ${homeState.currentUser!.name}!",
-                    style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  )
-                else
-                  const CircularProgressIndicator(),
+                const Icon(
+                  Icons.recycling,
+                  size: 100,
+                  color: Colors.black,
+                ),
+                const SizedBox(height: 20),
+                Consumer<HomeState>(
+                  builder: (context, homeState, child) {
+                    return homeState.currentUser != null
+                        ? Text(
+                            "Welcome, ${homeState.currentUser!.name}!",
+                            style: const TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black,
+                            ),
+                          )
+                        : const CircularProgressIndicator();
+                  },
+                ),
                 const SizedBox(height: 20),
                 ElevatedButton(
-                  onPressed: _showMatchingOptions,
-                  child: const Text("Start Matching"),
+                  onPressed: _startRandomMatching,
+                  child: const Text("Random Matching"),
                 ),
               ],
-            );
-          },
-        ),
+            ),
+          ),
+          // Add the Lottie animation for the bottle button at the bottom
+          Align(
+            alignment: Alignment.bottomCenter,
+            child: Padding(
+              padding: const EdgeInsets.only(bottom: 20.0),
+              child: GestureDetector(
+                onTap: () {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text("Bottle message!"),
+                    ),
+                  );
+                },
+                child: Lottie.asset(
+                  'assets/bottle.json',
+                  width: 100,
+                  height: 100,
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
