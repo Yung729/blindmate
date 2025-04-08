@@ -4,6 +4,7 @@ import '../../viewmodels/state/home_state.dart';
 import '../../viewmodels/dataBinding/home_data_binding.dart';
 import '../../viewmodels/eventHandlers/home_event_handler.dart';
 import 'matching_screen.dart';
+import 'bottle_note_home_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -20,40 +21,13 @@ class _HomeScreenState extends State<HomeScreen> {
     super.initState();
     final homeState = context.read<HomeState>();
     final dataBinding = HomeDataBinding();
-    _homeEventHandler = HomeEventHandler(homeState: homeState, dataBinding: dataBinding);
+    _homeEventHandler = HomeEventHandler(
+      homeState: homeState,
+      dataBinding: dataBinding,
+    );
     _homeEventHandler.loadUserData();
   }
 
-  // 🔹 Show Pop-up with Matching Options
-  void _showMatchingOptions() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text("Choose Matching Type"),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ElevatedButton(
-              onPressed: () {
-                Navigator.pop(context);
-                _startRandomMatching();
-              },
-              child: const Text("Random Matching"),
-            ),
-            const SizedBox(height: 10),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.pop(context);
-              },
-              child: const Text("Bottle Matching"),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // 🔹 Start Random Matching
   void _startRandomMatching() {
     final currentUser = context.read<HomeState>().currentUser;
     if (currentUser != null) {
@@ -68,32 +42,113 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final screenSize = MediaQuery.of(context).size;
+
     return Scaffold(
-      body: Center(
-        child: Consumer<HomeState>(
-          builder: (context, homeState, child) {
-            return Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                if (homeState.currentUser != null)
-                  Text(
-                    "Welcome, ${homeState.currentUser!.name}!",
-                    style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
+      body: Stack(
+        children: [
+          // Background Image
+          SizedBox.expand(
+            child: Image.asset(
+              'assets/bottlenote_bg.png', 
+              fit: BoxFit.cover,
+            ),
+          ),
+
+          // Main Content
+          SafeArea(
+            child: Consumer<HomeState>(
+              builder: (context, homeState, child) {
+                return Column(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.only(top: 100.0),
+                      child: Center(
+                        child: Image.asset('assets/logo.png', height: 160),
+                      ),
                     ),
-                  )
-                else
-                  const CircularProgressIndicator(),
-                const SizedBox(height: 20),
-                ElevatedButton(
-                  onPressed: _showMatchingOptions,
-                  child: const Text("Start Matching"),
-                ),
-              ],
-            );
-          },
-        ),
+
+                    Column(
+                      children: [
+                        if (homeState.currentUser != null)
+                          Text(
+                            "Welcome, ${homeState.currentUser!.name}!",
+                            style: const TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                              shadows: [
+                                Shadow(blurRadius: 2, color: Colors.black),
+                              ],
+                            ),
+                          )
+                        else
+                          const CircularProgressIndicator(),
+                        const SizedBox(height: 30),
+                        ElevatedButton(
+                          onPressed: _startRandomMatching,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.black.withOpacity(0.7),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 30,
+                              vertical: 15,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(30),
+                            ),
+                          ),
+                          child: const Text(
+                            "Start Matching",
+                            style: TextStyle(fontSize: 16),
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 30.0),
+                      child: Column(
+                        children: [
+                          Image.asset(
+                            'assets/bottle.png', 
+                            height: 100,
+                          ),
+                          const SizedBox(height: 10),
+                          ElevatedButton(
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder:
+                                      (context) => const BottleNoteHomeScreen(),
+                                ),
+                              );
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.black.withOpacity(0.7),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 40,
+                                vertical: 14,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(25),
+                              ),
+                            ),
+                            child: const Text(
+                              "Bottle Note",
+                              style: TextStyle(fontSize: 16),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                );
+              },
+            ),
+          ),
+        ],
       ),
     );
   }

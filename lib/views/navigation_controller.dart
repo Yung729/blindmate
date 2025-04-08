@@ -1,3 +1,7 @@
+import 'package:blindmate/views/screens/bottle_note_home_screen.dart';
+import 'package:blindmate/views/screens/my_bottle_note_screen.dart';
+import 'package:blindmate/views/screens/pick_up_screen.dart';
+import 'package:blindmate/views/screens/send_bottle_note_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'screens/home_screen.dart';
@@ -50,6 +54,10 @@ class _NavigationControllerState extends State<NavigationController> {
       const HomeScreen(),
       SharingScreen(user: currentUserState.currentUser!),
       const DoMissionScreen(),
+      const BottleNoteHomeScreen(),
+      const PickUpScreen(),
+      const SendBottleNoteScreen(),
+      const MyBottleNotesScreen(),
     ];
 
     final List<String> titles = ["Home", "Sharing", "Mission"];
