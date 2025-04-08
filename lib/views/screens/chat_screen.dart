@@ -100,6 +100,12 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                   ),
                 ),
               ),
+              leading: IconButton(
+                icon: const Icon(Icons.arrow_back),
+                onPressed: () async {
+                  await _chatHandler.confirmEndChat(context);
+                },
+              ),
               actions: [
                 if (chatState.otherUserId != null)
                   IconButton(
@@ -107,11 +113,6 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                     onPressed:
                         () async => await _chatHandler.reportUser(context),
                   ),
-                IconButton(
-                  icon: const Icon(Icons.close),
-                  onPressed:
-                      () async => await _chatHandler.confirmEndChat(context),
-                ),
               ],
             ),
             body: Container(

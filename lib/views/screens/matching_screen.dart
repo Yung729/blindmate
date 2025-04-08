@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:lottie/lottie.dart';
 import '../../models/dataModels/user_model.dart';
 import 'chat_screen.dart';
 import '../../viewmodels/eventHandlers/matching_event_handler.dart';
@@ -86,20 +87,20 @@ class _MatchingScreenState extends State<MatchingScreen> with SingleTickerProvid
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(0xFF02ABC1),
       body: Stack(
         children: [
+          // Sea background image
+          Positioned.fill(
+            child: Image.asset(
+              'assets/sea_background.webp', // Add your sea background image here
+              fit: BoxFit.cover,
+            ),
+          ),
           Center(
-            child: AnimatedBuilder(
-              animation: _scaleAnimation,
-              builder: (context, child) {
-                return Transform.scale(scale: _scaleAnimation.value, child: child);
-              },
-              child: Image.asset(
-                'assets/searching.gif',
-                width: 200,
-                height: 200,
-              ),
+            child: Lottie.asset(
+              'assets/animated_boat.json', // Replace with your JSON animation file
+              width: 500,
+              height: 500,
             ),
           ),
           Positioned(

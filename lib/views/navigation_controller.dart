@@ -60,20 +60,61 @@ class _NavigationControllerState extends State<NavigationController> {
       const MyBottleNotesScreen(),
     ];
 
-    final List<String> titles = ["Home", "Sharing", "Mission"];
-
     return Scaffold(
-      appBar: AppBar(
-        title: Text(titles[_currentIndex]),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.exit_to_app),
-            onPressed: () => _userEventHandler.logoutUser(context),
-            tooltip: 'Logout',
+      body: Stack(
+        children: [
+          screens[_currentIndex],
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: AppBar(
+              backgroundColor: Colors.transparent,
+              elevation: 0,
+              toolbarHeight: 80, // Increased AppBar height
+              title: _currentIndex == 0
+                  ? Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          icon: const Icon(
+                            Icons.person,
+                            color: Colors.black,
+                          ),
+                          onPressed: () {
+                            if (currentUserState.currentUser != null) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text("User: ${currentUserState.currentUser!.name}"),
+                                ),
+                              );
+                            }
+                          },
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          currentUserState.currentUser?.name ?? "",
+                          style: const TextStyle(
+                            color: Colors.black,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    )
+                  : null,
+              actions: [
+                IconButton(
+                  icon: const Icon(Icons.exit_to_app, color: Colors.black),
+                  onPressed: () => _userEventHandler.logoutUser(context),
+                  tooltip: 'Logout',
+                ),
+              ],
+            ),
           ),
         ],
       ),
-      body: screens[_currentIndex],
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
         onTap: (index) {
@@ -84,7 +125,10 @@ class _NavigationControllerState extends State<NavigationController> {
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
           BottomNavigationBarItem(icon: Icon(Icons.share), label: 'Sharing'),
-          BottomNavigationBarItem(icon: Icon(Icons.videogame_asset), label: 'Mission'),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.videogame_asset),
+            label: 'Mission',
+          ),
         ],
       ),
     );
