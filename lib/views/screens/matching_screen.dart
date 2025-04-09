@@ -5,6 +5,7 @@ import '../../models/dataModels/user_model.dart';
 import 'chat_screen.dart';
 import '../../viewmodels/eventHandlers/matching_event_handler.dart';
 import '../../viewmodels/state/matching_state.dart';
+import '../UIComponents/custom_button.dart';
 
 class MatchingScreen extends StatefulWidget {
   final UserModel user;
@@ -15,7 +16,8 @@ class MatchingScreen extends StatefulWidget {
   _MatchingScreenState createState() => _MatchingScreenState();
 }
 
-class _MatchingScreenState extends State<MatchingScreen> with SingleTickerProviderStateMixin {
+class _MatchingScreenState extends State<MatchingScreen>
+    with SingleTickerProviderStateMixin {
   late MatchingEventHandler _matchingHandler;
   late MatchingState _matchingState;
   bool _isNavigating = false;
@@ -27,12 +29,12 @@ class _MatchingScreenState extends State<MatchingScreen> with SingleTickerProvid
   void initState() {
     super.initState();
     _matchingState = context.read<MatchingState>();
-    _matchingHandler = MatchingEventHandler(matchingState: _matchingState );
+    _matchingHandler = MatchingEventHandler(matchingState: _matchingState);
     _startMatching();
     _listenForMatch();
 
     _animationController = AnimationController(
-      vsync: this, 
+      vsync: this,
       duration: const Duration(seconds: 2),
     )..repeat(reverse: true);
 
@@ -43,7 +45,7 @@ class _MatchingScreenState extends State<MatchingScreen> with SingleTickerProvid
 
   @override
   void dispose() {
-    _animationController.dispose(); 
+    _animationController.dispose();
     super.dispose();
   }
 
@@ -68,10 +70,11 @@ class _MatchingScreenState extends State<MatchingScreen> with SingleTickerProvid
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
-          builder: (context) => ChatScreen(
-            chatRoomId: chatRoomId,
-            currentUserId: widget.user.userId,
-          ),
+          builder:
+              (context) => ChatScreen(
+                chatRoomId: chatRoomId,
+                currentUserId: widget.user.userId,
+              ),
         ),
       );
     }
@@ -119,22 +122,7 @@ class _MatchingScreenState extends State<MatchingScreen> with SingleTickerProvid
                   ),
                 ),
                 const SizedBox(height: 20),
-                ElevatedButton(
-                  onPressed: _cancelSearch,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                  ),
-                  child: const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 30, vertical: 12),
-                    child: Text(
-                      "Cancel Matching",
-                      style: TextStyle(fontSize: 16),
-                    ),
-                  ),
-                ),
+                CustomButton(text: "Cancel Matching", onPressed: _cancelSearch),
               ],
             ),
           ),

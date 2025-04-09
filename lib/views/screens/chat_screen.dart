@@ -19,13 +19,15 @@ class ChatScreen extends StatefulWidget {
   });
 
   @override
-  ChatScreenState createState() => ChatScreenState(); 
+  ChatScreenState createState() => ChatScreenState();
 }
 
 class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   late ChatEventHandler _chatHandler;
   late ChatState _chatState;
   late TextEditingController _messageController;
+  bool _isDrawerVisible = false;
+  bool _showStickers = false;
 
   @override
   void initState() {
@@ -115,39 +117,112 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                   ),
               ],
             ),
-            body: Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [Colors.white, Colors.blue[50]!],
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
+            body: Stack(
+              children: [
+                // Main chat UI
+                Column(
+                  children: [
+                    Expanded(
+                      child: Padding(
+                        padding: EdgeInsets.only(
+                          bottom:
+                              _isDrawerVisible
+                                  ? MediaQuery.of(context).size.height *
+                                      (_showStickers
+                                          ? 0.25
+                                          : 0.2) // Adjust padding based on drawer height
+                                  : 0,
+                        ),
+                        child: ListView.builder(
+                          reverse: true,
+                          itemCount:
+                              chatState.messages.length +
+                              (chatState.isOtherUserTyping ? 1 : 0),
+                          itemBuilder: (context, index) {
+                            if (chatState.isOtherUserTyping && index == 0) {
+                              return _buildTypingIndicatorBubble();
+                            }
+
+                            final messageIndex =
+                                chatState.isOtherUserTyping ? index - 1 : index;
+                            final message = chatState.messages[messageIndex];
+                            final isMe =
+                                message.senderId == widget.currentUserId;
+
+                            return _buildChatBubble(message, isMe);
+                          },
+                        ),
+                      ),
+                    ),
+                    _buildMessageInput(),
+                  ],
                 ),
-              ),
-              child: Column(
-                children: [
-                  Expanded(
-                    child: ListView.builder(
-                      reverse: true,
-                      itemCount:
-                          chatState.messages.length +
-                          (chatState.isOtherUserTyping ? 1 : 0),
-                      itemBuilder: (context, index) {
-                        if (chatState.isOtherUserTyping && index == 0) {
-                          return _buildTypingIndicatorBubble();
-                        }
 
-                        final messageIndex =
-                            chatState.isOtherUserTyping ? index - 1 : index;
-                        final message = chatState.messages[messageIndex];
-                        final isMe = message.senderId == widget.currentUserId;
-
-                        return _buildChatBubble(message, isMe);
-                      },
+                // Bottom drawer overlay
+                if (_isDrawerVisible)
+                  Positioned(
+                    bottom: 0, // Align the drawer to the bottom of the screen
+                    left: 0,
+                    right: 0,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        _buildMessageInput(),
+                        AnimatedContainer(
+                          duration: const Duration(milliseconds: 300),
+                          height:
+                              MediaQuery.of(context).size.height *
+                              (_showStickers ? 0.21 : 0.14),
+                          decoration: const BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.only(
+                              topLeft: Radius.circular(20),
+                              topRight: Radius.circular(20),
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black26,
+                                blurRadius: 10,
+                                offset: Offset(0, -2),
+                              ),
+                            ],
+                          ),
+                          child: BottomDrawer(
+                            onEmojiSelected: (emoji) {
+                              _chatHandler.sendMessage(text: emoji);
+                              setState(() {
+                                _isDrawerVisible = false;
+                              });
+                            },
+                            onStickerSelected: (sticker) {
+                              _chatHandler.sendMessage(stickerUrl: sticker);
+                              setState(() {
+                                _isDrawerVisible = false;
+                                _showStickers = false;
+                              });
+                            },
+                            onPlayMiniGame: () {
+                              // Add your mini-game logic here
+                            },
+                            onShareMusic: () {
+                              // Add your music sharing logic here
+                            },
+                            onTripJournal: () {
+                              // Add your trip journal logic here
+                            },
+                            stickerList: _chatState.stickerList,
+                            showStickers: _showStickers, // Pass the state
+                            toggleStickers: (bool value) {
+                              setState(() {
+                                _showStickers = value; // Update the state
+                              });
+                            },
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  _buildMessageInput(),
-                ],
-              ),
+              ],
             ),
           ),
         );
@@ -247,22 +322,12 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
         children: [
           IconButton(
             icon: const Icon(Icons.add),
-            onPressed:
-                () => showModalBottomSheet(
-                  context: context,
-                  builder:
-                      (context) => BottomDrawer(
-                        onEmojiSelected:
-                            (emoji) => _chatHandler.sendMessage(text: emoji),
-                        onStickerSelected:
-                            (sticker) =>
-                                _chatHandler.sendMessage(stickerUrl: sticker),
-                        onPlayMiniGame: () {},
-                        onShareMusic: () {},
-                        onTripJournal: () {},
-                        stickerList: _chatState.stickerList,
-                      ),
-                ),
+            onPressed: () {
+              setState(() {
+                _isDrawerVisible =
+                    !_isDrawerVisible; // Toggle drawer visibility
+              });
+            },
           ),
           Expanded(
             child: TextField(
@@ -274,9 +339,7 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                   _chatHandler.updateTyping(false);
                 }
               },
-              onSubmitted:
-                  (_) =>
-                      _chatHandler.resetInactivityTimer(), // ✅ No context here
+              onSubmitted: (_) => _chatHandler.resetInactivityTimer(),
               decoration: const InputDecoration(hintText: "Type a message..."),
             ),
           ),

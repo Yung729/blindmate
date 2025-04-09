@@ -5,6 +5,7 @@ import '../../viewmodels/dataBinding/home_data_binding.dart';
 import '../../viewmodels/eventHandlers/home_event_handler.dart';
 import 'matching_screen.dart';
 import 'bottle_note_home_screen.dart';
+import '../UIComponents/custom_button.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -49,10 +50,7 @@ class _HomeScreenState extends State<HomeScreen> {
         children: [
           // Background Image
           SizedBox.expand(
-            child: Image.asset(
-              'assets/bottlenote_bg.png', 
-              fit: BoxFit.cover,
-            ),
+            child: Image.asset('assets/bottlenote_bg.png', fit: BoxFit.cover),
           ),
 
           // Main Content
@@ -86,22 +84,9 @@ class _HomeScreenState extends State<HomeScreen> {
                         else
                           const CircularProgressIndicator(),
                         const SizedBox(height: 30),
-                        ElevatedButton(
+                        CustomButton(
+                          text: "Start Matching",
                           onPressed: _startRandomMatching,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.black.withOpacity(0.7),
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 30,
-                              vertical: 15,
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(30),
-                            ),
-                          ),
-                          child: const Text(
-                            "Start Matching",
-                            style: TextStyle(fontSize: 16),
-                          ),
                         ),
                       ],
                     ),
@@ -110,12 +95,10 @@ class _HomeScreenState extends State<HomeScreen> {
                       padding: const EdgeInsets.only(bottom: 30.0),
                       child: Column(
                         children: [
-                          Image.asset(
-                            'assets/bottle.png', 
-                            height: 100,
-                          ),
+                          Image.asset('assets/bottle.png', height: 100),
                           const SizedBox(height: 10),
-                          ElevatedButton(
+                          CustomButton(
+                            text: "Bottle Note",
                             onPressed: () {
                               Navigator.push(
                                 context,
@@ -125,20 +108,8 @@ class _HomeScreenState extends State<HomeScreen> {
                                 ),
                               );
                             },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.black.withOpacity(0.7),
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 40,
-                                vertical: 14,
-                              ),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(25),
-                              ),
-                            ),
-                            child: const Text(
-                              "Bottle Note",
-                              style: TextStyle(fontSize: 16),
-                            ),
+                            horizontalPadding: 40,
+                            verticalPadding: 14,
                           ),
                         ],
                       ),

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-class BottomDrawer extends StatelessWidget {
+class BottomDrawer extends StatefulWidget {
   final Function(String) onEmojiSelected;
   final Function(String) onStickerSelected;
   final Function() onPlayMiniGame;
@@ -8,6 +8,9 @@ class BottomDrawer extends StatelessWidget {
   final Function() onTripJournal;
 
   final List<String> stickerList;
+
+  final bool showStickers; // Add this parameter
+  final Function(bool) toggleStickers; 
 
   const BottomDrawer({
     super.key,
@@ -17,82 +20,119 @@ class BottomDrawer extends StatelessWidget {
     required this.onShareMusic,
     required this.onTripJournal,
     required this.stickerList,
+    required this.showStickers, 
+    required this.toggleStickers,
   });
 
   @override
+  _BottomDrawerState createState() => _BottomDrawerState();
+}
+
+class _BottomDrawerState extends State<BottomDrawer> {
+
+  @override
   Widget build(BuildContext context) {
-    return DefaultTabController(
-      length: 5,
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.only(
+          topLeft: Radius.circular(20),
+          topRight: Radius.circular(20),
+        ),
+      ),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          TabBar(
-            tabs: [
-              Tab(icon: Icon(Icons.emoji_emotions)),
-              Tab(icon: Icon(Icons.sticky_note_2)),
-              Tab(icon: Icon(Icons.videogame_asset)),
-              Tab(icon: Icon(Icons.music_note)),
-              Tab(icon: Icon(Icons.travel_explore)),
-            ],
-          ),
-          Expanded(
-            child: TabBarView(
+          if (!widget.showStickers) ...[
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
-                _buildStickerPicker(),
-                _buildMiniGamePicker(),
-                _buildMusicPicker(),
-                _buildTripJournalPicker(),
+                _buildDrawerButton(
+                  icon: Icons.emoji_emotions,
+                  label: "Emoji",
+                  onTap: () => widget.onEmojiSelected("😊"),
+                ),
+                _buildDrawerButton(
+                  icon: Icons.music_note,
+                  label: "Music",
+                  onTap: widget.onShareMusic,
+                ),
+                _buildDrawerButton(
+                  icon: Icons.travel_explore,
+                  label: "Journal",
+                  onTap: widget.onTripJournal,
+                ),
+                _buildDrawerButton(
+                  icon: Icons.videogame_asset,
+                  label: "Game",
+                  onTap: widget.onPlayMiniGame,
+                ),
+                _buildDrawerButton(
+                  icon: Icons.sticky_note_2,
+                  label: "Sticker",
+                  onTap: () {
+                    setState(() {
+                       widget.toggleStickers(true);
+                    });
+                  },
+                ),
               ],
             ),
-          ),
+          ] else ...[
+            SizedBox(
+              height: 120, // Adjust height to fit two rows of stickers
+              child: GridView.builder(
+                scrollDirection: Axis.horizontal, // Horizontal scrolling
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2, // Two rows
+                  crossAxisSpacing: 8, // Spacing between columns
+                  mainAxisSpacing: 8, // Spacing between rows
+                  childAspectRatio: 1, // Square stickers
+                ),
+                itemCount: widget.stickerList.length,
+                itemBuilder: (context, index) {
+                  return GestureDetector(
+                    onTap: () => widget.onStickerSelected(widget.stickerList[index]),
+                    child: Image.network(
+                      widget.stickerList[index],
+                      height: 50,
+                      width: 50,
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
         ],
       ),
     );
   }
 
-
-  Widget _buildStickerPicker() {
-    return ListView.builder(
-      scrollDirection: Axis.horizontal,
-      itemCount: stickerList.length,
-      itemBuilder: (context, index) {
-        return GestureDetector(
-          onTap: () => onStickerSelected(stickerList[index]),
-          child: Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Image.network(
-              stickerList[index],
-              height: 80, // Adjusted height
-              width: 80, // Adjusted width
+  Widget _buildDrawerButton({
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.grey[200],
+              borderRadius: BorderRadius.circular(12),
             ),
+            child: Icon(icon, size: 24, color: Colors.black),
           ),
-        );
-      },
-    );
-  }
-
-  Widget _buildMiniGamePicker() {
-    return Center(
-      child: ElevatedButton(
-        onPressed: onPlayMiniGame,
-        child: const Text("Play Mini Game"),
-      ),
-    );
-  }
-
-  Widget _buildMusicPicker() {
-    return Center(
-      child: ElevatedButton(
-        onPressed: onShareMusic,
-        child: const Text("Share Music"),
-      ),
-    );
-  }
-
-  Widget _buildTripJournalPicker() {
-    return Center(
-      child: ElevatedButton(
-        onPressed: onTripJournal,
-        child: const Text("Trip Journal"),
+          const SizedBox(height: 8),
+          Text(
+            label,
+            style: const TextStyle(fontSize: 12),
+          ),
+        ],
       ),
     );
   }
