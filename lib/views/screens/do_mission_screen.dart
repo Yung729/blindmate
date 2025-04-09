@@ -32,12 +32,16 @@ class _DoMissionScreenState extends State<DoMissionScreen> {
     });
   }
 
-  Widget _buildMissionField(String label) {
+  Widget _buildMissionField(String missionName) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          label,
+          "Ongoing Mission Progress",
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+        ),
+        Text(
+          missionName,
           style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
         ),
         SizedBox(height: 8),
@@ -91,9 +95,9 @@ class _DoMissionScreenState extends State<DoMissionScreen> {
             _buildCrystalBox('111'),
             _buildMissionField('Mission 1'),
             SizedBox(height: 20),
-            _buildMissionField('Mission 2'),
-            SizedBox(height: 20),
-            _buildMissionField('Mission 3'),
+            // _buildMissionField('Mission 2'),
+            // SizedBox(height: 20),
+            // _buildMissionField('Mission 3'),
           ],
         ),
       ),
