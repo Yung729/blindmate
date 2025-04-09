@@ -23,12 +23,20 @@ class BottleNoteEventHandler {
           return note.senderId != userId &&
               note.expirationTime.isAfter(DateTime.now());
         }).toList();
+    print(validNotes.length);
+    print(validNotes[0].senderId);
+    print(validNotes[0].content);
+    print(validNotes[0].noteId);
 
     if (validNotes.isEmpty) {
       state.clearPickedNote();
       return;
     } else {
       state.setNotes(validNotes);
+      Pool().clear();
+      for (final note in validNotes) {
+        Pool().addNote(note);
+      }
       state.setPickedNote(Pool().pickRandomNote());
     }
   }
@@ -74,11 +82,30 @@ class BottleNoteEventHandler {
     );
 
     await FirebaseFirestore.instance
+        .collection('replies')
+        .doc(replyId)
+        .set(reply.toJson());
+
+    await FirebaseFirestore.instance
         .collection('bottle_notes')
         .doc(noteId)
-        .collection('replies')
-        .doc(reply.replyId)
-        .set(reply.toJson());
+        .update({
+          'replies': FieldValue.arrayUnion([replyId]),
+        });
+  }
+
+  Future<List<Reply>> fetchReplies(List<String> replyIds) async {
+    final firestore = FirebaseFirestore.instance;
+    List<Reply> replies = [];
+
+    for (String id in replyIds) {
+      final doc = await firestore.collection('replies').doc(id).get();
+      if (doc.exists) {
+        replies.add(Reply.fromJson(doc.data()!));
+      }
+    }
+
+    return replies;
   }
 
   Future<List<BottleNote>> getNotesByUserId(String userId) async {

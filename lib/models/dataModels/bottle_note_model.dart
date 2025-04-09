@@ -9,7 +9,7 @@ class BottleNote {
   final DateTime timestamp;
   final DateTime expirationTime;
   final String status;
-  final List<Reply> replies;
+  final List<String> replies;
 
   BottleNote({
     required this.noteId,
@@ -35,12 +35,15 @@ class BottleNote {
               ? DateTime.parse(map['expirationTime'])
               : DateTime.now().add(Duration(hours: 24)),
       status: map['status'] ?? 'active',
-      replies:
-          map['replies'] != null
-              ? (map['replies'] as List<dynamic>)
-                  .map((r) => Reply.fromJson(r))
-                  .toList()
-              : [],
+      replies: map['replies'] != null
+        ? List<String>.from(map['replies'])
+        : [],
+      // replies:
+      //     map['replies'] != null
+      //         ? (map['replies'] as List<dynamic>)
+      //             .map((r) => Reply.fromJson(r))
+      //             .toList()
+      //         : [],
     );
   }
 
@@ -51,6 +54,6 @@ class BottleNote {
     'timestamp': timestamp.toIso8601String(),
     'expirationTime': expirationTime.toIso8601String(),
     'status': status,
-    'replies': replies.map((r) => r.toJson()).toList(),
+    'replies': replies,
   };
 }

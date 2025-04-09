@@ -6,6 +6,7 @@ import '../../viewmodels/state/bottle_note_state.dart';
 import '../../viewmodels/eventHandlers/bottle_note_event_handler.dart';
 import '../../models/dataModels/bottle_note_model.dart';
 import 'package:lottie/lottie.dart';
+import 'show_bottle_note_content_screen.dart';
 
 class PickUpScreen extends StatefulWidget {
   const PickUpScreen({super.key});
@@ -39,7 +40,17 @@ class _PickUpScreenState extends State<PickUpScreen> {
     if (!mounted) return;
 
     if (pickedNote != null) {
-      _showReplyDialog(pickedNote);
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("Bottle Note Found!.\nYou will be redirect in 3 seconds")));
+      await Future.delayed(const Duration(seconds: 3));
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => ShowBottleNoteScreen(note: pickedNote),
+        ),
+      );
+      // _showReplyDialog(pickedNote);
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("No available note to pick!")),
@@ -53,15 +64,22 @@ class _PickUpScreenState extends State<PickUpScreen> {
     final replyController = TextEditingController();
     final user = context.read<HomeState>().currentUser;
 
-    final hasReplied = note.replies.any((r) => r.responderId == user?.userId);
+    // final allReplies = _eventHandler.fetchReplies(note.replies);
+    // final hasReplied = allReplies.any((r) => r.responderId == user?.userId);
 
-    if (hasReplied) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("You’ve already replied to this note.")),
-      );
-      Navigator.pop(context);
-      return;
-    }
+    // // final hasReplied = _eventHandler.fetchReplies(note.replies);
+
+    // // final hasReplied = note.replies.any((r) => r.responderId == user?.userId);
+
+    // // final hasReplied = note.replies.any((r) => r.responderId == user?.userId);
+
+    // if (hasReplied) {
+    //   ScaffoldMessenger.of(context).showSnackBar(
+    //     const SnackBar(content: Text("You’ve already replied to this note.")),
+    //   );
+    //   Navigator.pop(context);
+    //   return;
+    // }
 
     showDialog(
       context: context,

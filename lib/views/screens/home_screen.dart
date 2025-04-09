@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:lottie/lottie.dart';
 import '../../viewmodels/state/home_state.dart';
 import '../../viewmodels/dataBinding/home_data_binding.dart';
 import '../../viewmodels/eventHandlers/home_event_handler.dart';
@@ -29,7 +28,6 @@ class _HomeScreenState extends State<HomeScreen> {
     _homeEventHandler.loadUserData();
   }
 
-  // 🔹 Start Random Matching
   void _startRandomMatching() {
     final currentUser = context.read<HomeState>().currentUser;
     if (currentUser != null) {
@@ -49,67 +47,105 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       body: Stack(
         children: [
-          // Set the sea background
-          Container(
-            decoration: const BoxDecoration(
-              image: DecorationImage(
-                image: AssetImage('assets/sea_background.webp'),
-                fit: BoxFit.cover,
-              ),
+          // Background Image
+          SizedBox.expand(
+            child: Image.asset(
+              'assets/bottlenote_bg.png', 
+              fit: BoxFit.cover,
             ),
           ),
-          // Center the content
-          Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(
-                  Icons.recycling,
-                  size: 100,
-                  color: Colors.black,
-                ),
-                const SizedBox(height: 20),
-                Consumer<HomeState>(
-                  builder: (context, homeState, child) {
-                    return homeState.currentUser != null
-                        ? Text(
+
+          // Main Content
+          SafeArea(
+            child: Consumer<HomeState>(
+              builder: (context, homeState, child) {
+                return Column(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.only(top: 100.0),
+                      child: Center(
+                        child: Image.asset('assets/logo.png', height: 160),
+                      ),
+                    ),
+
+                    Column(
+                      children: [
+                        if (homeState.currentUser != null)
+                          Text(
                             "Welcome, ${homeState.currentUser!.name}!",
                             style: const TextStyle(
-                              fontSize: 20,
+                              fontSize: 22,
                               fontWeight: FontWeight.bold,
-                              color: Colors.black,
+                              color: Colors.white,
+                              shadows: [
+                                Shadow(blurRadius: 2, color: Colors.black),
+                              ],
                             ),
                           )
-                        : const CircularProgressIndicator();
-                  },
-                ),
-                const SizedBox(height: 20),
-                ElevatedButton(
-                  onPressed: _startRandomMatching,
-                  child: const Text("Random Matching"),
-                ),
-              ],
-            ),
-          ),
-          // Add the Lottie animation for the bottle button at the bottom
-          Align(
-            alignment: Alignment.bottomCenter,
-            child: Padding(
-              padding: const EdgeInsets.only(bottom: 20.0),
-              child: GestureDetector(
-                onTap: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text("Bottle message!"),
+                        else
+                          const CircularProgressIndicator(),
+                        const SizedBox(height: 30),
+                        ElevatedButton(
+                          onPressed: _startRandomMatching,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.black.withOpacity(0.7),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 30,
+                              vertical: 15,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(30),
+                            ),
+                          ),
+                          child: const Text(
+                            "Start Matching",
+                            style: TextStyle(fontSize: 16),
+                          ),
+                        ),
+                      ],
                     ),
-                  );
-                },
-                child: Lottie.asset(
-                  'assets/bottle.json',
-                  width: 100,
-                  height: 100,
-                ),
-              ),
+
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 30.0),
+                      child: Column(
+                        children: [
+                          Image.asset(
+                            'assets/bottle.png', 
+                            height: 100,
+                          ),
+                          const SizedBox(height: 10),
+                          ElevatedButton(
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder:
+                                      (context) => const BottleNoteHomeScreen(),
+                                ),
+                              );
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.black.withOpacity(0.7),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 40,
+                                vertical: 14,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(25),
+                              ),
+                            ),
+                            child: const Text(
+                              "Bottle Note",
+                              style: TextStyle(fontSize: 16),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                );
+              },
             ),
           ),
         ],
