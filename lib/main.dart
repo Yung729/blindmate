@@ -1,3 +1,4 @@
+import 'package:blindmate/viewmodels/state/auth_state.dart';
 import 'package:blindmate/viewmodels/state/matching_state.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -28,6 +29,7 @@ void main() async {
         ChangeNotifierProvider(create: (_) => HomeState()),
         ChangeNotifierProvider(create: (_) => CurrentUserState()),
         ChangeNotifierProvider(create: (_) => BottleNoteState()),
+        ChangeNotifierProvider(create: (_) => AuthState()),
         // Add more providers as needed
       ],
       child: const MyApp(),
