@@ -6,7 +6,7 @@ import '../../viewmodels/eventHandlers/home_event_handler.dart';
 import 'matching_screen.dart';
 import 'bottle_note_home_screen.dart';
 import '../UIComponents/custom_button.dart';
-import 'survey.dart'; // Add this import for SurveyPage
+import 'survey.dart'; // Import for SurveyPage
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -42,11 +42,38 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  void _goToSurvey() { // New method for navigation to SurveyPage
+  void _goToSurvey() {
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => SurveyPage(),
+      ),
+    );
+  }
+
+  void _showSurveyDialog() { // New method to show the dialog
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Survey Invitation'),
+        content: Text(
+          'Would you like to answer survey question?\nNote: It may increase your level.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context); // Close the dialog
+            },
+            child: Text('No'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context); // Close the dialog
+              _goToSurvey(); // Navigate to SurveyPage
+            },
+            child: Text('Yes'),
+          ),
+        ],
       ),
     );
   }
@@ -100,8 +127,8 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                         const SizedBox(height: 20), // Add spacing between buttons
                         CustomButton(
-                          text: "Take Survey",
-                          onPressed: _goToSurvey, // Navigate to SurveyPage
+                          text: "Survey", // Changed text to "Survey"
+                          onPressed: _showSurveyDialog, // Show dialog instead of direct navigation
                         ),
                       ],
                     ),
