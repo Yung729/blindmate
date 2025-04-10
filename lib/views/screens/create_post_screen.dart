@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:share_plus/share_plus.dart';
-import 'package:url_launcher/url_launcher.dart';
+import 'package:provider/provider.dart';
 import '../../models/dataModels/user_model.dart';
-import '../../models/api/youtube_api.dart';
+import '../../viewmodels/dataBinding/create_post_data_binding.dart';
+import '../../viewmodels/eventHandlers/create_post_event_handler.dart';
+import '../../viewmodels/state/create_post_state.dart';
+import '../../viewmodels/uiValidation/post_validator.dart';
 
 class CreatePostScreen extends StatefulWidget {
   final UserModel user;
@@ -15,147 +16,295 @@ class CreatePostScreen extends StatefulWidget {
 }
 
 class _CreatePostScreenState extends State<CreatePostScreen> {
-  final TextEditingController _textController = TextEditingController();
-  final TextEditingController _musicController = TextEditingController();
-  bool _isPublic = true;
-  bool _isLoading = false;
-  List<Map<String, String>> _musicResults = [];
-  String? _selectedMusicUrl;
-  String? _selectedMusicTitle; // Store song title separately
+  late TextEditingController _textController;
+  late CreatePostEventHandler _eventHandler;
+  final ScrollController _scrollController = ScrollController();
 
-  void _fetchYouTubeMusic() async {
-    String query = _musicController.text.trim();
-    if (query.isEmpty) return;
+  @override
+  void initState() {
+    super.initState();
+    _textController = TextEditingController();
 
-    setState(() => _isLoading = true);
+    final createPostState = Provider.of<CreatePostState>(
+      context,
+      listen: false,
+    );
+    final dataBinding = CreatePostDataBinding(createPostState: createPostState);
 
-    List<Map<String, String>> results = await YouTubeAPI.searchYouTubeMusicList(query);
-
-    setState(() {
-      _isLoading = false;
-      _musicResults = results;
-    });
-
-    if (results.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("No songs found! Try a different search.")),
-      );
-    }
+    _eventHandler = CreatePostEventHandler(
+      createPostState: createPostState,
+      dataBinding: dataBinding,
+      user: widget.user,
+    );
   }
 
-  void _sharePost() async {
-    if (_textController.text.trim().isEmpty && _selectedMusicUrl == null) return;
-
-    final newPost = {
-      'userId': widget.user.userId,
-      'userName': widget.user.name,
-      'content': _textController.text.trim(),
-      'musicUrl': _selectedMusicUrl,
-      'timestamp': FieldValue.serverTimestamp(),
-      'likes': [],
-      'visibility': _isPublic ? 'public' : 'private',
-    };
-
-    Navigator.pop(context, newPost);
+  @override
+  void dispose() {
+    _textController.dispose();
+    _scrollController.dispose();
+    super.dispose();
   }
 
-  void _shareMusic() {
-    if (_selectedMusicUrl != null) {
-      Share.share("Check out this song: $_selectedMusicUrl");
-    }
-  }
-
-  Future<void> _launchURL() async {
-    if (_selectedMusicUrl != null) {
-      final Uri url = Uri.parse(_selectedMusicUrl!);
-      if (await canLaunchUrl(url)) {
-        await launchUrl(url, mode: LaunchMode.externalApplication);
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Could not open the link.")),
+  void _showMusicSearchDialog(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (BuildContext context) {
+        final musicSearchController = TextEditingController();
+        return Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom,
+          ),
+          child: StatefulBuilder(
+            builder: (BuildContext context, StateSetter setState) {
+              final createPostState = Provider.of<CreatePostState>(context);
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                children: <Widget>[
+                  Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          "Search Music",
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close),
+                          onPressed: () {
+                            Navigator.pop(context);
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: TextField(
+                      controller: musicSearchController,
+                      onChanged: (text) => _eventHandler.handleMusicSearch(text),
+                      decoration: InputDecoration(
+                        hintText: "Search for a song...",
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: BorderSide(color: Colors.grey[300]!),
+                        ),
+                        filled: true,
+                        fillColor: Colors.grey[100],
+                        suffixIcon: const Icon(Icons.search, color: Colors.grey),
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 10),
+                      ),
+                    ),
+                  ),
+                  if (createPostState.isLoading)
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 20),
+                      child: Center(child: CircularProgressIndicator()),
+                    ),
+                  if (createPostState.musicResults.isNotEmpty)
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(
+                        maxHeight: 300,
+                      ),
+                      child: ListView.separated(
+                        shrinkWrap: true,
+                        physics: const ClampingScrollPhysics(),
+                        itemCount: createPostState.musicResults.length,
+                        separatorBuilder: (context, index) =>
+                            const Divider(height: 1),
+                        itemBuilder: (context, index) {
+                          return ListTile(
+                            leading: const Icon(Icons.music_note),
+                            title: Text(
+                              createPostState.musicResults[index]['title']!,
+                            ),
+                            onTap: () {
+                              _eventHandler.selectMusic(
+                                createPostState.musicResults[index]['url']!,
+                                createPostState.musicResults[index]['title']!,
+                              );
+                              Navigator.pop(context); // Close the dialog
+                            },
+                          );
+                        },
+                      ),
+                    ),
+                  if (createPostState.musicResults.isEmpty &&
+                      !createPostState.isLoading &&
+                      musicSearchController.text.isNotEmpty)
+                    const Padding(
+                      padding: EdgeInsets.all(16.0),
+                      child: Text("No music found."),
+                    ),
+                  const SizedBox(height: 16),
+                ],
+              );
+            },
+          ),
         );
-      }
-    }
+      },
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Create Post")),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            TextField(
-              controller: _textController,
-              maxLines: 3,
-              decoration: const InputDecoration(
-                hintText: "What's on your mind?",
-                border: OutlineInputBorder(),
-              ),
+      appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: const Text(
+          "Create post",
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        ),
+        centerTitle: true,
+        elevation: 0,
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black,
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 16.0),
+            child: IconButton(
+              icon: const Icon(Icons.send),
+              onPressed: () async {
+                if (!UIValidation.isPostContentValid(_textController.text)) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text("Post content cannot be empty!"),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                  return;
+                }
+
+                await _eventHandler.sharePost();
+                final createPostState = Provider.of<CreatePostState>(
+                  context,
+                  listen: false,
+                );
+                createPostState.reset();
+                _textController.clear();
+
+                if (context.mounted) {
+                  Navigator.pop(context);
+                }
+              },
             ),
-            const SizedBox(height: 10),
-            TextField(
-              controller: _musicController,
-              onChanged: (text) => _fetchYouTubeMusic(),
-              decoration: const InputDecoration(
-                hintText: "Enter song name to search on YouTube",
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 10),
-
-            if (_musicResults.isNotEmpty)
-              SizedBox(
-                height: 150,
-                child: ListView.builder(
-                  itemCount: _musicResults.length,
-                  itemBuilder: (context, index) {
-                    return ListTile(
-                      title: Text(_musicResults[index]['title']!),
-                      onTap: () {
-                        setState(() {
-                          _selectedMusicUrl = _musicResults[index]['url'];
-                          _selectedMusicTitle = _musicResults[index]['title'];
-                          _musicResults.clear(); // Hide search results after selection
-                        });
-                      },
-                    );
-                  },
-                ),
-              ),
-
-            const SizedBox(height: 10),
-
-            // Show selected song with the song name as a clickable link
-            if (_selectedMusicUrl != null) ...[
-              const Text("Selected Song:"),
-              InkWell(
-                onTap: _launchURL, // Opens YouTube link when clicked
-                child: Text(
-                  _selectedMusicTitle ?? "Click here to listen",
-                  style: const TextStyle(color: Colors.blue, decoration: TextDecoration.underline),
-                ),
-              ),
-            ],
-
-            const SizedBox(height: 10),
-            Row(
+          ),
+        ],
+      ),
+      body: Consumer<CreatePostState>(
+        builder: (context, createPostState, child) {
+          return SingleChildScrollView(
+            controller: _scrollController,
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text("Public"),
-                Switch(
-                  value: _isPublic,
-                  onChanged: (value) => setState(() => _isPublic = value),
+                // User info section
+                Row(
+                  children: [
+                    const CircleAvatar(
+                      radius: 20,
+                      backgroundImage: AssetImage('assets/default_profile.png'),
+                    ),
+                    const SizedBox(width: 10),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          "You",
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        ),
+                        Text(
+                          "& Pablo",
+                          style: TextStyle(
+                            color: Colors.grey[600],
+                            fontSize: 14,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+
+                // Post content field
+                TextField(
+                  controller: _textController,
+                  maxLines: null,
+                  onChanged: (value) => _eventHandler.updatePostContent(value),
+                  decoration: const InputDecoration(
+                    hintText: "What's on your head?",
+                    border: InputBorder.none,
+                  ),
+                  style: const TextStyle(fontSize: 16),
+                ),
+                const SizedBox(height: 20),
+                const Divider(),
+                const SizedBox(height: 10),
+
+                // Selected music display
+                if (createPostState.selectedMusicUrl != null)
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[100],
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.music_note, color: Colors.blue),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            createPostState.selectedMusicTitle ?? "Selected song",
+                            style: const TextStyle(fontSize: 16),
+                          ),
+                        ),
+                        // Add remove button
+                        InkWell(
+                          onTap: () {
+                            _eventHandler.selectMusic(null, null);
+                          },
+                          child: const Icon(Icons.close, color: Colors.grey),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                const SizedBox(height: 30),
+              ],
+            ),
+          );
+        },
+      ),
+      bottomNavigationBar: BottomAppBar(
+        child: InkWell(
+          onTap: () => _showMusicSearchDialog(context),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.start,
+              children: [
+                const Icon(Icons.music_note),
+                const SizedBox(width: 8),
+                const Text(
+                  "Add Music",
+                  style: TextStyle(fontSize: 16),
                 ),
               ],
             ),
-            const SizedBox(height: 10),
-            ElevatedButton(
-              onPressed: _sharePost,
-              child: const Text("Post"),
-            ),
-          ],
+          ),
         ),
       ),
     );

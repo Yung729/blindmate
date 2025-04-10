@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'create_post_screen.dart';
+import 'package:provider/provider.dart';
 import '../../models/dataModels/user_model.dart';
+import '../../viewmodels/state/sharing_state.dart';
+import '../../viewmodels/dataBinding/sharing_data_binding.dart';
+import '../../viewmodels/eventHandlers/sharing_event_handler.dart';
 import '../UIComponents/floating_music_player.dart';
 import '../UIComponents/fetch_url_thumbail.dart';
+import '../UIComponents/custom_button.dart';
 
 class SharingScreen extends StatefulWidget {
   final UserModel user;
@@ -16,193 +18,210 @@ class SharingScreen extends StatefulWidget {
 }
 
 class _SharingScreenState extends State<SharingScreen> {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-  UserModel? _currentUser;
-  String? _currentMusicUrl;
+  late SharingEventHandler _eventHandler;
+  late SharingState _sharingState;
+  bool _showMyPostsOnly = false;
 
   @override
   void initState() {
     super.initState();
-    _loadUserData();
-  }
+    _sharingState = context.read<SharingState>();
+    final dataBinding = SharingDataBinding(sharingState: _sharingState);
 
-  Future<void> _loadUserData() async {
-    final user = _auth.currentUser;
-    if (user != null) {
-      final userDoc = await _firestore.collection('users').doc(user.uid).get();
-      if (userDoc.exists) {
-        setState(() {
-          _currentUser = UserModel.fromMap(
-            userDoc.data() as Map<String, dynamic>,
-            userDoc.id,
-          );
-        });
-      }
-    }
-  }
+    _eventHandler = SharingEventHandler(
+      sharingState: _sharingState,
+      dataBinding: dataBinding,
+    );
 
-  void _playMusic(String youtubeUrl) {
-    setState(() {
-      _currentMusicUrl = youtubeUrl;
-    });
+    _eventHandler.init();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        Scaffold(
-          appBar: AppBar(
-            title: const Text("A Space For People To Share Thoughts!"),
-          ),
-          body: Column(
-            children: [
-              _buildCreatePostButton(),
-              Expanded(child: _buildSharedContentList()),
-            ],
-          ),
-        ),
-
-        if (_currentMusicUrl != null)
-          FloatingMusicPlayer(
-            youtubeUrl: _currentMusicUrl!,
-            onClose: () {
-              setState(() {
-                _currentMusicUrl = null;
-              });
-            },
-          ),
-      ],
-    );
-  }
-
-Widget _buildCreatePostButton() {
-  return Padding(
-    padding: const EdgeInsets.all(10.0),
-    child: Row(
-      children: [
-        const CircleAvatar(
-          backgroundImage: AssetImage('assets/default_pic.jpg'),
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: GestureDetector(
-            onTap: () async {
-              final newPost = await Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => CreatePostScreen(user: widget.user),
-                ),
-              );
-
-              if (newPost != null) {
-                await _firestore.collection('shared_content').add(newPost);
-              }
-            },
-            child: Container(
-              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 15),
-              decoration: BoxDecoration(
-                color: Colors.grey[200],
-                borderRadius: BorderRadius.circular(20),
+    return Consumer<SharingState>(
+      builder: (context, sharingState, child) {
+        return Stack(
+          children: [
+            Scaffold(
+              appBar: AppBar(
+                title: const Text("Sharing Space"),
               ),
-              child: const Text(
-                "What's on your mind?",
-                style: TextStyle(color: Colors.black54),
-              ),
-            ),
-          ),
-        ),
-      ],
-    ),
-  );
-}
-
-
-  Widget _buildSharedContentList() {
-    return StreamBuilder<QuerySnapshot>(
-      stream: _firestore.collection('shared_content').orderBy('timestamp', descending: true).snapshots(),
-      builder: (context, snapshot) {
-        if (!snapshot.hasData) {
-          return const Center(child: CircularProgressIndicator());
-        }
-
-        final sharedPosts = snapshot.data!.docs.where((doc) {
-          final data = doc.data() as Map<String, dynamic>;
-          return data['visibility'] == 'public' || data['userId'] == _currentUser?.userId;
-        }).toList();
-
-        return ListView.builder(
-          itemCount: sharedPosts.length,
-          itemBuilder: (context, index) {
-            final post = sharedPosts[index];
-            final data = post.data() as Map<String, dynamic>;
-            final videoId = _extractYouTubeVideoId(data['musicUrl'] ?? "");
-
-            // Extract general URL from content
-            RegExp urlRegExp = RegExp(
-              r'(https?:\/\/[^\s]+)',
-              caseSensitive: false,
-            );
-            Match? urlMatch = urlRegExp.firstMatch(data['content'] ?? '');
-            String? detectedUrl = urlMatch?.group(0);
-
-            return Padding(
-              padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              body: Column(
                 children: [
-                  Row(
-                    children: [
-                      const CircleAvatar(
-                        backgroundImage: AssetImage('assets/default_pic.jpg'),
-                      ),
-                      const SizedBox(width: 10),
-                      Text(
-                        "Depression People",
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-
-                  if (data['content'] != null && data['content'].isNotEmpty)
-                    Text(data['content']),
-
-                  const SizedBox(height: 8),
-
-                  if (videoId != null)
-                    GestureDetector(
-                      onTap: () => _playMusic(data['musicUrl']),
-                      child: Column(
-                        children: [
-                          Image.network("https://img.youtube.com/vi/$videoId/0.jpg"),
-                          const SizedBox(height: 4),
-                          const Text("🎵 Play Music", style: TextStyle(color: Colors.blue)),
-                        ],
-                      ),
-                    ),
-
-                  if (detectedUrl != null && videoId == null)
-                    buildLinkPreview(detectedUrl),
-
-                  const Divider(),
+                  _buildCreatePostButton(),
+                  _buildToggleButtons(),
+                  Expanded(child: _buildSharedContentList(sharingState)),
                 ],
               ),
-            );
-          },
+            ),
+            if (sharingState.currentMusicUrl != null)
+              FloatingMusicPlayer(
+                youtubeUrl: sharingState.currentMusicUrl!,
+                onClose: () {
+                  _eventHandler.closeMusic();
+                },
+              ),
+          ],
         );
       },
     );
   }
 
-  String? _extractYouTubeVideoId(String url) {
-    RegExp regExp = RegExp(
-      r'(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?/ ]{11})',
-      caseSensitive: false,
-      multiLine: false,
+  Widget _buildCreatePostButton() {
+    return Padding(
+      padding: const EdgeInsets.all(10.0),
+      child: Row(
+        children: [
+          const CircleAvatar(
+            backgroundImage: AssetImage('assets/default_pic.jpg'),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: GestureDetector(
+              onTap: () async {
+                await _eventHandler.navigateToCreatePost(context, widget.user);
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 15),
+                decoration: BoxDecoration(
+                  color: Colors.grey[200],
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: const Text(
+                  "What's on your mind?",
+                  style: TextStyle(color: Colors.black54),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
-    Match? match = regExp.firstMatch(url);
-    return match?.group(1);
+  }
+
+  Widget _buildToggleButtons() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 6.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          CustomButton(
+            text: "All Posts",
+            onPressed: () {
+              setState(() {
+                _showMyPostsOnly = false;
+              });
+            },
+            backgroundColor: !_showMyPostsOnly ? Colors.blue : Colors.grey,
+            horizontalPadding: 20,
+            verticalPadding: 10,
+            borderRadius: 20,
+            fontSize: 14,
+          ),
+          const SizedBox(width: 10),
+          CustomButton(
+            text: "My Posts",
+            onPressed: () {
+              setState(() {
+                _showMyPostsOnly = true;
+              });
+            },
+            backgroundColor: _showMyPostsOnly ? Colors.blue : Colors.grey,
+            horizontalPadding: 20,
+            verticalPadding: 10,
+            borderRadius: 20,
+            fontSize: 14,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSharedContentList(SharingState state) {
+    if (state.isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    final filteredPosts = _showMyPostsOnly
+        ? state.posts.where((post) => post.userId == widget.user.userId).toList()
+        : state.posts;
+
+    return ListView.builder(
+      itemCount: filteredPosts.length,
+      itemBuilder: (context, index) {
+        final post = filteredPosts[index];
+        final videoId = _eventHandler.getYouTubeVideoId(post.musicUrl ?? "");
+
+        return Container(
+          margin: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
+          decoration: BoxDecoration(
+            color: Colors.grey[100],
+            borderRadius: BorderRadius.circular(10.0),
+            // Removed the border here
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(12.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const CircleAvatar(
+                      backgroundImage: AssetImage('assets/default_pic.jpg'),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: const [
+                          Text("Depression People", style: TextStyle(fontWeight: FontWeight.bold)),
+                          Text("Just Now", style: TextStyle(color: Color.fromARGB(255, 120, 120, 120))),
+                        ],
+                      ),
+                    ),
+                    const Icon(Icons.more_vert),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                if (post.content.isNotEmpty)
+                  Text(post.content),
+                const SizedBox(height: 8),
+                if (videoId != null)
+                  GestureDetector(
+                    onTap: () => _eventHandler.playMusic(post.musicUrl!),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(8.0),
+                        // Removed the border here as well
+                      ),
+                      child: Row(
+                        children: [
+                          SizedBox(
+                            width: 100,
+                            height: 70,
+                            child: Image.network(
+                              "http://img.youtube.com/vi/$videoId/mqdefault.jpg",
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) {
+                                return const Center(child: Icon(Icons.music_note, size: 30, color: Colors.grey));
+                              },
+                            ),
+                          ),
+                          const Spacer(),
+                          const Padding(
+                            padding: EdgeInsets.all(8.0),
+                            child: Icon(Icons.play_circle_fill, color: Colors.blue, size: 30),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                // Implement link preview if needed
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 }

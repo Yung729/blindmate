@@ -14,6 +14,8 @@ import 'viewmodels/state/chat_state.dart';
 import 'viewmodels/state/home_state.dart'; 
 import 'viewmodels/state/current_user_state.dart';
 import 'viewmodels/state/bottle_note_state.dart';
+import 'viewmodels/state/sharing_state.dart';
+import 'viewmodels/state/create_post_state.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -30,6 +32,8 @@ void main() async {
         ChangeNotifierProvider(create: (_) => CurrentUserState()),
         ChangeNotifierProvider(create: (_) => BottleNoteState()),
         ChangeNotifierProvider(create: (_) => AuthState()),
+        ChangeNotifierProvider(create: (_) => SharingState()),
+        ChangeNotifierProvider(create: (_) => CreatePostState()),
         // Add more providers as needed
       ],
       child: const MyApp(),
