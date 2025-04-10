@@ -7,6 +7,7 @@ import '../../viewmodels/eventHandlers/chat_event_handler.dart';
 import '../../viewmodels/dataBinding/chat_data_binding.dart';
 import '../../views/UIComponents/bottom_drawer.dart';
 import '../../views/UIComponents/typing_bubble.dart';
+import 'mini_game_screen.dart';
 
 class ChatScreen extends StatefulWidget {
   final String chatRoomId;
@@ -203,6 +204,10 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                             },
                             onPlayMiniGame: () {
                               // Add your mini-game logic here
+                              Navigator.push(context, MaterialPageRoute(builder: (context) => MiniGameScreen(chatRoomId: widget.chatRoomId,
+                              currentUserId: widget.currentUserId,
+                              opponentId: _chatState.otherUserId ?? '', // fallback if null
+                              isDrawer: true,) ));
                             },
                             onShareMusic: () {
                               // Add your music sharing logic here
