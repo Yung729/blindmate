@@ -6,6 +6,7 @@ import '../../viewmodels/eventHandlers/home_event_handler.dart';
 import 'matching_screen.dart';
 import 'bottle_note_home_screen.dart';
 import '../UIComponents/custom_button.dart';
+import 'survey.dart'; // Add this import for SurveyPage
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -41,9 +42,18 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  void _goToSurvey() { // New method for navigation to SurveyPage
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => SurveyPage(),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    // final screenSize = MediaQuery.of(context).size;
+    final screenSize = MediaQuery.of(context).size;
 
     return Scaffold(
       body: Stack(
@@ -87,6 +97,11 @@ class _HomeScreenState extends State<HomeScreen> {
                         CustomButton(
                           text: "Start Matching",
                           onPressed: _startRandomMatching,
+                        ),
+                        const SizedBox(height: 20), // Add spacing between buttons
+                        CustomButton(
+                          text: "Take Survey",
+                          onPressed: _goToSurvey, // Navigate to SurveyPage
                         ),
                       ],
                     ),
