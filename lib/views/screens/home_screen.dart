@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../viewmodels/state/home_state.dart';
-import '../../viewmodels/dataBinding/home_data_binding.dart';
+import '../../viewmodels/dataBinding/current_user_data_binding.dart';
 import '../../viewmodels/eventHandlers/home_event_handler.dart';
 import 'matching_screen.dart';
 import 'bottle_note_home_screen.dart';
@@ -22,7 +22,7 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     final homeState = context.read<HomeState>();
-    final dataBinding = HomeDataBinding();
+    final dataBinding = CurrentUserDataBinding();
     _homeEventHandler = HomeEventHandler(
       homeState: homeState,
       dataBinding: dataBinding,

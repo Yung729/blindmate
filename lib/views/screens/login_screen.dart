@@ -32,68 +32,118 @@ class _LoginScreenState extends State<LoginScreen> {
     return WillPopScope(
       onWillPop: () async => false,
       child: Scaffold(
-        appBar: AppBar(
-          automaticallyImplyLeading: false,
-          title: const Text(
-            "Welcome Back",
-            style: TextStyle(fontWeight: FontWeight.bold),
-          ),
-          centerTitle: true,
-        ),
         body: Consumer<AuthState>(
           builder: (context, authState, child) {
-            return SingleChildScrollView(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    TextField(
-                      controller: _emailController,
-                      decoration: const InputDecoration(labelText: 'Email'),
-                    ),
-                    TextField(
-                      controller: _passwordController,
-                      decoration: InputDecoration(
-                        labelText: 'Password',
-                        suffixIcon: IconButton(
-                          icon: Icon(_obscurePassword 
-                            ? Icons.visibility 
-                            : Icons.visibility_off),
-                          onPressed: () => setState(() => 
-                            _obscurePassword = !_obscurePassword),
-                        ),
-                      ),
-                      obscureText: _obscurePassword,
-                    ),
-                    const SizedBox(height: 30),
-                    SizedBox(
-                      height: 50,
-                      child: authState.isLoading
-                        ? const CircularProgressIndicator()
-                        : ElevatedButton(
-                            onPressed: () => _eventHandler.onLoginPressed(
-                              context,
-                              _emailController.text,
-                              _passwordController.text,
-                            ),
-                            style: ElevatedButton.styleFrom(
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
+            return Center(
+              child: SingleChildScrollView(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Logo or Welcome Text
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 20.0),
+                        child: Column(
+                          children: [
+                            Image.asset('assets/logo.png', height: 80),
+                            const SizedBox(height: 10),
+                            const Text(
+                              "Welcome Back!",
+                              style: TextStyle(
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
                               ),
                             ),
-                            child: const Text("Login"),
-                          ),
-                    ),
-                    if (authState.errorMessage != null)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 16),
-                        child: Text(
-                          authState.errorMessage!,
-                          style: const TextStyle(color: Colors.red),
+                            const SizedBox(height: 5),
+                            const Text(
+                              "Login to continue",
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: Colors.grey,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                  ],
+
+                      // Login Form
+                      TextField(
+                        controller: _emailController,
+                        decoration: InputDecoration(
+                          labelText: 'Email',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          prefixIcon: const Icon(Icons.email_outlined),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      TextField(
+                        controller: _passwordController,
+                        decoration: InputDecoration(
+                          labelText: 'Password',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          prefixIcon: const Icon(Icons.lock_outline),
+                          suffixIcon: IconButton(
+                            icon: Icon(
+                              _obscurePassword
+                                  ? Icons.visibility
+                                  : Icons.visibility_off,
+                            ),
+                            onPressed:
+                                () => setState(
+                                  () => _obscurePassword = !_obscurePassword,
+                                ),
+                          ),
+                        ),
+                        obscureText: _obscurePassword,
+                      ),
+                      const SizedBox(height: 30),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 50,
+                        child:
+                            authState.isLoading
+                                ? const Center(
+                                  child: SizedBox(
+                                    width: 24,
+                                    height: 24,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2.5,
+                                    ),
+                                  ),
+                                )
+                                : ElevatedButton(
+                                  onPressed:
+                                      () => _eventHandler.onLoginPressed(
+                                        context,
+                                        _emailController.text,
+                                        _passwordController.text,
+                                      ),
+                                  style: ElevatedButton.styleFrom(
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                  ),
+                                  child: const Text(
+                                    "Login",
+                                    style: TextStyle(fontSize: 18),
+                                  ),
+                                ),
+                      ),
+                      if (authState.errorMessage != null)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 16),
+                          child: Text(
+                            authState.errorMessage!,
+                            style: const TextStyle(color: Colors.red),
+                          ),
+                        ),
+                    ],
+                  ),
                 ),
               ),
             );
