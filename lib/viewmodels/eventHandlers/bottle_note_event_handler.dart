@@ -23,10 +23,6 @@ class BottleNoteEventHandler {
           return note.senderId != userId &&
               note.expirationTime.isAfter(DateTime.now());
         }).toList();
-    print(validNotes.length);
-    print(validNotes[0].senderId);
-    print(validNotes[0].content);
-    print(validNotes[0].noteId);
 
     if (validNotes.isEmpty) {
       state.clearPickedNote();
@@ -122,6 +118,26 @@ class BottleNoteEventHandler {
       final data = doc.data() as Map<String, dynamic>;
       return BottleNote.fromJson(data);
     }).toList();
+  }
+
+  Future<List<Reply>> getRepliesForNote(String noteId) async {
+    try {
+      final snapshot =
+          await FirebaseFirestore.instance
+              .collection('replies')
+              .where('noteId', isEqualTo: noteId)
+              .orderBy('timestamp', descending: false)
+              .get();
+
+      return snapshot.docs.map((doc) {
+        final data = doc.data();
+        return Reply.fromJson(data);
+      }).toList();
+      // return snapshot.docs.map((doc) => Reply.fromJson(snapshot, )).toList();
+    } catch (e) {
+      print('Error getting replies for note $noteId: $e');
+      return [];
+    }
   }
 
   Future<void> deleteNote(String noteId) async {

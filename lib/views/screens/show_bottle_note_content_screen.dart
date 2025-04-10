@@ -5,6 +5,8 @@ import '../../models/dataModels/bottle_note_model.dart';
 import '../../viewmodels/eventHandlers/bottle_note_event_handler.dart';
 import '../../viewmodels/state/bottle_note_state.dart';
 import '../../viewmodels/state/home_state.dart';
+import '../UIComponents/custom_button.dart';
+import 'bottle_note_home_screen.dart';
 
 class ShowBottleNoteScreen extends StatefulWidget {
   final BottleNote note;
@@ -51,6 +53,7 @@ class _ShowBottleNoteScreenState extends State<ShowBottleNoteScreen> {
           context,
         ).showSnackBar(const SnackBar(content: Text("Reply sent!")));
       }
+      Navigator.of(context).pop();
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(
@@ -126,24 +129,14 @@ class _ShowBottleNoteScreenState extends State<ShowBottleNoteScreen> {
                         ),
                       ),
                       const SizedBox(height: 10),
-                      ElevatedButton(
+                      CustomButton(
+                        text: 'Reply Bottle Note',
                         onPressed: () {
                           final replyText = _replyController.text.trim();
                           if (replyText.isNotEmpty) {
                             _replyToNote();
                           }
                         },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.black,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(30),
-                          ),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 28,
-                            vertical: 14,
-                          ),
-                        ),
-                        child: const Text("Reply Bottle Note"),
                       ),
                     ],
                   ),
@@ -174,7 +167,13 @@ class _ShowBottleNoteScreenState extends State<ShowBottleNoteScreen> {
               alignment: Alignment.topLeft,
               child: IconButton(
                 icon: const Icon(Icons.arrow_back, color: Colors.black),
-                onPressed: () => Navigator.pop(context),
+                onPressed:
+                    () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const BottleNoteHomeScreen(),
+                      ),
+                    ),
               ),
             ),
             const SizedBox(height: 20),
@@ -210,42 +209,26 @@ class _ShowBottleNoteScreenState extends State<ShowBottleNoteScreen> {
                 ),
               ),
             ),
+            const SizedBox(height: 20),
             Row(
-              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.black,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(30),
-                    ),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 24,
-                      vertical: 12,
-                    ),
-                  ),
-                  onPressed: _showReplyDialog,
-                  child: const Text("Reply"),
+                CustomButton(
+                  text: 'Reply',
+                  onPressed: () {
+                    _showReplyDialog();
+                  },
                 ),
-                const SizedBox(width: 16),
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.black,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(30),
-                    ),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 24,
-                      vertical: 12,
-                    ),
-                  ),
+                CustomButton(
+                  text: 'Pick Up Next',
                   onPressed: () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (context) => PickUpScreen()),
+                      MaterialPageRoute(
+                        builder: (context) => const PickUpScreen(),
+                      ),
                     );
                   },
-                  child: const Text("Pick Up Next"),
                 ),
               ],
             ),

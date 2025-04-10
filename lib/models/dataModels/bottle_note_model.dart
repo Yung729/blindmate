@@ -1,7 +1,3 @@
-import 'dart:developer';
-
-import 'reply_model.dart';
-
 class BottleNote {
   final String noteId;
   final String content;
@@ -38,12 +34,6 @@ class BottleNote {
       replies: map['replies'] != null
         ? List<String>.from(map['replies'])
         : [],
-      // replies:
-      //     map['replies'] != null
-      //         ? (map['replies'] as List<dynamic>)
-      //             .map((r) => Reply.fromJson(r))
-      //             .toList()
-      //         : [],
     );
   }
 
