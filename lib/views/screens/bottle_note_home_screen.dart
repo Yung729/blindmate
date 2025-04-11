@@ -95,13 +95,6 @@ class _BottleNoteHomeScreenState extends State<BottleNoteHomeScreen>
                           ),
                         ),
                         const SizedBox(height: 10),
-                        TextButton.icon(
-                          onPressed: () {
-                            // select sticker
-                          },
-                          icon: const Icon(Icons.emoji_emotions_outlined),
-                          label: const Text('Add Sticker'),
-                        ),
                       ],
                     ),
                   ),

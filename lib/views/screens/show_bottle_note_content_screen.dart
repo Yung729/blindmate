@@ -104,30 +104,6 @@ class _ShowBottleNoteScreenState extends State<ShowBottleNoteScreen> {
                           ),
                         ),
                       ),
-                      const SizedBox(height: 12),
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: TextButton.icon(
-                          onPressed: () {
-                            // TODO: Open sticker picker
-                          },
-                          icon: const Icon(
-                            Icons.emoji_emotions,
-                            color: Colors.black,
-                          ),
-                          label: const Text(
-                            "Add Stickers",
-                            style: TextStyle(color: Colors.black),
-                          ),
-                          style: TextButton.styleFrom(
-                            foregroundColor: Colors.black,
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 4,
-                            ),
-                          ),
-                        ),
-                      ),
                       const SizedBox(height: 10),
                       CustomButton(
                         text: 'Reply Bottle Note',
