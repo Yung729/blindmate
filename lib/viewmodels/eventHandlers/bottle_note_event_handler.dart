@@ -71,41 +71,6 @@ class BottleNoteEventHandler {
     }
   }
 
-  // String? wasLastNoteSafe = '';
-
-  // Future<void> sendNote({
-  //   required String content,
-  //   required String userId,
-  // }) async {
-  //   final moderationService = GeminiModerationService();
-  //   wasLastNoteSafe = await moderationService.isContentSafe(content);
-
-  //   if (wasLastNoteSafe == 'SAFE') {
-  //     print('✅ Note is safe. Sending...');
-  //     final newNote = BottleNote(
-  //       noteId: const Uuid().v4(),
-  //       content: content,
-  //       senderId: userId,
-  //       timestamp: DateTime.now(),
-  //       expirationTime: DateTime.now().add(const Duration(days: 1)),
-  //       status: 'active',
-  //       replies: [],
-  //     );
-
-  //     await FirebaseFirestore.instance
-  //         .collection('bottle_notes')
-  //         .doc(newNote.noteId)
-  //         .set(newNote.toJson());
-
-  //     Pool().addNote(newNote);
-  //     state.setNotes(Pool().notes);
-  //   } else if (wasLastNoteSafe == 'WARNING') {
-  //     print('⚠️ Note contains sensitive content.');
-  //   } else {
-  //     print('❌ Note contains unsafe content.');
-  //   }
-  // }
-
   Future<void> replyToNote({
     required String noteId,
     required String userId,
