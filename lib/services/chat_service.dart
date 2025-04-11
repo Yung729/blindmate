@@ -131,4 +131,25 @@ class ChatService {
       return {};
     });
   }
+
+   Future<List<String>> getChatUsers(String chatRoomId) async {
+    final chatDoc = await _firestore.collection('chats').doc(chatRoomId).get();
+    if (!chatDoc.exists) return [];
+    return List<String>.from(chatDoc['users']);
+  }
+
+  Future<String?> fetchChatPartner(String chatRoomId, String currentUserId) async {
+    final chatDoc = await _firestore.collection('chats').doc(chatRoomId).get();
+    if (!chatDoc.exists) return null;
+
+    List<String> users = List<String>.from(chatDoc['users']);
+    users.remove(currentUserId);
+    return users.isNotEmpty ? users.first : null;
+  }
+
+  Future<void> markChatRoomClosed(String chatRoomId) async {
+    await _firestore.collection('chats').doc(chatRoomId).update({
+      'closed': true
+    });
+  }
 }

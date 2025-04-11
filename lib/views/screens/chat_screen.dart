@@ -1,3 +1,4 @@
+import 'package:blindmate/viewmodels/dataBinding/matching_data_binding.dart';
 import 'package:blindmate/viewmodels/eventHandlers/matching_event_handler.dart';
 import 'package:blindmate/viewmodels/state/matching_state.dart';
 import 'package:flutter/material.dart';
@@ -37,14 +38,21 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
 
     _chatState = context.read<ChatState>();
     final chatBinding = ChatDataBinding(chatState: _chatState);
+
+    final matchingState = context.read<MatchingState>();
+    final matchingDataBinding = MatchingDataBinding(
+      matchingState: matchingState,
+    );
+
     final matchingHandler = MatchingEventHandler(
-      matchingState: context.read<MatchingState>(),
+      matchingState: matchingState,
+      dataBinding: matchingDataBinding,
     );
 
     _chatHandler = ChatEventHandler(
       chatState: _chatState,
       dataBinding: chatBinding,
-      matchingHandler: matchingHandler, // ✅ Injecting the MatchingService
+      matchingHandler: matchingHandler, 
       chatRoomId: widget.chatRoomId,
       currentUserId: widget.currentUserId,
     );
@@ -204,10 +212,20 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                             },
                             onPlayMiniGame: () {
                               // Add your mini-game logic here
-                              Navigator.push(context, MaterialPageRoute(builder: (context) => MiniGameScreen(chatRoomId: widget.chatRoomId,
-                              currentUserId: widget.currentUserId,
-                              opponentId: _chatState.otherUserId ?? '', // fallback if null
-                              isDrawer: true,) ));
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder:
+                                      (context) => MiniGameScreen(
+                                        chatRoomId: widget.chatRoomId,
+                                        currentUserId: widget.currentUserId,
+                                        opponentId:
+                                            _chatState.otherUserId ??
+                                            '', // fallback if null
+                                        isDrawer: true,
+                                      ),
+                                ),
+                              );
                             },
                             onShareMusic: () {
                               // Add your music sharing logic here

@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:lottie/lottie.dart';
 import '../../models/dataModels/user_model.dart';
-import 'chat_screen.dart';
-import '../../viewmodels/eventHandlers/matching_event_handler.dart';
 import '../../viewmodels/state/matching_state.dart';
+import '../../viewmodels/dataBinding/matching_data_binding.dart';
+import '../../viewmodels/eventHandlers/matching_event_handler.dart';
 import '../UIComponents/custom_button.dart';
 
 class MatchingScreen extends StatefulWidget {
@@ -18,8 +18,9 @@ class MatchingScreen extends StatefulWidget {
 
 class _MatchingScreenState extends State<MatchingScreen>
     with SingleTickerProviderStateMixin {
-  late MatchingEventHandler _matchingHandler;
   late MatchingState _matchingState;
+  late MatchingDataBinding _matchingDataBinding;
+  late MatchingEventHandler _matchingHandler;
   bool _isNavigating = false;
 
   late AnimationController _animationController;
@@ -29,10 +30,18 @@ class _MatchingScreenState extends State<MatchingScreen>
   void initState() {
     super.initState();
     _matchingState = context.read<MatchingState>();
-    _matchingHandler = MatchingEventHandler(matchingState: _matchingState);
-    _startMatching();
-    _listenForMatch();
+    _matchingDataBinding = MatchingDataBinding(matchingState: _matchingState);
+    _matchingHandler = MatchingEventHandler(
+      matchingState: _matchingState,
+      dataBinding: _matchingDataBinding,
+    );
 
+    _initializeMatchingSystem();
+    _setupAnimationController();
+    _listenForStateChanges();
+  }
+
+  void _setupAnimationController() {
     _animationController = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 2),
@@ -43,48 +52,36 @@ class _MatchingScreenState extends State<MatchingScreen>
     );
   }
 
-  @override
-  void dispose() {
-    _animationController.dispose();
-    super.dispose();
-  }
-
-  void _startMatching() async {
+  Future<void> _initializeMatchingSystem() async {
+    await _matchingHandler.init(widget.user.userId);
     await _matchingHandler.startMatching(widget.user);
   }
 
-  void _listenForMatch() {
-    _matchingHandler.listenForMatch(widget.user.userId);
+  void _listenForStateChanges() {
     _matchingState.addListener(() {
-      if (_matchingState.chatRoomId != null && !_isNavigating) {
-        _navigateToChat(_matchingState.chatRoomId!);
+      if (_matchingState.chatRoomId != null && !_isNavigating && mounted) {
+        _isNavigating = true;
+        _matchingHandler.navigateToChat(
+          context,
+          _matchingState.chatRoomId!,
+          widget.user.userId,
+        );
       }
     });
   }
 
-  void _navigateToChat(String chatRoomId) {
-    if (_isNavigating) return;
-    _isNavigating = true;
-
-    if (context.mounted) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder:
-              (context) => ChatScreen(
-                chatRoomId: chatRoomId,
-                currentUserId: widget.user.userId,
-              ),
-        ),
-      );
-    }
-  }
-
   void _cancelSearch() async {
-    await _matchingHandler.updateUserStatus(widget.user.userId, 'available');
+    await _matchingHandler.cancelMatching(widget.user.userId);
     if (mounted) {
       Navigator.pop(context);
     }
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    _matchingState.removeListener(_listenForStateChanges);
+    super.dispose();
   }
 
   @override
@@ -94,14 +91,11 @@ class _MatchingScreenState extends State<MatchingScreen>
         children: [
           // Sea background image
           Positioned.fill(
-            child: Image.asset(
-              'assets/sea_background.webp', // Add your sea background image here
-              fit: BoxFit.cover,
-            ),
+            child: Image.asset('assets/sea_background.webp', fit: BoxFit.cover),
           ),
           Center(
             child: Lottie.asset(
-              'assets/animated_boat.json', // Replace with your JSON animation file
+              'assets/animated_boat.json',
               width: 500,
               height: 500,
             ),

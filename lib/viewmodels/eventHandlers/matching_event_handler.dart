@@ -1,30 +1,43 @@
-import '../../services/matching_service.dart';
-import '../state/matching_state.dart';
+import 'package:flutter/material.dart';
 import '../../models/dataModels/user_model.dart';
+import '../state/matching_state.dart';
+import '../dataBinding/matching_data_binding.dart';
+import '../../views/screens/chat_screen.dart';
 
 class MatchingEventHandler {
   final MatchingState matchingState;
-  final MatchingService _matchingService = MatchingService();
+  final MatchingDataBinding dataBinding;
 
-  MatchingEventHandler({required this.matchingState});
+  MatchingEventHandler({
+    required this.matchingState,
+    required this.dataBinding,
+  });
 
-  Future<void> updateUserStatus(String userId, String status) async {
-    await _matchingService.updateUserStatus(userId, status);
-    matchingState.updateStatus(status); // No need for Future.microtask
+  Future<void> init(String userId) async {
+    await dataBinding.initialize(userId);
   }
 
   Future<void> startMatching(UserModel user) async {
-     matchingState.clear();
-     matchingState.updateStatus('waiting');
-    String? chatRoomId = await _matchingService.startMatching(user);
-    if (chatRoomId != null) {
-       matchingState.setChatRoomId(chatRoomId);
-    }
+    await dataBinding.startMatching(user);
   }
 
-  void listenForMatch(String userId) {
-    _matchingService.listenForMatch(userId, (chatRoomId) {
-       matchingState.setChatRoomId(chatRoomId);
-    });
+  Future<void> cancelMatching(String userId) async {
+    await dataBinding.cancelMatching(userId);
+  }
+
+  Future<void> updateUserStatus(String userId, String status) async {
+    await dataBinding.updateUserStatus(userId, status);
+  }
+
+  void navigateToChat(BuildContext context, String chatRoomId, String currentUserId) {
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ChatScreen(
+          chatRoomId: chatRoomId,
+          currentUserId: currentUserId,
+        ),
+      ),
+    );
   }
 }

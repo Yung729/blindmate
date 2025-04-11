@@ -2,17 +2,21 @@ import 'package:flutter/material.dart';
 import '../../models/dataModels/message_model.dart';
 
 class ChatState extends ChangeNotifier {
-  bool isOtherUserTyping = false;
-  bool partnerLeft = false;
-  bool isTyping = false;
-  bool isChatOpen = true;
+  
   List<MessageModel> messages = [];
   String? otherUserId;
+  bool isOtherUserTyping = false;
+  bool partnerLeft = false;
   List<String> stickerList = [];
-
-  void updateTyping(bool isTyping) {
-    this.isTyping = isTyping;
-    notifyListeners();
+  bool isLoadingStickers = false;
+  bool isTyping = false;
+  bool isChatOpen = true;
+  
+  void updateTyping(bool typing) {
+    if (isTyping != typing) {
+        isTyping = typing;
+        notifyListeners();
+    }
   }
 
   void setOtherUserTyping(bool typing) {
@@ -21,8 +25,10 @@ class ChatState extends ChangeNotifier {
   }
 
   void setPartnerLeft(bool left) {
-    partnerLeft = left;
-    notifyListeners();
+    if (partnerLeft != left) {
+      partnerLeft = left;
+      notifyListeners();
+    }
   }
 
   void setMessages(List<MessageModel> newMessages) {
@@ -35,7 +41,7 @@ class ChatState extends ChangeNotifier {
     notifyListeners();
   }
 
-  void setOtherUserId(String userId) {
+  void setOtherUserId(String? userId) {
     otherUserId = userId;
     notifyListeners();
   }
@@ -45,12 +51,19 @@ class ChatState extends ChangeNotifier {
     notifyListeners();
   }
 
+void setIsLoadingStickers(bool loading) {
+      isLoadingStickers = loading;
+      notifyListeners();
+  }
+
   void clear() {
     messages.clear();
     stickerList.clear();
     isOtherUserTyping = false;
     otherUserId = null;
     partnerLeft = false;
+    isTyping = false;
+    isLoadingStickers = false;
     notifyListeners();
   }
 }

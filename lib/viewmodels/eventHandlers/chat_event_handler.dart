@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'package:blindmate/models/api/giphy_service.dart';
 import 'package:blindmate/viewmodels/eventHandlers/matching_event_handler.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -17,8 +16,7 @@ class ChatEventHandler {
 
   bool _isChatOpen = true;
   Timer? _inactivityTimer;
-
-  final _giphyService = GiphyService();
+  Timer? _typingTimer;
 
   StreamSubscription? typingStatusSubscription;
   StreamSubscription? chatUpdatesSubscription;
@@ -33,29 +31,9 @@ class ChatEventHandler {
 
   Future<void> init() async {
     dataBinding.initialize(chatRoomId);
-    await fetchChatPartner();
+    await dataBinding.fetchChatPartner(chatRoomId, currentUserId);
     dataBinding.listenTypingStatus(chatRoomId, chatState.otherUserId);
-    await loadStickers("happy");
-  }
-
-  Future<void> fetchChatPartner() async {
-    final chatDoc = await FirebaseFirestore.instance.collection('chats').doc(chatRoomId).get();
-    if (chatDoc.exists) {
-      List<String> users = List<String>.from(chatDoc['users']);
-      users.remove(currentUserId);
-      if (users.isNotEmpty) {
-        dataBinding.setOtherUserId(users.first);
-      }
-    }
-  }
-
-  Future<void> loadStickers(String query) async {
-    try {
-      List<String> stickers = await _giphyService.fetchStickers(query);
-      dataBinding.setStickers(stickers);
-    } catch (e) {
-      debugPrint("❌ Failed to load stickers: $e");
-    }
+    await dataBinding.loadStickers("happy");
   }
 
   Future<void> sendMessage({String? text, String? stickerUrl}) async {
@@ -75,8 +53,6 @@ class ChatEventHandler {
     resetInactivityTimer(); // ✅ Reset inactivity timer on sending
   }
 
-  Timer? _typingTimer;
-
   void updateTyping(bool isTyping) {
     _typingTimer?.cancel();
     if (isTyping) {
@@ -94,31 +70,13 @@ class ChatEventHandler {
     _isChatOpen = false;
 
     print("🚪 Closing chat room for user: $currentUserId");
-
-    final chatRef = FirebaseFirestore.instance.collection('chats').doc(chatRoomId);
-    final chatDoc = await chatRef.get();
-    if (!chatDoc.exists) return;
-
-    List<String> users = List<String>.from(chatDoc['users']);
-    users.remove(currentUserId);
-
-    dataBinding.closeConnection();
-    print("🚪 Chat WebSocket disconnected");
-
-    if (users.isEmpty) {
-      await dataBinding.closeChatRoom(chatRoomId); // Close room when alone
-      print("✅ Chat room closed by last user");
-    } else {
-      await chatRef.update({'closed': true});
-      print("✅ Chat room marked closed");
-    }
-
+    
+    await dataBinding.handleExit(chatRoomId, currentUserId);
     await matchingHandler.updateUserStatus(currentUserId, 'available');
-    dataBinding.clearChatState();
-
+    
     print("✅ Chat exit complete for user: $currentUserId");
   }
-
+  
   Future<void> reportUser(BuildContext context) async {
     if (chatState.otherUserId == null) return;
 

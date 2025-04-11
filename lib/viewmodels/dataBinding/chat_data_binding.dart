@@ -1,3 +1,5 @@
+import 'package:blindmate/models/api/giphy_service.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
 import '../../services/chat_service.dart';
@@ -6,6 +8,7 @@ import '../state/chat_state.dart';
 
 class ChatDataBinding {
   final ChatService _chatService = ChatService();
+  final GiphyService _giphyService = GiphyService();
   final ChatState chatState;
 
   ChatDataBinding({required this.chatState});
@@ -25,6 +28,18 @@ class ChatDataBinding {
         }
       }
     });
+  }
+
+  Future<void> loadStickers(String query) async {
+    try {
+      chatState.setIsLoadingStickers(true);
+      List<String> stickers = await _giphyService.fetchStickers(query);
+      setStickers(stickers);
+    } catch (e) {
+      debugPrint("❌ Failed to load stickers: $e");
+    } finally {
+      chatState.setIsLoadingStickers(false);
+    }
   }
 
   void listenTypingStatus(String chatRoomId, String? otherUserId) {
@@ -74,5 +89,27 @@ class ChatDataBinding {
 
   void clearChatState() {
     chatState.clear();
+  }
+
+  Future<void> fetchChatPartner(String chatRoomId, String currentUserId) async {
+    final partnerId = await _chatService.fetchChatPartner(chatRoomId, currentUserId);
+    if (partnerId != null) {
+      setOtherUserId(partnerId);
+    }
+  }
+
+  Future<void> handleExit(String chatRoomId, String currentUserId) async {
+    final users = await _chatService.getChatUsers(chatRoomId);
+    users.remove(currentUserId);
+
+    closeConnection();
+
+    if (users.isEmpty) {
+      await _chatService.closeChatRoom(chatRoomId);
+    } else {
+      await _chatService.markChatRoomClosed(chatRoomId);
+    }
+
+    clearChatState();
   }
 }
