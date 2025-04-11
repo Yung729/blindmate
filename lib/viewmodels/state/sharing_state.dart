@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import '../../models/dataModels/shared_post_model.dart';
+import '../../models/dataModels/post_model.dart'; // Import the merged PostModel
 import '../../models/dataModels/user_model.dart';
 
 class SharingState extends ChangeNotifier {
   UserModel? currentUser;
-  List<SharedPostModel> posts = [];
+  List<PostModel> posts = []; // Use the merged PostModel
   String? currentMusicUrl;
   bool isLoading = false;
 
@@ -13,8 +13,19 @@ class SharingState extends ChangeNotifier {
     notifyListeners();
   }
 
-  void setPosts(List<SharedPostModel> newPosts) {
+  void setPosts(List<PostModel> newPosts) { // Update the type to PostModel
     posts = newPosts;
+    notifyListeners();
+  }
+
+  void deletePost(String postId) {
+    posts.removeWhere((post) => post.id == postId);
+    notifyListeners();
+  }
+
+  void toggleVisibility(String postId) {
+    final post = posts.firstWhere((post) => post.id == postId);
+    post.isPublic = !post.isPublic;
     notifyListeners();
   }
 
