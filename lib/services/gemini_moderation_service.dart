@@ -21,6 +21,7 @@ Message:
     final result = response.text?.trim().toUpperCase();
 
     if (result == 'SAFE' || result == 'WARNING' || result == 'UNSAFE') {
+      print('Moderation result: $result');
       return result;
     }
 
