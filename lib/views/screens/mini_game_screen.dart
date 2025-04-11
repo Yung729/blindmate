@@ -34,6 +34,7 @@ class _MiniGameScreenState extends State<MiniGameScreen> {
   @override
   void initState() {
     super.initState();
+    _listenToGameState();
 
     _firestore.collection('games').doc(widget.chatRoomId).get().then((snapshot) {
     final data = snapshot.data();
@@ -84,6 +85,39 @@ class _MiniGameScreenState extends State<MiniGameScreen> {
     'word': _currentWord,
     'roles': roles,
   }, SetOptions(merge: true));
+}
+
+  void _listenToGameState() {
+  _firestore.collection('games').doc(widget.chatRoomId).snapshots().listen((snapshot) {
+    if (snapshot.exists) {
+      final data = snapshot.data()!;
+      final roles = data['roles'] as Map<String, dynamic>?;
+
+      if (roles != null && roles.containsKey(widget.currentUserId)) {
+        final newRole = roles[widget.currentUserId];
+        final isNowDrawer = newRole == 'drawer';
+
+        if (_isDrawer != isNowDrawer) {
+          setState(() {
+            _isDrawer = isNowDrawer;
+            _guessCorrect = false;
+            points.clear();
+          });
+
+          if (!_isDrawer) {
+            _listenToDrawing();
+          }
+        }
+      }
+
+      final newWord = data['word'] as String?;
+      if (newWord != null && newWord != _currentWord) {
+        setState(() {
+          _currentWord = newWord;
+        });
+      }
+    }
+  });
 }
 
   void _listenToDrawing() {
@@ -146,7 +180,18 @@ class _MiniGameScreenState extends State<MiniGameScreen> {
     _guessCorrect = false;
     points.clear();
   });
-  _updateGameData();
+
+   final roles = {
+    widget.currentUserId: _isDrawer ? 'drawer' : 'guesser',
+    widget.opponentId: _isDrawer ? 'guesser' : 'drawer',
+  };
+
+  _firestore.collection('games').doc(widget.chatRoomId).update({
+    'roles': roles,
+    'word': _currentWord,
+    'points': [],
+  });
+  //_updateGameData();
 }
 
   void _sendPointsToFirestore() async {
