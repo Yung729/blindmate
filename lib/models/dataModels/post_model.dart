@@ -8,7 +8,7 @@ class PostModel {
   final String? musicUrl;
   final String? musicTitle;
   final DateTime timestamp;
-  final String visibility;
+  String visibility; // Made non-final to allow modification
 
   PostModel({
     this.id,
@@ -20,6 +20,14 @@ class PostModel {
     required this.timestamp,
     required this.visibility,
   });
+
+  // Getter to check if the post is public
+  bool get isPublic => visibility == 'public';
+
+  // Setter to set the post visibility
+  set isPublic(bool value) {
+    visibility = value ? 'public' : 'private';
+  }
 
   // Convert the PostModel instance into a Map to store in Firestore
   Map<String, dynamic> toMap() {
@@ -46,5 +54,15 @@ class PostModel {
       timestamp: (map['timestamp'] as Timestamp).toDate(),
       visibility: map['visibility'] ?? 'public',
     );
+  }
+
+  // Convert to a map specifically for updates (doesn't include timestamp)
+  Map<String, dynamic> toUpdateMap() {
+    return {
+      'visibility': visibility,
+      'content': content,
+      'musicUrl': musicUrl,
+      'musicTitle': musicTitle,
+    };
   }
 }

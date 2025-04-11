@@ -8,9 +8,8 @@ import 'bottle_note_home_screen.dart';
 
 class SendBottleNoteScreen extends StatefulWidget {
   final String? content;
-  final String? sticker;
 
-  const SendBottleNoteScreen({super.key, this.content, this.sticker});
+  const SendBottleNoteScreen({super.key, this.content});
 
   @override
   State<SendBottleNoteScreen> createState() => _SendBottleNoteScreenState();
@@ -36,38 +35,64 @@ class _SendBottleNoteScreenState extends State<SendBottleNoteScreen> {
 
   Future<void> _sendBottleNote() async {
     final user = context.read<HomeState>().currentUser;
+
     if (user == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Failed to fetch user data!")),
       );
-    } else if (widget.content?.isEmpty ?? true) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Bottle Note cannot be empty!\nPlease write a message!")),
-      );
-    } else if (!mounted) {
+      return;
+    }
+
+    if (!mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text("Bottle Note failed to send!\nPlease try again later."),
         ),
       );
-    } else {
+      return;
+    }
+
+    // Show loading while processing moderation and sending
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(child: CircularProgressIndicator()),
+    );
+
+    try {
       await _eventHandler.sendNote(
         content: widget.content!,
         userId: user.userId,
-        sticker: widget.sticker,
       );
 
-      _dataBinding.clear();
+      Navigator.pop(context); // close loading dialog
+
+      if (mounted) {
+        String message;
+        if (_eventHandler.wasLastNoteSafe == 'SAFE') {
+          _dataBinding.clear();
+          message = "✅ Bottle Note sent!";
+        } else if (_eventHandler.wasLastNoteSafe == 'WARNING') {
+          message = "⚠️ Bottle Note sent but it contains sensitive content.";
+        } else {
+          message = "❌ Message blocked due to inappropriate content.";
+        }
+
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(message)));
+
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const BottleNoteHomeScreen()),
+        );
+      }
+    } catch (e) {
+      Navigator.pop(context); // close loading dialog
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text("Bottle Note sent!")));
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const BottleNoteHomeScreen()),
-      );
+      ).showSnackBar(SnackBar(content: Text("❌ Error: ${e.toString()}")));
     }
-    await Future.delayed(const Duration(seconds: 5));
-    Navigator.pop(context);
   }
 
   @override

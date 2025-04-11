@@ -41,20 +41,43 @@ class _ShowBottleNoteScreenState extends State<ShowBottleNoteScreen> {
 
     if (user == null || replyText.isEmpty) return;
 
+    // Show loading while checking
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(child: CircularProgressIndicator()),
+    );
+
     try {
-      await _eventHandler.replyToNote(
+      final result = await _eventHandler.replyToNote(
         noteId: widget.note.noteId,
         userId: user.userId,
         content: replyText,
       );
 
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text("Reply sent!")));
+      Navigator.pop(context); // Close loading
+
+      if (!mounted) return;
+
+      String message;
+      switch (result) {
+        case 'SAFE':
+          message = "✅ Reply sent!";
+          Navigator.of(context).pop(); // Close reply dialog/screen
+          break;
+        case 'WARNING':
+          message = "⚠️ Reply sent, but it contains sensitive content.";
+          Navigator.of(context).pop();
+          break;
+        default:
+          message = "❌ Reply blocked due to inappropriate content.";
       }
-      Navigator.of(context).pop();
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(message)));
     } catch (e) {
+      Navigator.pop(context); // Close loading
       if (mounted) {
         ScaffoldMessenger.of(
           context,
