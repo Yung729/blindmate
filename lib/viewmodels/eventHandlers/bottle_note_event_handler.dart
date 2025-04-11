@@ -71,11 +71,18 @@ class BottleNoteEventHandler {
     }
   }
 
-  Future<void> replyToNote({
+  Future<String?> replyToNote({
     required String noteId,
     required String userId,
     required String content,
   }) async {
+    final moderationService = GeminiModerationService();
+    final moderationResult = await moderationService.checkContentLevel(content);
+
+    if (moderationResult == 'UNSAFE') {
+      return 'UNSAFE';
+    }
+
     final replyId = const Uuid().v4();
     final now = DateTime.now();
 
@@ -98,6 +105,8 @@ class BottleNoteEventHandler {
         .update({
           'replies': FieldValue.arrayUnion([replyId]),
         });
+
+    return moderationResult;
   }
 
   Future<List<Reply>> fetchReplies(List<String> replyIds) async {

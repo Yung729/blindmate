@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../../viewmodels/dataBinding/bottle_note_data_binding.dart';
 import 'package:blindmate/views/UIComponents/custom_button.dart';
 import 'home_screen.dart';
+import '../../viewmodels/uiValidation/bottle_note_validator.dart';
 
 class BottleNoteHomeScreen extends StatefulWidget {
   const BottleNoteHomeScreen({super.key});
@@ -47,7 +48,8 @@ class _BottleNoteHomeScreenState extends State<BottleNoteHomeScreen>
                     children: [
                       IconButton(
                         onPressed: () {
-                          Navigator.push(context, 
+                          Navigator.push(
+                            context,
                             MaterialPageRoute(
                               builder: (context) => const HomeScreen(),
                             ),
@@ -102,13 +104,23 @@ class _BottleNoteHomeScreenState extends State<BottleNoteHomeScreen>
                   CustomButton(
                     text: 'Send Bottle Note',
                     onPressed: () {
+                      final content = _dataBinding.contentController.text;
+
+                      if (!BottleNoteValidator.isValid(content)) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text("❌ Bottle Note cannot be empty!"),
+                          ),
+                        );
+                        return;
+                      }
+
                       Navigator.push(
                         context,
                         MaterialPageRoute(
                           builder:
-                              (context) => SendBottleNoteScreen(
-                                content: _dataBinding.contentController.text,
-                              ),
+                              (context) =>
+                                  SendBottleNoteScreen(content: content),
                         ),
                       );
                     },

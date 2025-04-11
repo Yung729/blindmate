@@ -43,17 +43,6 @@ class _SendBottleNoteScreenState extends State<SendBottleNoteScreen> {
       return;
     }
 
-    if (widget.content?.isEmpty ?? true) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            "Bottle Note cannot be empty!\nPlease write a message!",
-          ),
-        ),
-      );
-      return;
-    }
-
     if (!mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -84,13 +73,15 @@ class _SendBottleNoteScreenState extends State<SendBottleNoteScreen> {
           _dataBinding.clear();
           message = "✅ Bottle Note sent!";
         } else if (_eventHandler.wasLastNoteSafe == 'WARNING') {
-          message = "⚠️ Bottle Note send! Message contains sensitive content.";
+          message = "⚠️ Bottle Note sent but it contains sensitive content.";
         } else {
-          message = "❌ Message blocked for inappropriate content.";
+          message = "❌ Message blocked due to inappropriate content.";
         }
+
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text(message)));
+
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => const BottleNoteHomeScreen()),
