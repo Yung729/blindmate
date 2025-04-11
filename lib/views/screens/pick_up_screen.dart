@@ -1,8 +1,8 @@
+import 'package:blindmate/viewmodels/state/auth_state.dart';
 import 'package:blindmate/views/UIComponents/custom_button.dart';
 import 'package:flutter/material.dart';
 import 'package:animated_text_kit/animated_text_kit.dart';
 import 'package:provider/provider.dart';
-import '../../viewmodels/state/home_state.dart';
 import '../../viewmodels/state/bottle_note_state.dart';
 import '../../viewmodels/eventHandlers/bottle_note_event_handler.dart';
 import 'package:lottie/lottie.dart';
@@ -32,7 +32,7 @@ class _PickUpScreenState extends State<PickUpScreen> {
   }
 
   void _pickUpNote() async {
-    final user = context.read<HomeState>().currentUser;
+    final user = context.read<AuthState>().currentUser;
     if (user == null) return;
 
     await _eventHandler.pickRandomNote(user.userId);

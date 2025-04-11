@@ -1,3 +1,4 @@
+import 'package:blindmate/models/dataModels/user_model.dart';
 import 'package:flutter/material.dart';
 import '../state/auth_state.dart';
 import '../dataBinding/auth_data_binding.dart';
@@ -58,6 +59,19 @@ class AuthEventHandler {
       _state.setError(e.toString());
     } finally {
       _state.setLoading(false);
+    }
+  }
+
+  Future<UserModel?> fetchUserData(BuildContext context) async {
+    try {
+      UserModel? user = await _binding.getUserData();
+      if (user != null) {
+        _state.setCurrentUser(user);
+      }
+      return user;
+    } catch (e) {
+      _state.setError(e.toString());
+      return null;
     }
   }
 }

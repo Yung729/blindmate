@@ -1,10 +1,10 @@
+import 'package:blindmate/viewmodels/state/auth_state.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'pick_up_screen.dart';
 import '../../models/dataModels/bottle_note_model.dart';
 import '../../viewmodels/eventHandlers/bottle_note_event_handler.dart';
 import '../../viewmodels/state/bottle_note_state.dart';
-import '../../viewmodels/state/home_state.dart';
 import '../UIComponents/custom_button.dart';
 import 'bottle_note_home_screen.dart';
 
@@ -36,7 +36,7 @@ class _ShowBottleNoteScreenState extends State<ShowBottleNoteScreen> {
   }
 
   void _replyToNote() async {
-    final user = context.read<HomeState>().currentUser;
+    final user = context.read<AuthState>().currentUser;
     final replyText = _replyController.text.trim();
 
     if (user == null || replyText.isEmpty) return;

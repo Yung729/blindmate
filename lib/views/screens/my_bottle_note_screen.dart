@@ -1,7 +1,7 @@
+import 'package:blindmate/viewmodels/state/auth_state.dart';
 import 'package:blindmate/views/UIComponents/custom_button.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../viewmodels/state/home_state.dart';
 import '../../viewmodels/state/bottle_note_state.dart';
 import '../../viewmodels/eventHandlers/bottle_note_event_handler.dart';
 import '../../models/dataModels/bottle_note_model.dart';
@@ -27,7 +27,7 @@ class _MyBottleNotesScreenState extends State<MyBottleNotesScreen> {
   }
 
   Future<void> _loadMyNotes() async {
-    final user = context.read<HomeState>().currentUser;
+    final user = context.read<AuthState>().currentUser;
     if (user == null) return;
 
     final notes = await _eventHandler.getNotesByUserId(user.userId);

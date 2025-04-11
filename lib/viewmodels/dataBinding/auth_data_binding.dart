@@ -3,9 +3,9 @@ import '../../services/auth_service.dart';
 import '../../models/dataModels/user_model.dart';
 
 class AuthDataBinding {
-  final AuthService _service;
+  final AuthService _service = AuthService();
 
-  AuthDataBinding(this._service);
+  AuthDataBinding();
 
   Future<Map<String, dynamic>> validateAndLogin(
     BuildContext context,

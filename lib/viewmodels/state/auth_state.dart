@@ -1,3 +1,4 @@
+import 'package:blindmate/models/dataModels/user_model.dart';
 import 'package:flutter/material.dart';
 
 class AuthState with ChangeNotifier {
@@ -6,6 +7,19 @@ class AuthState with ChangeNotifier {
   bool isLoggedIn = false;
   String? userId;
   String? userName;
+  UserModel? _currentUser;
+
+  UserModel? get currentUser => _currentUser;
+
+  void setCurrentUser(UserModel? user) {
+    _currentUser = user;
+    notifyListeners();
+  }
+
+  void clearCurrentUser() {
+    _currentUser = null;
+    notifyListeners();
+  }
 
   void setError(String? message) {
     errorMessage = message;

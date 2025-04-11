@@ -1,6 +1,6 @@
+import 'package:blindmate/viewmodels/state/auth_state.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../viewmodels/state/home_state.dart';
 import '../../viewmodels/state/bottle_note_state.dart';
 import '../../viewmodels/eventHandlers/bottle_note_event_handler.dart';
 import '../../viewmodels/dataBinding/bottle_note_data_binding.dart';
@@ -34,7 +34,7 @@ class _SendBottleNoteScreenState extends State<SendBottleNoteScreen> {
   }
 
   Future<void> _sendBottleNote() async {
-    final user = context.read<HomeState>().currentUser;
+    final user = context.read<AuthState>().currentUser;
 
     if (user == null) {
       ScaffoldMessenger.of(context).showSnackBar(

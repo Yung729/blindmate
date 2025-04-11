@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 import '../../viewmodels/state/auth_state.dart';
 import '../../viewmodels/eventHandlers/auth_event_handler.dart';
 import '../../viewmodels/dataBinding/auth_data_binding.dart';
-import '../../services/auth_service.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -22,8 +21,7 @@ class _LoginScreenState extends State<LoginScreen> {
   void initState() {
     super.initState();
     final authState = Provider.of<AuthState>(context, listen: false);
-    final authService = AuthService();
-    final authBinding = AuthDataBinding(authService);
+    final authBinding = AuthDataBinding();
     _eventHandler = AuthEventHandler(authState, authBinding);
   }
 

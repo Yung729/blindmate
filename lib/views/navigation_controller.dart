@@ -1,4 +1,6 @@
-import 'package:blindmate/models/dataModels/user_model.dart';
+import 'package:blindmate/viewmodels/dataBinding/auth_data_binding.dart';
+import 'package:blindmate/viewmodels/eventHandlers/auth_event_handler.dart';
+import 'package:blindmate/viewmodels/state/auth_state.dart';
 import 'package:blindmate/views/screens/bottle_note_home_screen.dart';
 import 'package:blindmate/views/screens/my_bottle_note_screen.dart';
 import 'package:blindmate/views/screens/pick_up_screen.dart';
@@ -9,9 +11,7 @@ import 'package:provider/provider.dart';
 import 'screens/home_screen.dart';
 import 'screens/sharing_screen.dart';
 import 'screens/do_mission_screen.dart';
-import '../viewmodels/state/current_user_state.dart';
-import '../viewmodels/eventHandlers/current_user_event_handler.dart';
-import '../viewmodels/dataBinding/current_user_data_binding.dart';
+
 
 class NavigationController extends StatefulWidget {
   const NavigationController({super.key});
@@ -21,18 +21,18 @@ class NavigationController extends StatefulWidget {
 }
 
 class _NavigationControllerState extends State<NavigationController> {
-  late CurrentUserEventHandler _userEventHandler;
+  late AuthEventHandler _userEventHandler;
 
   int _currentIndex = 0;
 
   @override
   void initState() {
     super.initState();
-    final currentUserState = context.read<CurrentUserState>();
-    final dataBinding = CurrentUserDataBinding();
-    _userEventHandler = CurrentUserEventHandler(
-      currentUserState: currentUserState,
-      dataBinding: dataBinding,
+    final currentUserState = context.read<AuthState>();
+    final dataBinding = AuthDataBinding();
+    _userEventHandler = AuthEventHandler(
+       currentUserState,
+       dataBinding,
     );
     _initializeUser();
   }
@@ -46,7 +46,7 @@ class _NavigationControllerState extends State<NavigationController> {
 
   @override
   Widget build(BuildContext context) {
-    final currentUserState = context.watch<CurrentUserState>();
+    final currentUserState = context.watch<AuthState>();
 
     if (currentUserState.currentUser == null) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
@@ -127,7 +127,7 @@ class _NavigationControllerState extends State<NavigationController> {
               actions: [
                 IconButton(
                   icon: const Icon(Icons.exit_to_app, color: Colors.black),
-                  onPressed: () => _userEventHandler.logoutUser(context),
+                  onPressed: () => _userEventHandler.onLogoutPressed(context),
                   tooltip: 'Logout',
                 ),
               ],

@@ -1,8 +1,6 @@
+import 'package:blindmate/viewmodels/state/auth_state.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../viewmodels/state/home_state.dart';
-import '../../viewmodels/dataBinding/current_user_data_binding.dart';
-import '../../viewmodels/eventHandlers/home_event_handler.dart';
 import 'matching_screen.dart';
 import 'bottle_note_home_screen.dart';
 import '../UIComponents/custom_button.dart';
@@ -16,22 +14,14 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  late HomeEventHandler _homeEventHandler;
 
   @override
   void initState() {
     super.initState();
-    final homeState = context.read<HomeState>();
-    final dataBinding = CurrentUserDataBinding();
-    _homeEventHandler = HomeEventHandler(
-      homeState: homeState,
-      dataBinding: dataBinding,
-    );
-    _homeEventHandler.loadUserData();
   }
 
   void _startRandomMatching() {
-    final currentUser = context.read<HomeState>().currentUser;
+    final currentUser = context.read<AuthState>().currentUser;
     if (currentUser != null) {
       Navigator.push(
         context,
@@ -80,7 +70,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final screenSize = MediaQuery.of(context).size;
 
     return Scaffold(
       body: Stack(
@@ -92,8 +81,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
           // Main Content
           SafeArea(
-            child: Consumer<HomeState>(
-              builder: (context, homeState, child) {
+            child: Consumer<AuthState>(
+              builder: (context, authState, child) {
                 return Column(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -106,9 +95,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
                     Column(
                       children: [
-                        if (homeState.currentUser != null)
+                        if (authState.currentUser != null)
                           Text(
-                            "Welcome, ${homeState.currentUser!.name}!",
+                            "Welcome, ${authState.currentUser!.name}!",
                             style: const TextStyle(
                               fontSize: 22,
                               fontWeight: FontWeight.bold,
