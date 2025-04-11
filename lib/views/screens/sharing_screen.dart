@@ -6,7 +6,8 @@ import '../../viewmodels/dataBinding/sharing_data_binding.dart';
 import '../../viewmodels/eventHandlers/sharing_event_handler.dart';
 import '../UIComponents/floating_music_player.dart';
 import '../UIComponents/custom_button.dart';
-import '../../models/dataModels/post_model.dart'; // Import the merged PostModel
+import '../../models/dataModels/post_model.dart';
+import '../UIComponents/post_privacy_indicator.dart'; // Import the privacy indicator
 
 class SharingScreen extends StatefulWidget {
   final UserModel user;
@@ -22,8 +23,8 @@ class _SharingScreenState extends State<SharingScreen> {
   late SharingState _sharingState;
   bool _showMyPostsOnly = false;
   final ScrollController _scrollController = ScrollController();
-  int _loadedPostCount = 5; // Initial number of posts to load
-  static const int _loadMoreThreshold = 2; // Load more when this many items are left
+  int _loadedPostCount = 5;
+  static const int _loadMoreThreshold = 2;
   bool _isLoadingMore = false;
 
   @override
@@ -61,9 +62,8 @@ class _SharingScreenState extends State<SharingScreen> {
     if (_sharingState.posts.length > _loadedPostCount) {
       setState(() {
         _isLoadingMore = true;
-        _loadedPostCount += 5; // Load 5 more posts at a time
+        _loadedPostCount += 5;
       });
-      // Simulate a small delay to show loading indicator if needed
       await Future.delayed(const Duration(milliseconds: 200));
       setState(() {
         _isLoadingMore = false;
@@ -128,9 +128,12 @@ class _SharingScreenState extends State<SharingScreen> {
   Widget build(BuildContext context) {
     return Consumer<SharingState>(
       builder: (context, sharingState, child) {
-        final filteredPosts = _showMyPostsOnly
-            ? sharingState.posts.where((post) => post.userId == widget.user.userId).toList()
-            : sharingState.posts;
+        final filteredPosts =
+            _showMyPostsOnly
+                ? sharingState.posts
+                    .where((post) => post.userId == widget.user.userId)
+                    .toList()
+                : sharingState.posts;
 
         final displayedPosts = filteredPosts.take(_loadedPostCount).toList();
 
@@ -210,8 +213,8 @@ class _SharingScreenState extends State<SharingScreen> {
             onPressed: () {
               setState(() {
                 _showMyPostsOnly = false;
-                _loadedPostCount = 5; // Reset loaded count when toggling
-                _scrollController.jumpTo(0); // Scroll to top
+                _loadedPostCount = 5;
+                _scrollController.jumpTo(0);
               });
             },
             backgroundColor: !_showMyPostsOnly ? Colors.blue : Colors.grey,
@@ -226,8 +229,8 @@ class _SharingScreenState extends State<SharingScreen> {
             onPressed: () {
               setState(() {
                 _showMyPostsOnly = true;
-                _loadedPostCount = 5; // Reset loaded count when toggling
-                _scrollController.jumpTo(0); // Scroll to top
+                _loadedPostCount = 5;
+                _scrollController.jumpTo(0);
               });
             },
             backgroundColor: _showMyPostsOnly ? Colors.blue : Colors.grey,
@@ -252,7 +255,8 @@ class _SharingScreenState extends State<SharingScreen> {
 
     return ListView.builder(
       controller: _scrollController,
-      itemCount: posts.length + (_sharingState.posts.length > posts.length ? 1 : 0), // Add 1 for loading indicator
+      itemCount:
+          posts.length + (_sharingState.posts.length > posts.length ? 1 : 0),
       itemBuilder: (context, index) {
         if (index < posts.length) {
           final post = posts[index];
@@ -283,13 +287,30 @@ class _SharingScreenState extends State<SharingScreen> {
                               post.userId == widget.user.userId
                                   ? "You"
                                   : "Depression People",
-                              style: const TextStyle(fontWeight: FontWeight.bold),
-                            ),
-                            Text(
-                              getTimeAgo(post.timestamp),
                               style: const TextStyle(
-                                color: Color.fromARGB(255, 120, 120, 120),
+                                fontWeight: FontWeight.bold,
                               ),
+                            ),
+
+                            // In your _buildSharedContentList method:
+                            Row(
+                              children: [
+                                Text(
+                                  getTimeAgo(post.timestamp),
+                                  style: const TextStyle(
+                                    color: Color.fromARGB(255, 120, 120, 120),
+                                  ),
+                                ),
+                                const SizedBox(width: 5),
+                                PostPrivacyIndicator(
+                                  privacy: post.isPublic ? 'public' : 'private',
+                                  size:
+                                      14,
+                                  color:
+                                      Colors
+                                          .black54,
+                                ),
+                              ],
                             ),
                           ],
                         ),
@@ -345,18 +366,18 @@ class _SharingScreenState extends State<SharingScreen> {
                         ),
                       ),
                     ),
-                  // Implement link preview if needed
                 ],
               ),
             ),
           );
-        } else if (_sharingState.posts.length > posts.length && !_sharingState.isLoading) {
+        } else if (_sharingState.posts.length > posts.length &&
+            !_sharingState.isLoading) {
           return const Padding(
             padding: EdgeInsets.all(8.0),
             child: Center(child: CircularProgressIndicator()),
           );
         } else {
-          return Container(); // Should not happen
+          return Container();
         }
       },
     );

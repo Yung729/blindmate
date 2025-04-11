@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../models/dataModels/user_model.dart';
+import '../../services/gemini_moderation_service.dart';
 import '../../viewmodels/dataBinding/create_post_data_binding.dart';
 import '../../viewmodels/eventHandlers/create_post_event_handler.dart';
 import '../../viewmodels/state/create_post_state.dart';
 import '../../viewmodels/uiValidation/post_validator.dart';
+import '../UIComponents/loading_indicator.dart'; // Import the UIComponents
 
 class CreatePostScreen extends StatefulWidget {
   final UserModel user;
@@ -19,6 +21,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
   late TextEditingController _textController;
   late CreatePostEventHandler _eventHandler;
   final ScrollController _scrollController = ScrollController();
+  final GeminiModerationService _moderationService = GeminiModerationService();
 
   @override
   void initState() {
@@ -102,9 +105,9 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                     ),
                   ),
                   if (createPostState.isLoading)
-                    const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 20),
-                      child: Center(child: CircularProgressIndicator()),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 20),
+                      child: Center(child: UIComponents.loadingIndicator()), // Default size
                     ),
                   if (createPostState.musicResults.isNotEmpty)
                     ConstrainedBox(
@@ -151,6 +154,70 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
     );
   }
 
+  Future<void> _handleSharePost(BuildContext context) async {
+    final postContent = _textController.text;
+
+    if (!UIValidation.isPostContentValid(postContent)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Post content cannot be empty!"),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    // Show loading indicator
+    Provider.of<CreatePostState>(context, listen: false).setIsLoading(true);
+
+    // Call Gemini moderation service
+    final moderationResult = await _moderationService.checkContentLevel(postContent);
+
+    // Hide loading indicator
+    if (context.mounted) {
+      Provider.of<CreatePostState>(context, listen: false).setIsLoading(false);
+    }
+
+    if (moderationResult == 'UNSAFE') {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Your post content has been flagged as inappropriate and cannot be shared."),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      return;
+    }
+
+    // Proceed with sharing the post if it's SAFE or WARNING
+    await _eventHandler.sharePost();
+    final createPostState = Provider.of<CreatePostState>(
+      context,
+      listen: false,
+    );
+    createPostState.reset();
+    _textController.clear();
+
+    if (context.mounted) {
+      Navigator.pop(context);
+      if (moderationResult == 'WARNING') {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Your post has been shared but contains potentially sensitive content."),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Post shared successfully!"),
+          ),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -170,31 +237,19 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
         actions: [
           Padding(
             padding: const EdgeInsets.only(right: 16.0),
-            child: IconButton(
-              icon: const Icon(Icons.send),
-              onPressed: () async {
-                if (!UIValidation.isPostContentValid(_textController.text)) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text("Post content cannot be empty!"),
-                      backgroundColor: Colors.red,
-                    ),
-                  );
-                  return;
-                }
-
-                await _eventHandler.sharePost();
-                final createPostState = Provider.of<CreatePostState>(
-                  context,
-                  listen: false,
-                );
-                createPostState.reset();
-                _textController.clear();
-
-                if (context.mounted) {
-                  Navigator.pop(context);
-                }
-              },
+            child: Stack( // Use Stack to overlay loading indicator
+              alignment: Alignment.center,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.send),
+                  onPressed: Provider.of<CreatePostState>(context).isLoading
+                      ? null // Disable the button when loading is true
+                      : () => _handleSharePost(context),
+                  color: Colors.black,
+                ),
+                if (Provider.of<CreatePostState>(context).isLoading)
+                  UIComponents.loadingIndicator(width: 24, height: 24), // Specify size
+              ],
             ),
           ),
         ],
