@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 class BottomDrawer extends StatefulWidget {
@@ -10,7 +12,8 @@ class BottomDrawer extends StatefulWidget {
   final List<String> stickerList;
 
   final bool showStickers; // Add this parameter
-  final Function(bool) toggleStickers; 
+  final Function(bool) toggleStickers;
+  final Function(String) onStickerSearch;
 
   const BottomDrawer({
     super.key,
@@ -20,8 +23,9 @@ class BottomDrawer extends StatefulWidget {
     required this.onShareMusic,
     required this.onTripJournal,
     required this.stickerList,
-    required this.showStickers, 
+    required this.showStickers,
     required this.toggleStickers,
+    required this.onStickerSearch,
   });
 
   @override
@@ -29,6 +33,15 @@ class BottomDrawer extends StatefulWidget {
 }
 
 class _BottomDrawerState extends State<BottomDrawer> {
+  final TextEditingController _searchController = TextEditingController();
+  Timer? _debounceTimer;
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    _debounceTimer?.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -73,36 +86,14 @@ class _BottomDrawerState extends State<BottomDrawer> {
                   label: "Sticker",
                   onTap: () {
                     setState(() {
-                       widget.toggleStickers(true);
+                      widget.toggleStickers(true);
                     });
                   },
                 ),
               ],
             ),
           ] else ...[
-            SizedBox(
-              height: 120, // Adjust height to fit two rows of stickers
-              child: GridView.builder(
-                scrollDirection: Axis.horizontal, // Horizontal scrolling
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2, // Two rows
-                  crossAxisSpacing: 8, // Spacing between columns
-                  mainAxisSpacing: 8, // Spacing between rows
-                  childAspectRatio: 1, // Square stickers
-                ),
-                itemCount: widget.stickerList.length,
-                itemBuilder: (context, index) {
-                  return GestureDetector(
-                    onTap: () => widget.onStickerSelected(widget.stickerList[index]),
-                    child: Image.network(
-                      widget.stickerList[index],
-                      height: 50,
-                      width: 50,
-                    ),
-                  );
-                },
-              ),
-            ),
+            _buildStickerDrawer(),
           ],
         ],
       ),
@@ -128,12 +119,94 @@ class _BottomDrawerState extends State<BottomDrawer> {
             child: Icon(icon, size: 24, color: Colors.black),
           ),
           const SizedBox(height: 8),
-          Text(
-            label,
-            style: const TextStyle(fontSize: 12),
-          ),
+          Text(label, style: const TextStyle(fontSize: 12)),
         ],
       ),
+    );
+  }
+
+  Widget _buildStickerDrawer() {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // Search bar
+        Container(
+          height: 40, // Fixed height for search bar
+          child: Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _searchController,
+                  decoration: InputDecoration(
+                    hintText: 'Search stickers...',
+                    prefixIcon: const Icon(Icons.search, size: 20),
+                    contentPadding: const EdgeInsets.symmetric(
+                      vertical: 0,
+                      horizontal: 12,
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(20),
+                      borderSide: const BorderSide(width: 1),
+                    ),
+                    isDense: true, // Makes the TextField more compact
+                  ),
+                  style: const TextStyle(fontSize: 14),
+                  onChanged: (value) {
+                    // Changed from onSubmitted to onChanged
+                    _debounceTimer?.cancel();
+                    _debounceTimer = Timer(
+                      const Duration(milliseconds: 500),
+                      () {
+                        if (value.isNotEmpty) {
+                          widget.onStickerSearch(value);
+                        }
+                      },
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(width: 4),
+              IconButton(
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+                icon: const Icon(Icons.close, size: 20),
+                onPressed: () {
+                  setState(() {
+                    widget.toggleStickers(false);
+                    _searchController.clear();
+                  });
+                },
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 8),
+        // Sticker grid
+        SizedBox(
+          height: 120,
+          child: GridView.builder(
+            scrollDirection: Axis.horizontal,
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              crossAxisSpacing: 8,
+              mainAxisSpacing: 8,
+              childAspectRatio: 1,
+            ),
+            itemCount: widget.stickerList.length,
+            itemBuilder: (context, index) {
+              return GestureDetector(
+                onTap:
+                    () => widget.onStickerSelected(widget.stickerList[index]),
+                child: Image.network(
+                  widget.stickerList[index],
+                  height: 50,
+                  width: 50,
+                ),
+              );
+            },
+          ),
+        ),
+      ],
     );
   }
 }

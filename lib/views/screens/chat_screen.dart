@@ -52,7 +52,7 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     _chatHandler = ChatEventHandler(
       chatState: _chatState,
       dataBinding: chatBinding,
-      matchingHandler: matchingHandler, 
+      matchingHandler: matchingHandler,
       chatRoomId: widget.chatRoomId,
       currentUserId: widget.currentUserId,
     );
@@ -92,6 +92,27 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   Widget build(BuildContext context) {
     return Consumer<ChatState>(
       builder: (context, chatState, child) {
+        if (chatState.errorMessage != null) {
+        // Delay to ensure previous SnackBar is dismissed
+        Future.microtask(() {
+          final messenger = ScaffoldMessenger.of(context);
+          messenger.clearSnackBars(); // Clear any existing SnackBars
+          messenger.showSnackBar(
+            SnackBar(
+              content: Text(chatState.errorMessage!),
+              backgroundColor: chatState.errorMessage!.contains('Warning')
+                  ? Colors.orange[400]
+                  : Colors.red[400],
+              behavior: SnackBarBehavior.floating,
+              margin: const EdgeInsets.all(8),
+              duration: const Duration(seconds: 3),
+            ),
+          );
+          // Clear the error message after showing
+          chatState.setErrorMessage(null);
+        });
+      }
+
         return PopScope(
           canPop: true,
           onPopInvoked: (didPop) async {
@@ -138,8 +159,8 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                               _isDrawerVisible
                                   ? MediaQuery.of(context).size.height *
                                       (_showStickers
-                                          ? 0.25
-                                          : 0.2) // Adjust padding based on drawer height
+                                          ? 0.35
+                                          : 0.21) // Adjust padding based on drawer height
                                   : 0,
                         ),
                         child: ListView.builder(
@@ -181,7 +202,7 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                           duration: const Duration(milliseconds: 300),
                           height:
                               MediaQuery.of(context).size.height *
-                              (_showStickers ? 0.21 : 0.14),
+                              (_showStickers ? 0.35 : 0.21),
                           decoration: const BoxDecoration(
                             color: Colors.white,
                             borderRadius: BorderRadius.only(
@@ -198,13 +219,16 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                           ),
                           child: BottomDrawer(
                             onEmojiSelected: (emoji) {
-                              _chatHandler.sendMessage(text: emoji);
+                              _chatHandler.sendMessage(context, text: emoji);
                               setState(() {
                                 _isDrawerVisible = false;
                               });
                             },
                             onStickerSelected: (sticker) {
-                              _chatHandler.sendMessage(stickerUrl: sticker);
+                              _chatHandler.sendMessage(
+                                context,
+                                stickerUrl: sticker,
+                              );
                               setState(() {
                                 _isDrawerVisible = false;
                                 _showStickers = false;
@@ -232,6 +256,9 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                             },
                             onTripJournal: () {
                               // Add your trip journal logic here
+                            },
+                            onStickerSearch: (query) {
+                              _chatHandler.searchStickers(query);
                             },
                             stickerList: _chatState.stickerList,
                             showStickers: _showStickers, // Pass the state
@@ -369,7 +396,7 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
           IconButton(
             icon: const Icon(Icons.send),
             onPressed: () {
-              _chatHandler.sendMessage(text: _messageController.text);
+              _chatHandler.sendMessage(context, text: _messageController.text);
               _messageController.clear();
             },
           ),

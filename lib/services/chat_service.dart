@@ -69,6 +69,7 @@ class ChatService {
       "text": message.text,
       "stickerUrl": message.stickerUrl,
       "timestamp": DateTime.now().toIso8601String(),
+      "moderationStatus": message.moderationStatus,
     });
     _channel?.sink.add(messageData);
     print("🚀 Sent WebSocket Message: $messageData");
@@ -147,9 +148,4 @@ class ChatService {
     return users.isNotEmpty ? users.first : null;
   }
 
-  Future<void> markChatRoomClosed(String chatRoomId) async {
-    await _firestore.collection('chats').doc(chatRoomId).update({
-      'closed': true
-    });
-  }
 }

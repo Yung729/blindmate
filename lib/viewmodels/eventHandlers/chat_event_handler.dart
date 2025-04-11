@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'package:blindmate/viewmodels/eventHandlers/matching_event_handler.dart';
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../models/dataModels/message_model.dart';
 import '../state/chat_state.dart';
 import '../dataBinding/chat_data_binding.dart';
@@ -36,8 +35,17 @@ class ChatEventHandler {
     await dataBinding.loadStickers("happy");
   }
 
-  Future<void> sendMessage({String? text, String? stickerUrl}) async {
-    if ((text == null || text.trim().isEmpty) && (stickerUrl == null || stickerUrl.isEmpty)) {
+  Future<void> searchStickers(String query) async {
+    await dataBinding.loadStickers(query);
+  }
+
+  Future<void> sendMessage(
+    BuildContext context, {
+    String? text,
+    String? stickerUrl,
+  }) async {
+    if ((text == null || text.trim().isEmpty) &&
+        (stickerUrl == null || stickerUrl.isEmpty)) {
       return;
     }
 
@@ -48,9 +56,43 @@ class ChatEventHandler {
       timestamp: DateTime.now(),
     );
 
-    dataBinding.addMessage(message); // Optimistic UI update
-    await dataBinding.sendMessage(currentUserId, chatRoomId, message);
-    resetInactivityTimer(); // ✅ Reset inactivity timer on sending
+    try {
+      dataBinding.addMessage(message);
+      await dataBinding.sendMessage(currentUserId, chatRoomId, message);
+      resetInactivityTimer();      
+    } catch (e) {
+      if (e.toString().contains("BANNED")) {
+        await _handleBan(context);
+      } 
+      return;
+    }
+  }
+
+  Future<void> _handleBan(BuildContext context) async {
+    await showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder:
+          (context) => AlertDialog(
+            title: const Text("Account Warning"),
+            content: const Text(
+              "You have been removed from this chat due to multiple inappropriate messages. "
+              "Please be mindful of our community guidelines.",
+            ),
+            actions: [
+              TextButton(
+                onPressed: () async {
+                  Navigator.pop(context);
+                  await handleExit();
+                  if (Navigator.canPop(context)) {
+                    Navigator.pop(context);
+                  }
+                },
+                child: const Text("Understood"),
+              ),
+            ],
+          ),
+    );
   }
 
   void updateTyping(bool isTyping) {
@@ -70,13 +112,13 @@ class ChatEventHandler {
     _isChatOpen = false;
 
     print("🚪 Closing chat room for user: $currentUserId");
-    
+
     await dataBinding.handleExit(chatRoomId, currentUserId);
     await matchingHandler.updateUserStatus(currentUserId, 'available');
-    
+
     print("✅ Chat exit complete for user: $currentUserId");
   }
-  
+
   Future<void> reportUser(BuildContext context) async {
     if (chatState.otherUserId == null) return;
 
@@ -92,23 +134,29 @@ class ChatEventHandler {
   Future<void> confirmEndChat(BuildContext context) async {
     await showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text("End Chat?"),
-        content: const Text("Are you sure you want to leave this chat? This action cannot be undone."),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text("Cancel"),
+      builder:
+          (context) => AlertDialog(
+            title: const Text("End Chat?"),
+            content: const Text(
+              "Are you sure you want to leave this chat? This action cannot be undone.",
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text("Cancel"),
+              ),
+              TextButton(
+                onPressed: () async {
+                  Navigator.pop(context);
+                  await handleExit();
+                },
+                child: const Text(
+                  "End Chat",
+                  style: TextStyle(color: Colors.red),
+                ),
+              ),
+            ],
           ),
-          TextButton(
-            onPressed: () async {
-              Navigator.pop(context);
-              await handleExit();
-            },
-            child: const Text("End Chat", style: TextStyle(color: Colors.red)),
-          ),
-        ],
-      ),
     );
   }
 
@@ -137,22 +185,25 @@ class ChatEventHandler {
   Future<void> _showInactivityDialog(BuildContext context) async {
     bool? shouldExit = await showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text("Chat Ended Due to Inactivity"),
-        content: const Text("No messages were sent for 10 minutes. This chat will now close."),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              handleExit();
-              if (Navigator.canPop(context)) {
-                Navigator.pop(context);
-              }
-            },
-            child: const Text("OK"),
+      builder:
+          (context) => AlertDialog(
+            title: const Text("Chat Ended Due to Inactivity"),
+            content: const Text(
+              "No messages were sent for 10 minutes. This chat will now close.",
+            ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  handleExit();
+                  if (Navigator.canPop(context)) {
+                    Navigator.pop(context);
+                  }
+                },
+                child: const Text("OK"),
+              ),
+            ],
           ),
-        ],
-      ),
     );
 
     if (shouldExit == true) {

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import '../../models/dataModels/message_model.dart';
 
 class ChatState extends ChangeNotifier {
-  
   List<MessageModel> messages = [];
   String? otherUserId;
   bool isOtherUserTyping = false;
@@ -11,11 +10,13 @@ class ChatState extends ChangeNotifier {
   bool isLoadingStickers = false;
   bool isTyping = false;
   bool isChatOpen = true;
-  
+  int unsafeMessageCount = 0;
+  String? errorMessage;
+
   void updateTyping(bool typing) {
     if (isTyping != typing) {
-        isTyping = typing;
-        notifyListeners();
+      isTyping = typing;
+      notifyListeners();
     }
   }
 
@@ -51,9 +52,19 @@ class ChatState extends ChangeNotifier {
     notifyListeners();
   }
 
-void setIsLoadingStickers(bool loading) {
-      isLoadingStickers = loading;
-      notifyListeners();
+  void setIsLoadingStickers(bool loading) {
+    isLoadingStickers = loading;
+    notifyListeners();
+  }
+
+  void incrementUnsafeCount() {
+    unsafeMessageCount++;
+    notifyListeners();
+  }
+
+  void setErrorMessage(String? message) {
+    errorMessage = message;
+    notifyListeners();
   }
 
   void clear() {
@@ -64,6 +75,8 @@ void setIsLoadingStickers(bool loading) {
     partnerLeft = false;
     isTyping = false;
     isLoadingStickers = false;
+    unsafeMessageCount = 0;
+    errorMessage = null;
     notifyListeners();
   }
 }

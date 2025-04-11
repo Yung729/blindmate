@@ -1,7 +1,6 @@
 import 'package:blindmate/models/api/giphy_service.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:blindmate/services/gemini_moderation_service.dart';
 import 'package:flutter/material.dart';
-
 import '../../services/chat_service.dart';
 import '../../models/dataModels/message_model.dart';
 import '../state/chat_state.dart';
@@ -9,6 +8,7 @@ import '../state/chat_state.dart';
 class ChatDataBinding {
   final ChatService _chatService = ChatService();
   final GiphyService _giphyService = GiphyService();
+  final GeminiModerationService _moderationService = GeminiModerationService();
   final ChatState chatState;
 
   ChatDataBinding({required this.chatState});
@@ -55,11 +55,68 @@ class ChatDataBinding {
     });
   }
 
-  Future<void> sendMessage(String userId, String chatRoomId, MessageModel message) async {
-    await _chatService.sendMessage(userId, chatRoomId, message);
+  Future<void> sendMessage(
+    String userId,
+    String chatRoomId,
+    MessageModel message,
+  ) async {
+    if (message.text != null && message.text!.isNotEmpty) {
+      final moderationResult = await _moderationService.checkContentLevel(
+        message.text!,
+      );
+
+      final moderatedMessage = MessageModel(
+        senderId: message.senderId,
+        text: message.text,
+        stickerUrl: message.stickerUrl,
+        timestamp: message.timestamp,
+        moderationStatus: moderationResult, // Add moderation status
+      );
+
+      switch (moderationResult) {
+        case 'SAFE':
+          await _chatService.sendMessage(userId, chatRoomId, moderatedMessage);
+          break;
+
+        case 'WARNING':
+          chatState.setErrorMessage(
+            "⚠️ Warning: Your message contains sensitive content",
+          );
+          await _chatService.sendMessage(userId, chatRoomId, moderatedMessage);
+          break;
+
+        case 'UNSAFE':
+          chatState.incrementUnsafeCount();
+          chatState.setErrorMessage(
+            "🚫 Message blocked: Inappropriate content detected",
+          );
+          await _chatService.sendMessage(userId, chatRoomId, moderatedMessage);
+
+          if (chatState.unsafeMessageCount >= 3) {
+            throw Exception("BANNED");
+          }
+
+        default:
+          throw Exception("Message moderation failed");
+      }
+    } else {
+      // For stickers, mark as SAFE by default
+      final safeMessage = MessageModel(
+        senderId: message.senderId,
+        text: message.text,
+        stickerUrl: message.stickerUrl,
+        timestamp: message.timestamp,
+        moderationStatus: 'SAFE',
+      );
+      await _chatService.sendMessage(userId, chatRoomId, safeMessage);
+    }
   }
 
-  Future<void> updateTyping(String chatRoomId, String userId, bool isTyping) async {
+  Future<void> updateTyping(
+    String chatRoomId,
+    String userId,
+    bool isTyping,
+  ) async {
     await _chatService.updateTypingStatus(chatRoomId, userId, isTyping);
   }
 
@@ -92,7 +149,10 @@ class ChatDataBinding {
   }
 
   Future<void> fetchChatPartner(String chatRoomId, String currentUserId) async {
-    final partnerId = await _chatService.fetchChatPartner(chatRoomId, currentUserId);
+    final partnerId = await _chatService.fetchChatPartner(
+      chatRoomId,
+      currentUserId,
+    );
     if (partnerId != null) {
       setOtherUserId(partnerId);
     }
@@ -107,9 +167,13 @@ class ChatDataBinding {
     if (users.isEmpty) {
       await _chatService.closeChatRoom(chatRoomId);
     } else {
-      await _chatService.markChatRoomClosed(chatRoomId);
+      await _chatService.closeChatRoom(chatRoomId);
     }
 
     clearChatState();
+  }
+
+  Future<String?> moderateContent(String message) async {
+    return await _moderationService.checkContentLevel(message);
   }
 }

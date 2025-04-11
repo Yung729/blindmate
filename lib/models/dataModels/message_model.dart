@@ -5,12 +5,14 @@ class MessageModel {
   final String? text;
   final String? stickerUrl;
   final DateTime timestamp;
+  final String? moderationStatus;
 
   MessageModel({
     required this.senderId,
     this.text,
     this.stickerUrl,
     required this.timestamp,
+    this.moderationStatus,
   });
 
   /// 🔹 Convert Firestore Map to `MessageModel`
@@ -22,6 +24,7 @@ class MessageModel {
       timestamp: (data['timestamp'] is Timestamp)
           ? (data['timestamp'] as Timestamp).toDate()
           : DateTime.now(),
+          moderationStatus: data['moderationStatus'] ?? 'SAFE',
     );
   }
 
@@ -32,6 +35,7 @@ class MessageModel {
       text: data['text'],
       stickerUrl: data['stickerUrl'],
       timestamp: DateTime.tryParse(data['timestamp'] ?? '') ?? DateTime.now(),
+      moderationStatus: data['moderationStatus'] ?? 'SAFE',
     );
   }
 
@@ -41,7 +45,8 @@ class MessageModel {
       'senderId': senderId,
       if (text != null) 'text': text,
       if (stickerUrl != null) 'stickerUrl': stickerUrl,
-      'timestamp': FieldValue.serverTimestamp(), // Firestore timestamp
+      'timestamp': FieldValue.serverTimestamp(), 
+      if (moderationStatus != null) 'moderationStatus': moderationStatus,
     };
   }
 
@@ -52,7 +57,8 @@ class MessageModel {
       'senderId': senderId,
       'text': text,
       'stickerUrl': stickerUrl,
-      'timestamp': timestamp.toIso8601String(), // WebSocket requires ISO string
+      'timestamp': timestamp.toIso8601String(), 
+      if (moderationStatus != null) 'moderationStatus': moderationStatus,
     };
   }
 }
