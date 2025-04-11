@@ -1,8 +1,10 @@
+import 'package:blindmate/models/dataModels/user_model.dart';
 import 'package:blindmate/views/screens/bottle_note_home_screen.dart';
 import 'package:blindmate/views/screens/my_bottle_note_screen.dart';
 import 'package:blindmate/views/screens/pick_up_screen.dart';
 import 'package:blindmate/views/screens/send_bottle_note_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:percent_indicator/percent_indicator.dart'; // Import percent_indicator
 import 'package:provider/provider.dart';
 import 'screens/home_screen.dart';
 import 'screens/sharing_screen.dart';
@@ -72,38 +74,56 @@ class _NavigationControllerState extends State<NavigationController> {
               backgroundColor: Colors.transparent,
               elevation: 0,
               toolbarHeight: 80, // Increased AppBar height
-              title: _currentIndex == 0
-                  ? Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        IconButton(
-                          icon: const Icon(
-                            Icons.person,
-                            color: Colors.black,
-                          ),
-                          onPressed: () {
-                            if (currentUserState.currentUser != null) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text("User: ${currentUserState.currentUser!.name}"),
+              title:
+                  _currentIndex == 0
+                      ? Padding(
+                        padding: const EdgeInsets.only(
+                          left: 8.0,
+                        ), // Align to top left
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.person, color: Colors.black),
+
+                            const SizedBox(
+                              width: 8,
+                            ), // Space between icon and level
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Text(
+                                  "Level",
+                                  style: TextStyle(
+                                    color: Colors.black,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
+                                  ),
                                 ),
-                              );
-                            }
-                          },
+                                const SizedBox(
+                                  height: 4,
+                                ), // Space between text and bar
+                                SizedBox(
+                                  width: 150, // Fixed width for level bar
+                                  child: LinearPercentIndicator(
+                                    percent:
+                                        currentUserState
+                                            .currentUser!
+                                            .levelProgress, // Use the actual property
+                                    backgroundColor: Colors.grey[300],
+                                    progressColor: Colors.blue, // Blue progress
+                                    lineHeight: 6.0, // Thickness of the bar
+                                    animation: true, // Smooth animation
+                                    animationDuration:
+                                        1000, // 1-second animation
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
                         ),
-                        const SizedBox(width: 8),
-                        Text(
-                          currentUserState.currentUser?.name ?? "",
-                          style: const TextStyle(
-                            color: Colors.black,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ],
-                    )
-                  : null,
+                      )
+                      : null,
               actions: [
                 IconButton(
                   icon: const Icon(Icons.exit_to_app, color: Colors.black),
@@ -134,3 +154,4 @@ class _NavigationControllerState extends State<NavigationController> {
     );
   }
 }
+
