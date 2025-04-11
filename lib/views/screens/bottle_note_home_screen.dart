@@ -108,7 +108,6 @@ class _BottleNoteHomeScreenState extends State<BottleNoteHomeScreen>
                           builder:
                               (context) => SendBottleNoteScreen(
                                 content: _dataBinding.contentController.text,
-                                sticker: _dataBinding.selectedSticker,
                               ),
                         ),
                       );

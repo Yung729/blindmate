@@ -4,6 +4,7 @@ import '../state/bottle_note_state.dart';
 import '../../models/dataModels/pool_model.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../models/dataModels/reply_model.dart';
+import '../../services/gemini_moderation_service.dart';
 
 class BottleNoteEventHandler {
   final BottleNoteState state;
@@ -37,29 +38,73 @@ class BottleNoteEventHandler {
     }
   }
 
+  String? wasLastNoteSafe = 'BLOCKED'; // default to BLOCKED
+
   Future<void> sendNote({
     required String content,
     required String userId,
-    String? sticker,
   }) async {
-    final newNote = BottleNote(
-      noteId: const Uuid().v4(),
-      content: content,
-      senderId: userId,
-      timestamp: DateTime.now(),
-      expirationTime: DateTime.now().add(const Duration(days: 1)),
-      status: 'active',
-      replies: [],
-    );
+    final moderationService = GeminiModerationService();
+    final result = await moderationService.checkContentLevel(
+      content,
+    ); // <-- change this method
+    wasLastNoteSafe = result;
 
-    await FirebaseFirestore.instance
-        .collection('bottle_notes')
-        .doc(newNote.noteId)
-        .set(newNote.toJson());
+    if (result != 'BLOCKED') {
+      final newNote = BottleNote(
+        noteId: const Uuid().v4(),
+        content: content,
+        senderId: userId,
+        timestamp: DateTime.now(),
+        expirationTime: DateTime.now().add(const Duration(days: 1)),
+        status: 'active',
+        replies: [],
+      );
 
-    Pool().addNote(newNote);
-    state.setNotes(Pool().notes);
+      await FirebaseFirestore.instance
+          .collection('bottle_notes')
+          .doc(newNote.noteId)
+          .set(newNote.toJson());
+
+      Pool().addNote(newNote);
+      state.setNotes(Pool().notes);
+    }
   }
+
+  // String? wasLastNoteSafe = '';
+
+  // Future<void> sendNote({
+  //   required String content,
+  //   required String userId,
+  // }) async {
+  //   final moderationService = GeminiModerationService();
+  //   wasLastNoteSafe = await moderationService.isContentSafe(content);
+
+  //   if (wasLastNoteSafe == 'SAFE') {
+  //     print('✅ Note is safe. Sending...');
+  //     final newNote = BottleNote(
+  //       noteId: const Uuid().v4(),
+  //       content: content,
+  //       senderId: userId,
+  //       timestamp: DateTime.now(),
+  //       expirationTime: DateTime.now().add(const Duration(days: 1)),
+  //       status: 'active',
+  //       replies: [],
+  //     );
+
+  //     await FirebaseFirestore.instance
+  //         .collection('bottle_notes')
+  //         .doc(newNote.noteId)
+  //         .set(newNote.toJson());
+
+  //     Pool().addNote(newNote);
+  //     state.setNotes(Pool().notes);
+  //   } else if (wasLastNoteSafe == 'WARNING') {
+  //     print('⚠️ Note contains sensitive content.');
+  //   } else {
+  //     print('❌ Note contains unsafe content.');
+  //   }
+  // }
 
   Future<void> replyToNote({
     required String noteId,
