@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
-import '../../models/dataModels/post_model.dart';
 import '../../models/dataModels/user_model.dart';
 import '../dataBinding/create_post_data_binding.dart';
 import '../state/create_post_state.dart';

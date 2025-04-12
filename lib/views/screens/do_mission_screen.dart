@@ -1,8 +1,9 @@
+import 'package:blindmate/views/UIComponents/crystal_box.dart';
+import 'package:blindmate/views/UIComponents/custom_button.dart';
+import 'package:blindmate/views/screens/redeem_reward_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import '../../models/dataModels/user_model.dart';
-import 'matching_screen.dart';
 
 class DoMissionScreen extends StatefulWidget {
   const DoMissionScreen({super.key});
@@ -13,6 +14,7 @@ class DoMissionScreen extends StatefulWidget {
   static Future<UserModel?> fetchUserData() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return null;
+    return null;
   }
 }
 
@@ -32,49 +34,64 @@ class _DoMissionScreenState extends State<DoMissionScreen> {
     });
   }
 
-  Widget _buildMissionField(String missionName) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          "Ongoing Mission Progress",
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-        ),
-        Text(
-          missionName,
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-        ),
-        SizedBox(height: 8),
-        Container(
-          height: 20,
-          decoration: BoxDecoration(
-            color: Colors.grey[300],
-            borderRadius: BorderRadius.circular(20.0),
-            border: Border.all(color: Colors.black, width: 1.0),
-          ),
-        )
-      ],
-    );
-  }
+  // Widget _buildMissionField(String missionName) {
+  //   return Column(
+  //     crossAxisAlignment: CrossAxisAlignment.start,
+  //     children: [
+  //       // Text(
+  //       //   "Ongoing Mission Progress",
+  //       //   style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+  //       // ),
+  //       Text(
+  //         missionName,
+  //         style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+  //       ),
+  //       SizedBox(height: 8),
+  //       Container(
+  //         height: 20,
+  //         decoration: BoxDecoration(
+  //           color: Color(0xFF8FC3D3),
+  //           borderRadius: BorderRadius.circular(20.0),
+  //           border: Border.all(color: Color.fromRGBO(237, 233, 247, 0.69), width: 1.0),
+  //         ),
+  //       )
+  //     ],
+  //   );
+  // }
 
-  Widget _buildCrystalBox(String text) {
-    return Align(
-      alignment: Alignment.topRight,
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
+  Widget _buildMissionField(String missionName) {
+    return Container(
+      padding: EdgeInsets.all(12.0),
+      margin: EdgeInsets.symmetric(vertical: 8.0),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12.0),
+        boxShadow: [
+          BoxShadow(
+            color: Color(0xFFD9D9D9),
+            blurRadius: 4,
+            offset: Offset(0, 2),
+          ),
+        ],
+        border: Border.all(color: Colors.grey.shade300),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Image.asset('assets/crystal.png', height: 50), // Add your crystal image asset here
-          SizedBox(width: 10),
+          Text(
+            missionName,
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          ),
+          SizedBox(height: 8),
           Container(
-            padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+            height: 20,
             decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(30),
-              border: Border.all(color: Colors.black, width: 2.0),
-            ),
-            child: Text(
-              text,
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              color: Color(0xFF8FC3D3),
+              borderRadius: BorderRadius.circular(20.0),
+              border: Border.all(
+                color: Color.fromRGBO(237, 233, 247, 0.69),
+                width: 1.0,
+              ),
             ),
           ),
         ],
@@ -86,18 +103,54 @@ class _DoMissionScreenState extends State<DoMissionScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
-        padding: EdgeInsets.all(16.0),
+        padding: EdgeInsets.only(
+          top: 40.0,
+          left: 16.0,
+          right: 16.0,
+          bottom: 16.0,
+        ),
         alignment: Alignment.topCenter,
-        child: 
-        Column(
+        child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            _buildCrystalBox('111'),
-            _buildMissionField('Mission 1'),
+            SizedBox(height: 48),
+            buildCrystalBox('111'),
+            SizedBox(height: 24),
+
+            Center(
+              child: Column(
+                children: [
+                  Text(
+                    "Current Mission",
+                    style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900),
+                  ),
+                  SizedBox(height: 24),
+                  Text(
+                    "No mission selected currently",
+                    style: TextStyle(color: Colors.grey.shade600),
+                  ),
+                ],
+              ),
+            ),
+
+            SizedBox(height: 60),
+
+            Text(
+              "Daily Mission",
+              style: TextStyle(fontSize: 36, fontWeight: FontWeight.w900),
+            ),
             SizedBox(height: 20),
+            _buildMissionField('Mission 1'),
+            SizedBox(height: 25),
             // _buildMissionField('Mission 2'),
             // SizedBox(height: 20),
             // _buildMissionField('Mission 3'),
+            CustomButton(text: "reward", onPressed: () {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const RedeemRewardScreen()),
+    );
+  },)
           ],
         ),
       ),

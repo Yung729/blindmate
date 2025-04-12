@@ -14,7 +14,7 @@ class ChatService {
   final StreamController<List<MessageModel>> _messageStreamController =
       StreamController.broadcast();
 
-  List<MessageModel> _messages = []; // Store all messages in memory
+  final List<MessageModel> _messages = []; // Store all messages in memory
 
   /// 🔹 Connect WebSocket after finding a match
   void connectWebSocket(String chatRoomId) {

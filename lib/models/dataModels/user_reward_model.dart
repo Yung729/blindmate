@@ -2,30 +2,27 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 class UserReward {
   String userId;
-  int fragmentNumber;
-  String currentMission;
+  final List<dynamic> redeemedRewards;
+  
 
   UserReward({
     required this.userId,
-    required this.fragmentNumber,
-    required this.currentMission,
+    required this.redeemedRewards,
   });
 
   factory UserReward.fromFirestore(DocumentSnapshot doc) {
-    final data = doc.data() as Map<String, dynamic>;
+    final data = doc.data() as Map<String, dynamic> ?? {};
 
     return UserReward(
       userId: data['userId'] ?? '',
-      fragmentNumber: data['fragmentNumber'] ?? 0,
-      currentMission: data['currentMission'] ?? '',
+      redeemedRewards: List<dynamic>.from(data['redeemedReward'] ?? []),
     );
   }
 
   Map<String, dynamic> toMap() {
     return {
       'userId': userId,
-      'fragmentNumber': fragmentNumber,
-      'currentMission': currentMission,
+      'redeemedReward': redeemedRewards,
     };
   }
 }

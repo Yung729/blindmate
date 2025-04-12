@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 class SurveyPage extends StatefulWidget {
+  const SurveyPage({super.key});
+
   @override
   _SurveyPageState createState() => _SurveyPageState();
 }

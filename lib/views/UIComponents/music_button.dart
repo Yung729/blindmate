@@ -6,7 +6,7 @@ class MusicButton extends StatefulWidget {
   final String platform; // "YouTube" or "Deezer"
   final String songQuery;
 
-  const MusicButton({required this.platform, required this.songQuery, Key? key}) : super(key: key);
+  const MusicButton({required this.platform, required this.songQuery, super.key});
 
   @override
   _MusicButtonState createState() => _MusicButtonState();

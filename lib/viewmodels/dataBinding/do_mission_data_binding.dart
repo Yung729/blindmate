@@ -1,5 +1,4 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import '../../models/dataModels/user_model.dart';
 import '../../models/dataModels/mission_model.dart';
 import '../../models/dataModels/user_reward_model.dart';

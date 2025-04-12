@@ -1,5 +1,6 @@
 import '../../services/post_service.dart'; // Import the merged service
 import '../../models/dataModels/post_model.dart'; // Import the merged model
+import '../../services/sharing_service.dart';
 import '../state/sharing_state.dart';
 
 class SharingDataBinding {

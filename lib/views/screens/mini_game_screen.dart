@@ -12,8 +12,8 @@ class MiniGameScreen extends StatefulWidget {
     required this.currentUserId,
     required this.opponentId,
     required this.isDrawer,
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   @override
   State<MiniGameScreen> createState() => _MiniGameScreenState();

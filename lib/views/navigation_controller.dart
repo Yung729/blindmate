@@ -4,6 +4,7 @@ import 'package:blindmate/viewmodels/state/auth_state.dart';
 import 'package:blindmate/views/screens/bottle_note_home_screen.dart';
 import 'package:blindmate/views/screens/my_bottle_note_screen.dart';
 import 'package:blindmate/views/screens/pick_up_screen.dart';
+import 'package:blindmate/views/screens/redeem_reward_screen.dart';
 import 'package:blindmate/views/screens/send_bottle_note_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:percent_indicator/percent_indicator.dart'; // Import percent_indicator
@@ -60,6 +61,7 @@ class _NavigationControllerState extends State<NavigationController> {
       const PickUpScreen(),
       const SendBottleNoteScreen(),
       const MyBottleNotesScreen(),
+      const RedeemRewardScreen()
     ];
 
     return Scaffold(
