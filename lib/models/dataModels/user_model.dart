@@ -10,6 +10,9 @@ class UserModel {
   final DateTime? lastActive; // 🔹 Added lastActive field
   final String emotionalStatus; 
   final double levelProgress; // Ensure this is non-nullable
+  final int fragmentNumber;
+  final String currentMission;
+
   
   UserModel({
     required this.userId,
@@ -21,6 +24,8 @@ class UserModel {
     this.lastActive, // Can be null if user never logged in
     required this.emotionalStatus,
     required this.levelProgress,
+    required this.fragmentNumber,
+    required this.currentMission,
   });
 
   // 🔹 Convert Firestore Document to UserModel
@@ -37,7 +42,9 @@ class UserModel {
               ? (data['lastActive'] as Timestamp).toDate()
               : null, // 🔹 Convert Firestore Timestamp
       emotionalStatus: data['emotionalStatus'] ?? 'neutral',
-      levelProgress: data['levelProgress'] ?? 0
+      levelProgress: data['levelProgress'] ?? 0,
+      fragmentNumber: data['fragmentNumber'] ?? 0,
+      currentMission: data['currentMission'] ?? '',
     );
   }
 
@@ -53,6 +60,8 @@ class UserModel {
           lastActive != null
               ? Timestamp.fromDate(lastActive!)
               : FieldValue.serverTimestamp(),
+      'fragmentNumber': fragmentNumber,
+      'currentMission': currentMission,
     };
   }
 }
