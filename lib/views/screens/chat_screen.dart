@@ -96,7 +96,7 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
         // Delay to ensure previous SnackBar is dismissed
         Future.microtask(() {
           final messenger = ScaffoldMessenger.of(context);
-          messenger.clearSnackBars(); // Clear any existing SnackBars
+          messenger.clearSnackBars(); 
           messenger.showSnackBar(
             SnackBar(
               content: Text(chatState.errorMessage!),
@@ -104,8 +104,8 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                   ? Colors.orange[400]
                   : Colors.red[400],
               behavior: SnackBarBehavior.floating,
-              margin: const EdgeInsets.all(8),
-              duration: const Duration(seconds: 3),
+              margin: const EdgeInsets.all(4),
+              duration: const Duration(seconds: 2),
             ),
           );
           // Clear the error message after showing

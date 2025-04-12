@@ -63,9 +63,10 @@ class AuthService {
   // Sign out
   Future<void> signOut(String userId) async {
     await updateUserStatus(userId, '', isOnline: false);
-    await _auth.signOut();
+    
     final prefs = await SharedPreferences.getInstance();
     await prefs.clear();
+    await _auth.signOut();
   }
 
   // User data loading

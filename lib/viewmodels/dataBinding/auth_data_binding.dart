@@ -53,5 +53,13 @@ class AuthDataBinding {
     await _service.signOut(userId);
   }
 
+  Future<void> signOut(String userId) async {
+    await _service.signOut(userId);
+  }
+
+  Future<void> updateUserStatus(String userId, String deviceId, {bool isOnline = true}) async {
+    await _service.updateUserStatus(userId, deviceId, isOnline: isOnline);
+  }
+
   Future<UserModel?> getUserData() => _service.loadUserData();
 }
