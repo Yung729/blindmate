@@ -32,7 +32,7 @@ class UserModel {
       userId: documentId,
       name: data['name'] ?? 'Unknown User',
       email: data['email'] ?? 'No Email',
-      levelValue: (data['mentalLevel'] as int? ?? 1).clamp(1, 9999), // Default to 1, max 9999
+      levelValue: (data['levelValue'] as int? ?? 1).clamp(1, 9999), // Default to 1, max 9999
       online: data['online'] ?? false,
       status: data['status'] ?? 'available',
       lastActive: data['lastActive'] != null
