@@ -10,63 +10,61 @@ class MatchingService {
     print("🔍 Searching for a match for user: ${user.userId}");
 
     // Fetch list of users **reported by the current user**
-    final reportedByMeSnapshot =
-        await _firestore
-            .collection('reports')
-            .where('reporterId', isEqualTo: user.userId)
-            .get();
+    final reportedByMeSnapshot = await _firestore
+        .collection('reports')
+        .where('reporterId', isEqualTo: user.userId)
+        .get();
 
-    List<String> reportedByMe =
-        reportedByMeSnapshot.docs
-            .map((doc) => doc['reportedId'] as String)
-            .toList();
+    List<String> reportedByMe = reportedByMeSnapshot.docs
+        .map((doc) => doc['reportedId'] as String)
+        .toList();
 
     print("🚫 Users I reported: ${reportedByMe.length}");
 
     // Fetch list of users **who reported the current user**
-    final reportedMeSnapshot =
-        await _firestore
-            .collection('reports')
-            .where('reportedId', isEqualTo: user.userId)
-            .get();
+    final reportedMeSnapshot = await _firestore
+        .collection('reports')
+        .where('reportedId', isEqualTo: user.userId)
+        .get();
 
-    List<String> reportedMe =
-        reportedMeSnapshot.docs
-            .map((doc) => doc['reporterId'] as String)
-            .toList();
+    List<String> reportedMe = reportedMeSnapshot.docs
+        .map((doc) => doc['reporterId'] as String)
+        .toList();
 
     print("🚫 Users who reported me: ${reportedMe.length}");
 
-    final querySnapshot =
-        await _firestore
-            .collection('users')
-            .where('status', isEqualTo: 'waiting')
-            .where('online', isEqualTo: true)
-            .get();
+    final querySnapshot = await _firestore
+        .collection('users')
+        .where('status', isEqualTo: 'waiting')
+        .where('online', isEqualTo: true)
+        .get();
 
     print("✅ Found ${querySnapshot.docs.length} potential matches");
 
-    List<UserModel> potentialMatches =
-        querySnapshot.docs
-            .where((doc) => doc.id != user.userId)
-            .map(
-              (doc) =>
-                  UserModel.fromMap(doc.data(), doc.id),
-            )
-            .where(
-              (matchedUser) =>
-                  !reportedByMe.contains(matchedUser.userId) &&
-                  !reportedMe.contains(matchedUser.userId) &&
-                  _isValidMatch(user.emotionalStatus, matchedUser.emotionalStatus),
-            )
-            .toList();
+    // Create a list of Future<UserModel>
+    List<Future<UserModel>> futureMatches = querySnapshot.docs
+        .where((doc) => doc.id != user.userId)
+        .map((doc) async {
+          return await UserModel.fromMap(doc.data(), doc.id);
+        })
+        .toList();
 
-    print("🎯 Filtered down to ${potentialMatches.length} valid matches");
+    // Await all futures to get a List<UserModel>
+    List<UserModel> potentialMatches = await Future.wait(futureMatches);
 
-    if (potentialMatches.isNotEmpty) {
+    // Now filter the List<UserModel>
+    List<UserModel> filteredMatches = potentialMatches
+        .where((matchedUser) =>
+            !reportedByMe.contains(matchedUser.userId) &&
+            !reportedMe.contains(matchedUser.userId) &&
+            _isValidMatch(user.emotionalStatus, matchedUser.emotionalStatus))
+        .toList();
+
+    print("🎯 Filtered down to ${filteredMatches.length} valid matches");
+
+    if (filteredMatches.isNotEmpty) {
       Random random = Random();
-      UserModel matchedUser =
-          potentialMatches[random.nextInt(potentialMatches.length)];
+      UserModel matchedUser = filteredMatches[random.nextInt(filteredMatches.length)];
 
       String chatRoomId = _firestore.collection('chats').doc().id;
       print(

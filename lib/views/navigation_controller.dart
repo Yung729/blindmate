@@ -7,12 +7,11 @@ import 'package:blindmate/views/screens/pick_up_screen.dart';
 import 'package:blindmate/views/screens/redeem_reward_screen.dart';
 import 'package:blindmate/views/screens/send_bottle_note_screen.dart';
 import 'package:flutter/material.dart';
-import 'package:percent_indicator/percent_indicator.dart'; // Import percent_indicator
+import 'package:percent_indicator/percent_indicator.dart';
 import 'package:provider/provider.dart';
 import 'screens/home_screen.dart';
 import 'screens/sharing_screen.dart';
 import 'screens/do_mission_screen.dart';
-
 
 class NavigationController extends StatefulWidget {
   const NavigationController({super.key});
@@ -32,8 +31,8 @@ class _NavigationControllerState extends State<NavigationController> {
     final currentUserState = context.read<AuthState>();
     final dataBinding = AuthDataBinding();
     _userEventHandler = AuthEventHandler(
-       currentUserState,
-       dataBinding,
+      currentUserState,
+      dataBinding,
     );
     _initializeUser();
   }
@@ -61,7 +60,7 @@ class _NavigationControllerState extends State<NavigationController> {
       const PickUpScreen(),
       const SendBottleNoteScreen(),
       const MyBottleNotesScreen(),
-      const RedeemRewardScreen()
+      const RedeemRewardScreen(),
     ];
 
     return Scaffold(
@@ -75,57 +74,45 @@ class _NavigationControllerState extends State<NavigationController> {
             child: AppBar(
               backgroundColor: Colors.transparent,
               elevation: 0,
-              toolbarHeight: 80, // Increased AppBar height
-              title:
-                  _currentIndex == 0
-                      ? Padding(
-                        padding: const EdgeInsets.only(
-                          left: 8.0,
-                        ), // Align to top left
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.person, color: Colors.black),
-
-                            const SizedBox(
-                              width: 8,
-                            ), // Space between icon and level
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                const Text(
-                                  "Level",
-                                  style: TextStyle(
-                                    color: Colors.black,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 16,
-                                  ),
+              toolbarHeight: 80,
+              title: _currentIndex == 0
+                  ? Padding(
+                      padding: const EdgeInsets.only(left: 8.0),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.person, color: Colors.black),
+                          const SizedBox(width: 8),
+                         Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                "Level ${currentUserState.currentUser!.levelValue}",
+                                style: const TextStyle(
+                                  color: Colors.black,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
                                 ),
-                                const SizedBox(
-                                  height: 4,
-                                ), // Space between text and bar
-                                SizedBox(
-                                  width: 150, // Fixed width for level bar
-                                  child: LinearPercentIndicator(
-                                    percent:
-                                        currentUserState
-                                            .currentUser!
-                                            .levelProgress, // Use the actual property
-                                    backgroundColor: Colors.grey[300],
-                                    progressColor: Colors.blue, // Blue progress
-                                    lineHeight: 6.0, // Thickness of the bar
-                                    animation: true, // Smooth animation
-                                    animationDuration:
-                                        1000, // 1-second animation
-                                  ),
+                              ),
+                              const SizedBox(height: 4),
+                              SizedBox(
+                                width: 150,
+                                child: LinearPercentIndicator(
+                                  percent: currentUserState.currentUser!.progressionValue,
+                                  backgroundColor: Colors.grey[300],
+                                  progressColor: Colors.blue,
+                                  lineHeight: 6.0,
+                                  animation: true,
+                                  animationDuration: 1000,
                                 ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      )
-                      : null,
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    )
+                  : null,
               actions: [
                 IconButton(
                   icon: const Icon(Icons.exit_to_app, color: Colors.black),
@@ -156,4 +143,3 @@ class _NavigationControllerState extends State<NavigationController> {
     );
   }
 }
-
