@@ -17,7 +17,7 @@ class LevelProgressionService {
 
       // Level progression logic
       const double baseIncrement = 0.1; // Base progress per positive score point
-      double progressionValue = user.progressionValue;
+      double levelProgress = user.levelProgress;
       int levelValue = user.levelValue;
 
       if (score > 0) {
@@ -29,18 +29,18 @@ class LevelProgressionService {
         progressIncrement *= difficultyFactor;
 
         // Update progressionValue
-        progressionValue += progressIncrement;
+        levelProgress += progressIncrement;
 
         // Check for level up
-        while (progressionValue >= 1.0 && levelValue < 9999) {
+        while (levelProgress >= 1.0 && levelValue < 9999) {
           levelValue += 1;
-          progressionValue -= 1.0; // Carry over excess progress
+          levelProgress -= 1.0; // Carry over excess progress
         }
 
         // Ensure levelValue doesn't exceed 9999
         if (levelValue >= 9999) {
           levelValue = 9999;
-          progressionValue = 0.0; // Cap progress at max level
+          levelProgress = 0.0; // Cap progress at max level
         }
       }
 
@@ -52,10 +52,10 @@ class LevelProgressionService {
           .doc('current')
           .set({
         'levelValue': levelValue,
-        'progressionValue': progressionValue.clamp(0.0, 1.0),
+        'progressionValue': levelProgress.clamp(0.0, 1.0),
       });
 
-      print('Updated user: levelValue=$levelValue, progressionValue=$progressionValue');
+      print('Updated user: levelValue=$levelValue, progressionValue=$levelProgress');
     } catch (e) {
       print('Error updating user level: $e');
       rethrow; // Let the caller handle the error
