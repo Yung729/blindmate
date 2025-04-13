@@ -10,8 +10,26 @@ class ChatState extends ChangeNotifier {
   bool isLoadingStickers = false;
   bool isTyping = false;
   bool isChatOpen = true;
-  int unsafeMessageCount = 0;
   String? errorMessage;
+  int unsafeMessageCount = 0;
+  int safeMessageCount = 0;
+  int warningMessageCount = 0;
+  bool _hasSummaryShown = false;
+  bool isInactive = false;
+
+  bool get hasSummaryShown => _hasSummaryShown;
+
+  void markSummaryShown() {
+    _hasSummaryShown = true;
+    notifyListeners();
+  }
+
+  void setInactive(bool inactive) {
+    if (isInactive != inactive) {
+      isInactive = inactive;
+      notifyListeners();
+    }
+  }
 
   void updateTyping(bool typing) {
     if (isTyping != typing) {
@@ -57,13 +75,23 @@ class ChatState extends ChangeNotifier {
     notifyListeners();
   }
 
-  void incrementUnsafeCount() {
-    unsafeMessageCount++;
+  void setErrorMessage(String? message) {
+    errorMessage = message;
     notifyListeners();
   }
 
-  void setErrorMessage(String? message) {
-    errorMessage = message;
+  void incrementMessageCount(String moderationStatus) {
+    switch (moderationStatus) {
+      case 'SAFE':
+        safeMessageCount++;
+        break;
+      case 'WARNING':
+        warningMessageCount++;
+        break;
+      case 'UNSAFE':
+        unsafeMessageCount++;
+        break;
+    }
     notifyListeners();
   }
 
@@ -75,8 +103,12 @@ class ChatState extends ChangeNotifier {
     partnerLeft = false;
     isTyping = false;
     isLoadingStickers = false;
+    safeMessageCount = 0;
+    warningMessageCount = 0;
     unsafeMessageCount = 0;
     errorMessage = null;
+    _hasSummaryShown = false;
+    isInactive = false;
     notifyListeners();
   }
 }

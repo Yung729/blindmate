@@ -63,10 +63,22 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     _chatHandler.startInactivityTimer(context);
 
     _chatState.addListener(() {
+      if (!mounted || _chatState.hasSummaryShown) return;
+
       if (_chatState.partnerLeft) {
-        if (mounted) {
-          Navigator.popUntil(context, (route) => route.isFirst);
-        }
+        _showChatSummary().then((_) {
+          _chatState.markSummaryShown();
+          _chatHandler.handleExit().then((_) {
+            Navigator.popUntil(context, (route) => route.isFirst);
+          });
+        });
+      } else if (_chatState.isInactive) {
+        _showInactivityDialog().then((_) {
+          _chatState.markSummaryShown();
+          _chatHandler.handleExit().then((_) {
+            Navigator.popUntil(context, (route) => route.isFirst);
+          });
+        });
       }
     });
   }
@@ -87,37 +99,137 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     }
   }
 
+  Future<void> _confirmEndChat() async {
+    final bool? shouldEnd = await showDialog<bool>(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: const Text("End Chat?"),
+            content: const Text(
+              "Are you sure you want to leave this chat? This action cannot be undone.",
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text("Cancel"),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(context, true),
+                child: const Text(
+                  "End Chat",
+                  style: TextStyle(color: Colors.red),
+                ),
+              ),
+            ],
+          ),
+    );
+
+    if (shouldEnd == true) {
+      await _showChatSummary();
+      _chatState.markSummaryShown();
+      await _chatHandler.handleExit();
+      if (mounted && Navigator.canPop(context)) {
+        Navigator.pop(context);
+      }
+    }
+  }
+
+  Future<void> _showChatSummary() async {
+    if (_chatState.hasSummaryShown) return;
+
+    await showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder:
+          (context) => AlertDialog(
+            title: const Text("Your Chat Summary"),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text("Safe messages: ${_chatState.safeMessageCount} 👍"),
+                const SizedBox(height: 4),
+                Text("Warning messages: ${_chatState.warningMessageCount} ⚠️"),
+                const SizedBox(height: 4),
+                Text("Unsafe messages: ${_chatState.unsafeMessageCount} 🚫"),
+                const SizedBox(height: 8),
+                Text(
+                  "Total messages: ${_chatState.messages.where((m) => m.senderId == widget.currentUserId).length}",
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                },
+                child: const Text("Close"),
+              ),
+            ],
+          ),
+    );
+  }
+
+  Future<void> _showInactivityDialog() async {
+    if (_chatState.hasSummaryShown) return;
+
+    await showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder:
+          (context) => AlertDialog(
+            title: const Text("Chat Ended Due to Inactivity"),
+            content: const Text(
+              "No messages were sent for 10 minutes. This chat will now close.",
+            ),
+            actions: [
+              TextButton(
+                onPressed: () async {
+                  Navigator.pop(context);
+                  await _showChatSummary();
+                  if (mounted && Navigator.canPop(context)) {
+                    Navigator.pop(context);
+                  }
+                },
+                child: const Text("OK"),
+              ),
+            ],
+          ),
+    );
+  }
+
   @override
   @override
   Widget build(BuildContext context) {
     return Consumer<ChatState>(
       builder: (context, chatState, child) {
         if (chatState.errorMessage != null) {
-        // Delay to ensure previous SnackBar is dismissed
-        Future.microtask(() {
-          final messenger = ScaffoldMessenger.of(context);
-          messenger.clearSnackBars(); 
-          messenger.showSnackBar(
-            SnackBar(
-              content: Text(chatState.errorMessage!),
-              backgroundColor: chatState.errorMessage!.contains('Warning')
-                  ? Colors.orange[400]
-                  : Colors.red[400],
-              behavior: SnackBarBehavior.floating,
-              margin: const EdgeInsets.all(4),
-              duration: const Duration(seconds: 2),
-            ),
-          );
-          // Clear the error message after showing
-          chatState.setErrorMessage(null);
-        });
-      }
+          // Delay to ensure previous SnackBar is dismissed
+          Future.microtask(() {
+            final messenger = ScaffoldMessenger.of(context);
+            messenger.clearSnackBars();
+            messenger.showSnackBar(
+              SnackBar(
+                content: Text(chatState.errorMessage!),
+                backgroundColor:
+                    chatState.errorMessage!.contains('Warning')
+                        ? Colors.orange[400]
+                        : Colors.red[400],
+                behavior: SnackBarBehavior.floating,
+                margin: const EdgeInsets.all(4),
+                duration: const Duration(seconds: 2),
+              ),
+            );
+            // Clear the error message after showing
+            chatState.setErrorMessage(null);
+          });
+        }
 
         return PopScope(
-          canPop: true,
+          canPop: false,
           onPopInvoked: (didPop) async {
-            if (didPop) {
-              await _chatHandler.handleExit();
+            if (!didPop) {
+              await _confirmEndChat();
             }
           },
           child: Scaffold(
@@ -134,9 +246,7 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
               ),
               leading: IconButton(
                 icon: const Icon(Icons.arrow_back),
-                onPressed: () async {
-                  await _chatHandler.confirmEndChat(context);
-                },
+                onPressed: () => _confirmEndChat(),
               ),
               actions: [
                 if (chatState.otherUserId != null)

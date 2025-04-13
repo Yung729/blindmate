@@ -1,5 +1,6 @@
 import 'package:blindmate/models/api/giphy_service.dart';
 import 'package:blindmate/services/gemini_moderation_service.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import '../../services/chat_service.dart';
 import '../../models/dataModels/message_model.dart';
@@ -73,6 +74,10 @@ class ChatDataBinding {
         moderationStatus: moderationResult, // Add moderation status
       );
 
+      if (message.senderId == userId) {
+        chatState.incrementMessageCount(moderationResult ?? "SAFE");
+      }
+
       switch (moderationResult) {
         case 'SAFE':
           await _chatService.sendMessage(userId, chatRoomId, moderatedMessage);
@@ -86,7 +91,6 @@ class ChatDataBinding {
           break;
 
         case 'UNSAFE':
-          chatState.incrementUnsafeCount();
           chatState.setErrorMessage(
             "🚫 Message blocked: Inappropriate content detected",
           );
@@ -159,6 +163,7 @@ class ChatDataBinding {
   }
 
   Future<void> handleExit(String chatRoomId, String currentUserId) async {
+
     final users = await _chatService.getChatUsers(chatRoomId);
     users.remove(currentUserId);
 
@@ -175,5 +180,28 @@ class ChatDataBinding {
 
   Future<String?> moderateContent(String message) async {
     return await _moderationService.checkContentLevel(message);
+  }
+
+  Future<void> saveChatSummary(String currentUserId, String chatRoomId) async {
+    
+    final userSummary = {
+      'userId': currentUserId,
+      'safeCount': chatState.safeMessageCount,
+      'warningCount': chatState.warningMessageCount,
+      'unsafeCount': chatState.unsafeMessageCount,
+      'totalMessages':
+          chatState.messages.where((m) => m.senderId == currentUserId).length,
+      'duration':
+          DateTime.now()
+              .difference(
+                chatState.messages.isNotEmpty
+                    ? chatState.messages.first.timestamp
+                    : DateTime.now(),
+              )
+              .inMinutes,
+      'timestamp': FieldValue.serverTimestamp(),
+    };
+
+    await _chatService.saveChatSummary(chatRoomId, userSummary);
   }
 }

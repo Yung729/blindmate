@@ -101,7 +101,9 @@ class ChatService {
   Future<void> closeChatRoom(String chatRoomId) async {
     await _firestore.collection('chats').doc(chatRoomId).update({
       'closed': true,
+      'closedAt': FieldValue.serverTimestamp(),
     });
+    
   }
 
   /// 🔹 Close WebSocket connection
@@ -133,13 +135,16 @@ class ChatService {
     });
   }
 
-   Future<List<String>> getChatUsers(String chatRoomId) async {
+  Future<List<String>> getChatUsers(String chatRoomId) async {
     final chatDoc = await _firestore.collection('chats').doc(chatRoomId).get();
     if (!chatDoc.exists) return [];
     return List<String>.from(chatDoc['users']);
   }
 
-  Future<String?> fetchChatPartner(String chatRoomId, String currentUserId) async {
+  Future<String?> fetchChatPartner(
+    String chatRoomId,
+    String currentUserId,
+  ) async {
     final chatDoc = await _firestore.collection('chats').doc(chatRoomId).get();
     if (!chatDoc.exists) return null;
 
@@ -148,4 +153,22 @@ class ChatService {
     return users.isNotEmpty ? users.first : null;
   }
 
+  Future<void> saveChatSummary(
+    String chatRoomId,
+    Map<String, dynamic> summary,
+  ) async {
+    try {
+      await _firestore
+          .collection('chats')
+          .doc(chatRoomId)
+          .collection('summaries')
+          .doc(summary['userId']) // Use userId as document ID
+          .set(summary);
+
+      print("✅ Chat summary saved successfully for user: ${summary['userId']}");
+    } catch (e) {
+      print("❌ Error saving chat summary: $e");
+      throw Exception("Failed to save chat summary");
+    }
+  }
 }

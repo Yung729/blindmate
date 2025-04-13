@@ -59,11 +59,11 @@ class ChatEventHandler {
     try {
       dataBinding.addMessage(message);
       await dataBinding.sendMessage(currentUserId, chatRoomId, message);
-      resetInactivityTimer();      
+      resetInactivityTimer();
     } catch (e) {
       if (e.toString().contains("BANNED")) {
         await _handleBan(context);
-      } 
+      }
       return;
     }
   }
@@ -113,6 +113,7 @@ class ChatEventHandler {
 
     print("🚪 Closing chat room for user: $currentUserId");
 
+    await dataBinding.saveChatSummary(currentUserId, chatRoomId);
     await dataBinding.handleExit(chatRoomId, currentUserId);
     await matchingHandler.updateUserStatus(currentUserId, 'available');
 
@@ -131,35 +132,6 @@ class ChatEventHandler {
     await handleExit();
   }
 
-  Future<void> confirmEndChat(BuildContext context) async {
-    await showDialog(
-      context: context,
-      builder:
-          (context) => AlertDialog(
-            title: const Text("End Chat?"),
-            content: const Text(
-              "Are you sure you want to leave this chat? This action cannot be undone.",
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text("Cancel"),
-              ),
-              TextButton(
-                onPressed: () async {
-                  Navigator.pop(context);
-                  await handleExit();
-                },
-                child: const Text(
-                  "End Chat",
-                  style: TextStyle(color: Colors.red),
-                ),
-              ),
-            ],
-          ),
-    );
-  }
-
   void startInactivityTimer(BuildContext context) {
     _startInactivityTimer(context);
   }
@@ -167,7 +139,9 @@ class ChatEventHandler {
   void resetInactivityTimer() {
     _inactivityTimer?.cancel();
     _inactivityTimer = Timer(const Duration(minutes: 10), () {
-      print("User inactive for 10 minutes. Chat should close.");
+      if (chatState.isChatOpen) {
+        chatState.setInactive(true); // Add new state for inactivity
+      }
     });
   }
 
@@ -178,39 +152,10 @@ class ChatEventHandler {
   void _startInactivityTimer(BuildContext context) {
     _inactivityTimer?.cancel();
     _inactivityTimer = Timer(const Duration(minutes: 10), () {
-      _showInactivityDialog(context);
+      if (chatState.isChatOpen) {
+        chatState.setInactive(true); // Use new state instead of partnerLeft
+      }
     });
   }
 
-  Future<void> _showInactivityDialog(BuildContext context) async {
-    bool? shouldExit = await showDialog(
-      context: context,
-      builder:
-          (context) => AlertDialog(
-            title: const Text("Chat Ended Due to Inactivity"),
-            content: const Text(
-              "No messages were sent for 10 minutes. This chat will now close.",
-            ),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                  handleExit();
-                  if (Navigator.canPop(context)) {
-                    Navigator.pop(context);
-                  }
-                },
-                child: const Text("OK"),
-              ),
-            ],
-          ),
-    );
-
-    if (shouldExit == true) {
-      await handleExit();
-      if (Navigator.canPop(context)) {
-        Navigator.pop(context);
-      }
-    }
-  }
 }
