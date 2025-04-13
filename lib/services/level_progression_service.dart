@@ -1,25 +1,62 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:math';
-import 'package:blindmate/models/dataModels/user_model.dart';
 
 class LevelProgressionService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   Future<void> updateUserLevel(String userId, int score) async {
     try {
-      // Fetch the current user data, including the 'level' subcollection
+      // Fetch the current user data
       DocumentSnapshot userDoc = await _firestore.collection('users').doc(userId).get();
       if (!userDoc.exists) {
         throw Exception('User not found in Firestore');
       }
 
-      UserModel user = await UserModel.fromMap(userDoc.data() as Map<String, dynamic>, userId);
+      // Fetch the 'level' subcollection
+      DocumentSnapshot levelDoc = await _firestore
+          .collection('users')
+          .doc(userId)
+          .collection('level')
+          .doc('current')
+          .get();
+
+      int levelValue;
+      double progressionValue;
+
+      // Check if 'level' subcollection exists
+      if (levelDoc.exists) {
+        // Use the new structure
+        final levelData = levelDoc.data() as Map<String, dynamic>;
+        levelValue = (levelData['levelValue'] as int? ?? 1).clamp(1, 9999);
+        progressionValue = (levelData['progressionValue'] as num? ?? 0.0).toDouble().clamp(0.0, 1.0);
+      } else {
+        // Fallback to old structure (root document) if subcollection doesn't exist
+        final userData = userDoc.data() as Map<String, dynamic>;
+        levelValue = (userData['mentalLevel'] as int? ?? 1).clamp(1, 9999);
+        progressionValue = (userData['levelProgress'] as num? ?? 0.0).toDouble().clamp(0.0, 1.0);
+
+        // Migrate the data to the 'level' subcollection
+        await _firestore
+            .collection('users')
+            .doc(userId)
+            .collection('level')
+            .doc('current')
+            .set({
+          'levelValue': levelValue,
+          'progressionValue': progressionValue,
+        });
+
+        // Remove old fields from root document
+        await _firestore.collection('users').doc(userId).update({
+          'mentalLevel': FieldValue.delete(),
+          'levelProgress': FieldValue.delete(),
+        });
+
+        print('Migrated user $userId to new level subcollection structure during update');
+      }
 
       // Level progression logic
       const double baseIncrement = 0.1; // Base progress per positive score point
-      double levelProgress = user.levelProgress;
-      int levelValue = user.levelValue;
-
       if (score > 0) {
         // Calculate progress increment
         double progressIncrement = score * baseIncrement;
@@ -29,18 +66,18 @@ class LevelProgressionService {
         progressIncrement *= difficultyFactor;
 
         // Update progressionValue
-        levelProgress += progressIncrement;
+        progressionValue += progressIncrement;
 
         // Check for level up
-        while (levelProgress >= 1.0 && levelValue < 9999) {
+        while (progressionValue >= 1.0 && levelValue < 9999) {
           levelValue += 1;
-          levelProgress -= 1.0; // Carry over excess progress
+          progressionValue -= 1.0; // Carry over excess progress
         }
 
         // Ensure levelValue doesn't exceed 9999
         if (levelValue >= 9999) {
           levelValue = 9999;
-          levelProgress = 0.0; // Cap progress at max level
+          progressionValue = 0.0; // Cap progress at max level
         }
       }
 
@@ -52,10 +89,10 @@ class LevelProgressionService {
           .doc('current')
           .set({
         'levelValue': levelValue,
-        'progressionValue': levelProgress.clamp(0.0, 1.0),
+        'progressionValue': progressionValue.clamp(0.0, 1.0),
       });
 
-      print('Updated user: levelValue=$levelValue, progressionValue=$levelProgress');
+      print('Updated user: levelValue=$levelValue, progressionValue=$progressionValue');
     } catch (e) {
       print('Error updating user level: $e');
       rethrow; // Let the caller handle the error

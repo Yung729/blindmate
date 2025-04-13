@@ -14,7 +14,6 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-
   @override
   void initState() {
     super.initState();
@@ -33,20 +32,28 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _goToSurvey() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => SurveyPage(),
-      ),
-    );
+    final authState = context.read<AuthState>();
+    if (authState.currentUser != null) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => SurveyPage(userId: authState.currentUser!.userId),
+        ),
+      );
+    } else {
+      // Handle the case where currentUser is null
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('User not logged in')),
+      );
+    }
   }
 
-  void _showSurveyDialog() { // New method to show the dialog
+  void _showSurveyDialog() {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Survey Invitation'),
-        content: Text(
+        title: const Text('Survey Invitation'),
+        content: const Text(
           'Would you like to answer survey question?\nNote: It may increase your level.',
         ),
         actions: [
@@ -54,14 +61,14 @@ class _HomeScreenState extends State<HomeScreen> {
             onPressed: () {
               Navigator.pop(context); // Close the dialog
             },
-            child: Text('No'),
+            child: const Text('No'),
           ),
           TextButton(
             onPressed: () {
               Navigator.pop(context); // Close the dialog
               _goToSurvey(); // Navigate to SurveyPage
             },
-            child: Text('Yes'),
+            child: const Text('Yes'),
           ),
         ],
       ),
@@ -70,7 +77,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-
     return Scaffold(
       body: Stack(
         children: [
@@ -114,10 +120,10 @@ class _HomeScreenState extends State<HomeScreen> {
                           text: "Start Matching",
                           onPressed: _startRandomMatching,
                         ),
-                        const SizedBox(height: 20), // Add spacing between buttons
+                        const SizedBox(height: 20),
                         CustomButton(
-                          text: "Survey", // Changed text to "Survey"
-                          onPressed: _showSurveyDialog, // Show dialog instead of direct navigation
+                          text: "Survey",
+                          onPressed: _showSurveyDialog,
                         ),
                       ],
                     ),
@@ -134,8 +140,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder:
-                                      (context) => const BottleNoteHomeScreen(),
+                                  builder: (context) => const BottleNoteHomeScreen(),
                                 ),
                               );
                             },

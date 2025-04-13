@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:blindmate/services/gemini_moderation_service.dart';
 import 'package:blindmate/models/dataModels/survey_question_model.dart';
-import 'dart:convert'; // For JsonEncoder
+import 'package:blindmate/services/level_progression_service.dart'; // Import LevelProgressionService
+import 'dart:convert';
 
 class SurveyPage extends StatefulWidget {
-  const SurveyPage({super.key});
+  final String userId; // Add userId to identify the user
+
+  const SurveyPage({super.key, required this.userId});
 
   @override
   _SurveyPageState createState() => _SurveyPageState();
@@ -12,13 +15,14 @@ class SurveyPage extends StatefulWidget {
 
 class _SurveyPageState extends State<SurveyPage> {
   final _formKey = GlobalKey<FormState>();
-  final GeminiModerationService _surveyService = GeminiModerationService(); // Use GeminiModerationService
+  final GeminiModerationService _surveyService = GeminiModerationService();
+  final LevelProgressionService _levelService = LevelProgressionService(); // Initialize LevelProgressionService
   List<SurveyQuestion> _questions = [];
   bool _isLoading = true;
   bool _hasError = false;
   String? _errorMessage;
-  Map<String, String?> _selectedOptions = {}; // Store selected option texts
-  Map<String, int> _optionScores = {}; // Store scores for selected options
+  Map<String, String?> _selectedOptions = {};
+  Map<String, int> _optionScores = {};
 
   @override
   void initState() {
@@ -31,9 +35,9 @@ class _SurveyPageState extends State<SurveyPage> {
       _isLoading = true;
       _hasError = false;
       _errorMessage = null;
-      _questions = []; // Clear previous questions
-      _selectedOptions = {}; // Clear previous selections
-      _optionScores = {}; // Clear previous scores
+      _questions = [];
+      _selectedOptions = {};
+      _optionScores = {};
     });
 
     try {
@@ -66,9 +70,8 @@ class _SurveyPageState extends State<SurveyPage> {
           setState(() {
             _questions = surveyQuestions;
             _isLoading = false;
-            // Initialize selected options and scores for each question
             for (var question in _questions) {
-              _selectedOptions[question.id.toString()] = null; // Convert int to string for key
+              _selectedOptions[question.id.toString()] = null;
               _optionScores[question.id.toString()] = 0;
             }
           });
@@ -86,7 +89,7 @@ class _SurveyPageState extends State<SurveyPage> {
         }
       } else {
         print('\n❌ Error: Gemini response was not a List.');
-        print(response); // Print the unexpected response
+        print(response);
         setState(() {
           _isLoading = false;
           _hasError = true;
@@ -103,7 +106,6 @@ class _SurveyPageState extends State<SurveyPage> {
     }
   }
 
-  // Check if all questions have been answered
   bool _areAllQuestionsAnswered() {
     return _selectedOptions.values.every((option) => option != null);
   }
@@ -128,13 +130,13 @@ class _SurveyPageState extends State<SurveyPage> {
                       ),
                       const SizedBox(height: 16),
                       ElevatedButton(
-                        onPressed: _fetchQuestions, // Retry button
+                        onPressed: _fetchQuestions,
                         child: const Text('Retry'),
                       ),
                       const SizedBox(height: 8),
                       ElevatedButton(
                         onPressed: () {
-                          Navigator.pop(context); // Return to HomeScreen
+                          Navigator.pop(context);
                         },
                         child: const Text('Go Back'),
                       ),
@@ -150,7 +152,7 @@ class _SurveyPageState extends State<SurveyPage> {
                         ..._questions.asMap().entries.map((entry) {
                           final index = entry.key;
                           final question = entry.value;
-                          final questionId = question.id.toString(); // Convert int to string for key
+                          final questionId = question.id.toString();
                           final options = question.options;
 
                           return Column(
@@ -188,10 +190,9 @@ class _SurveyPageState extends State<SurveyPage> {
                         Center(
                           child: ElevatedButton(
                             onPressed: _areAllQuestionsAnswered()
-                                ? () {
+                                ? () async {
                                     if (_formKey.currentState?.validate() ?? false) {
                                       _formKey.currentState?.save();
-                                      // Calculate total score
                                       final totalScore = _optionScores.values.reduce((a, b) => a + b);
                                       String message;
                                       if (totalScore >= _questions.length) {
@@ -200,6 +201,17 @@ class _SurveyPageState extends State<SurveyPage> {
                                         message = 'You’re doing okay, but consider checking in with yourself.';
                                       } else {
                                         message = 'It looks like you might need support. Consider reaching out.';
+                                      }
+
+                                      // Update user level using LevelProgressionService
+                                      try {
+                                        await _levelService.updateUserLevel(widget.userId, totalScore);
+                                      } catch (e) {
+                                        if (mounted) {
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            SnackBar(content: Text('Error updating level: $e')),
+                                          );
+                                        }
                                       }
 
                                       showDialog(
@@ -212,8 +224,8 @@ class _SurveyPageState extends State<SurveyPage> {
                                           actions: [
                                             TextButton(
                                               onPressed: () {
-                                                Navigator.pop(context); // Close the dialog
-                                                Navigator.pop(context); // Return to HomeScreen
+                                                Navigator.pop(context);
+                                                Navigator.pop(context);
                                               },
                                               child: const Text('OK'),
                                             ),
@@ -223,7 +235,6 @@ class _SurveyPageState extends State<SurveyPage> {
                                     }
                                   }
                                 : () {
-                                    // Show a SnackBar if not all questions are answered
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       const SnackBar(
                                         content: Text('Please answer the question before submitting.'),
