@@ -16,6 +16,24 @@ class ChatState extends ChangeNotifier {
   int warningMessageCount = 0;
   bool _hasSummaryShown = false;
   bool isInactive = false;
+  bool isBanned = false;
+  bool _reportedUser = false;
+
+  bool get reportedUser => _reportedUser;
+
+  void setReportedUser(bool reported) {
+    if (_reportedUser != reported) {
+      _reportedUser = reported;
+      notifyListeners();
+    }
+  }
+
+  void setBanned(bool banned) {
+    if (isBanned != banned) {
+      isBanned = banned;
+      notifyListeners();
+    }
+  }
 
   bool get hasSummaryShown => _hasSummaryShown;
 
@@ -109,6 +127,9 @@ class ChatState extends ChangeNotifier {
     errorMessage = null;
     _hasSummaryShown = false;
     isInactive = false;
+    isBanned = false;
+    _reportedUser = false;
+    isChatOpen = true; // Reset this flag
     notifyListeners();
   }
 }

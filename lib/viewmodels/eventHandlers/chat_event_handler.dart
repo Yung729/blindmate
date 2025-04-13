@@ -29,6 +29,8 @@ class ChatEventHandler {
   });
 
   Future<void> init() async {
+    _isChatOpen = true;
+    chatState.clear(); // Reset state when initializing new chat
     dataBinding.initialize(chatRoomId);
     await dataBinding.fetchChatPartner(chatRoomId, currentUserId);
     dataBinding.listenTypingStatus(chatRoomId, chatState.otherUserId);
@@ -62,37 +64,10 @@ class ChatEventHandler {
       resetInactivityTimer();
     } catch (e) {
       if (e.toString().contains("BANNED")) {
-        await _handleBan(context);
+        chatState.setBanned(true);
       }
       return;
     }
-  }
-
-  Future<void> _handleBan(BuildContext context) async {
-    await showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder:
-          (context) => AlertDialog(
-            title: const Text("Account Warning"),
-            content: const Text(
-              "You have been removed from this chat due to multiple inappropriate messages. "
-              "Please be mindful of our community guidelines.",
-            ),
-            actions: [
-              TextButton(
-                onPressed: () async {
-                  Navigator.pop(context);
-                  await handleExit();
-                  if (Navigator.canPop(context)) {
-                    Navigator.pop(context);
-                  }
-                },
-                child: const Text("Understood"),
-              ),
-            ],
-          ),
-    );
   }
 
   void updateTyping(bool isTyping) {
@@ -113,23 +88,23 @@ class ChatEventHandler {
 
     print("🚪 Closing chat room for user: $currentUserId");
 
-    await dataBinding.saveChatSummary(currentUserId, chatRoomId);
-    await dataBinding.handleExit(chatRoomId, currentUserId);
-    await matchingHandler.updateUserStatus(currentUserId, 'available');
+    try {
+      await dataBinding.saveChatSummary(currentUserId, chatRoomId);
+      await dataBinding.handleExit(chatRoomId, currentUserId);
+      await matchingHandler.updateUserStatus(currentUserId, 'available');
+    } finally {
+      // Always dispose resources
+      dispose();
+    }
 
     print("✅ Chat exit complete for user: $currentUserId");
   }
 
-  Future<void> reportUser(BuildContext context) async {
+  Future<void> reportUser() async {
     if (chatState.otherUserId == null) return;
-
     await dataBinding.reportUser(currentUserId, chatState.otherUserId!);
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("User reported. You will not match again.")),
-    );
-
-    await handleExit();
+    chatState.setPartnerLeft(true); // Add this
+    await dataBinding.closeChatRoom(chatRoomId);
   }
 
   void startInactivityTimer(BuildContext context) {
@@ -157,5 +132,4 @@ class ChatEventHandler {
       }
     });
   }
-
 }

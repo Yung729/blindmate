@@ -15,6 +15,9 @@ class ChatDataBinding {
   ChatDataBinding({required this.chatState});
 
   void initialize(String chatRoomId) {
+    // Clear previous chat state first
+    clearChatState();
+
     _chatService.connectWebSocket(chatRoomId);
 
     _chatService.getMessages().listen((messages) {
@@ -163,7 +166,6 @@ class ChatDataBinding {
   }
 
   Future<void> handleExit(String chatRoomId, String currentUserId) async {
-
     final users = await _chatService.getChatUsers(chatRoomId);
     users.remove(currentUserId);
 
@@ -183,25 +185,29 @@ class ChatDataBinding {
   }
 
   Future<void> saveChatSummary(String currentUserId, String chatRoomId) async {
-    
-    final userSummary = {
-      'userId': currentUserId,
-      'safeCount': chatState.safeMessageCount,
-      'warningCount': chatState.warningMessageCount,
-      'unsafeCount': chatState.unsafeMessageCount,
-      'totalMessages':
-          chatState.messages.where((m) => m.senderId == currentUserId).length,
-      'duration':
-          DateTime.now()
-              .difference(
-                chatState.messages.isNotEmpty
-                    ? chatState.messages.first.timestamp
-                    : DateTime.now(),
-              )
-              .inMinutes,
-      'timestamp': FieldValue.serverTimestamp(),
-    };
+    try {
+      final userSummary = {
+        'userId': currentUserId,
+        'safeCount': chatState.safeMessageCount,
+        'warningCount': chatState.warningMessageCount,
+        'unsafeCount': chatState.unsafeMessageCount,
+        'totalMessages':
+            chatState.messages.where((m) => m.senderId == currentUserId).length,
+        'duration':
+            DateTime.now()
+                .difference(
+                  chatState.messages.isNotEmpty
+                      ? chatState.messages.first.timestamp
+                      : DateTime.now(),
+                )
+                .inMinutes,
+        'timestamp': FieldValue.serverTimestamp(),
+      };
 
-    await _chatService.saveChatSummary(chatRoomId, userSummary);
+      await _chatService.saveChatSummary(chatRoomId, userSummary);
+    } catch (e) {
+      print("❌ Error saving chat summary: $e");
+      // Still continue with exit flow
+    }
   }
 }

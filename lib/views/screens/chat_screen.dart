@@ -65,20 +65,26 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     _chatState.addListener(() {
       if (!mounted || _chatState.hasSummaryShown) return;
 
-      if (_chatState.partnerLeft) {
+      if (_chatState.isBanned) {
+        _showBanDialog();
+      } else if (_chatState.reportedUser) {
         _showChatSummary().then((_) {
           _chatState.markSummaryShown();
           _chatHandler.handleExit().then((_) {
             Navigator.popUntil(context, (route) => route.isFirst);
           });
         });
-      } else if (_chatState.isInactive) {
-        _showInactivityDialog().then((_) {
-          _chatState.markSummaryShown();
-          _chatHandler.handleExit().then((_) {
-            Navigator.popUntil(context, (route) => route.isFirst);
+      } else if (_chatState.partnerLeft) {
+        if (!_chatState.isBanned) {
+          _showChatSummary().then((_) {
+            _chatState.markSummaryShown();
+            _chatHandler.handleExit().then((_) {
+              Navigator.popUntil(context, (route) => route.isFirst);
+            });
           });
-        });
+        }
+      } else if (_chatState.isInactive) {
+        _showInactivityDialog();
       }
     });
   }
@@ -93,10 +99,85 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.inactive ||
-        state == AppLifecycleState.detached) {
+    if ((state == AppLifecycleState.inactive ||
+            state == AppLifecycleState.detached) &&
+        _chatState.isChatOpen &&
+        !_chatState.hasSummaryShown) {
       _chatHandler.handleExit();
     }
+  }
+
+  Future<void> _showReportDialog() async {
+    final bool? shouldReport = await showDialog<bool>(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: const Text("Report User"),
+            content: const Text(
+              "Are you sure you want to report this user? "
+              "You will not be matched with them again.",
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text("Cancel"),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(context, true),
+                child: const Text(
+                  "Report",
+                  style: TextStyle(color: Colors.red),
+                ),
+              ),
+            ],
+          ),
+    );
+
+    if (shouldReport == true) {
+      await _chatHandler.reportUser();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("User reported. You will not match again."),
+          ),
+        );
+      }
+      await _showChatSummary();
+      _chatState.markSummaryShown();
+      await _chatHandler.handleExit();
+      Navigator.popUntil(context, (route) => route.isFirst);
+    }
+  }
+
+  Future<void> _showBanDialog() async {
+    if (_chatState.hasSummaryShown) return;
+
+    await showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder:
+          (context) => AlertDialog(
+            title: const Text("Account Warning"),
+            content: const Text(
+              "You have been removed from this chat due to multiple inappropriate messages. "
+              "Please be mindful of our community guidelines.",
+            ),
+            actions: [
+              TextButton(
+                onPressed: () async {
+                  Navigator.pop(context);
+                  await _showChatSummary();
+                  _chatState.markSummaryShown();
+                  await _chatHandler.handleExit();
+                  if (mounted) {
+                    Navigator.popUntil(context, (route) => route.isFirst);
+                  }
+                },
+                child: const Text("Understood"),
+              ),
+            ],
+          ),
+    );
   }
 
   Future<void> _confirmEndChat() async {
@@ -252,8 +333,7 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                 if (chatState.otherUserId != null)
                   IconButton(
                     icon: const Icon(Icons.flag, color: Colors.red),
-                    onPressed:
-                        () async => await _chatHandler.reportUser(context),
+                    onPressed: () => _showReportDialog(),
                   ),
               ],
             ),
