@@ -39,7 +39,7 @@ class UserModel {
           ? (data['lastActive'] as Timestamp).toDate()
           : null,
       emotionalStatus: data['emotionalStatus'] ?? 'neutral',
-      progressionValue: (data['levelProgress'] as num? ?? 0.0).toDouble().clamp(0.0, 1.0),
+      progressionValue: (data['progressionValue'] as num? ?? 0.0).toDouble().clamp(0.0, 1.0),
       fragmentNumber: data['fragmentNumber'] ?? 0,
       currentMission: data['currentMission'] ?? '',
     );
@@ -57,13 +57,9 @@ class UserModel {
       'emotionalStatus': emotionalStatus,
       'fragmentNumber': fragmentNumber,
       'currentMission': currentMission,
-    };
-  }
-
-  Map<String, dynamic> toLevelMap() {
-    return {
       'levelValue': levelValue,
       'progressionValue': progressionValue,
     };
   }
+
 }

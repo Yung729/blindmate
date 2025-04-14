@@ -30,6 +30,8 @@ class _SurveyPageState extends State<SurveyPage> {
     _fetchQuestions();
   }
 
+  
+
   Future<void> _fetchQuestions() async {
     setState(() {
       _isLoading = true;
@@ -206,6 +208,7 @@ class _SurveyPageState extends State<SurveyPage> {
                                       // Update user level using LevelProgressionService
                                       try {
                                         await _levelService.updateUserLevel(widget.userId, totalScore);
+                                        
                                       } catch (e) {
                                         if (mounted) {
                                           ScaffoldMessenger.of(context).showSnackBar(
