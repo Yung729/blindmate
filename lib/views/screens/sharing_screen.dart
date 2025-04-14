@@ -7,7 +7,7 @@ import '../../viewmodels/eventHandlers/sharing_event_handler.dart';
 import '../UIComponents/floating_music_player.dart';
 import '../UIComponents/custom_button.dart';
 import '../../models/dataModels/post_model.dart';
-import '../UIComponents/post_privacy_indicator.dart'; // Import the privacy indicator
+import '../UIComponents/post_privacy_indicator.dart';
 
 class SharingScreen extends StatefulWidget {
   final UserModel user;
@@ -26,6 +26,8 @@ class _SharingScreenState extends State<SharingScreen> {
   int _loadedPostCount = 5;
   static const int _loadMoreThreshold = 2;
   bool _isLoadingMore = false;
+  final Set<String> _expandedPosts = <String>{};
+  static const int _maxLinesCollapsed = 3; // Adjust as needed
 
   @override
   void initState() {
@@ -128,12 +130,11 @@ class _SharingScreenState extends State<SharingScreen> {
   Widget build(BuildContext context) {
     return Consumer<SharingState>(
       builder: (context, sharingState, child) {
-        final filteredPosts =
-            _showMyPostsOnly
-                ? sharingState.posts
-                    .where((post) => post.userId == widget.user.userId)
-                    .toList()
-                : sharingState.posts;
+        final filteredPosts = _showMyPostsOnly
+            ? sharingState.posts
+                .where((post) => post.userId == widget.user.userId)
+                .toList()
+            : sharingState.posts;
 
         final displayedPosts = filteredPosts.take(_loadedPostCount).toList();
 
@@ -149,7 +150,7 @@ class _SharingScreenState extends State<SharingScreen> {
                   if (_isLoadingMore)
                     const Padding(
                       padding: EdgeInsets.all(8.0),
-                      child: CircularProgressIndicator(),
+                      child: Center(child: CircularProgressIndicator()),
                     ),
                 ],
               ),
@@ -215,6 +216,7 @@ class _SharingScreenState extends State<SharingScreen> {
                 _showMyPostsOnly = false;
                 _loadedPostCount = 5;
                 _scrollController.jumpTo(0);
+                _expandedPosts.clear(); // Reset expanded state
               });
             },
             backgroundColor: !_showMyPostsOnly ? Colors.blue : Colors.grey,
@@ -231,6 +233,7 @@ class _SharingScreenState extends State<SharingScreen> {
                 _showMyPostsOnly = true;
                 _loadedPostCount = 5;
                 _scrollController.jumpTo(0);
+                _expandedPosts.clear(); // Reset expanded state
               });
             },
             backgroundColor: _showMyPostsOnly ? Colors.blue : Colors.grey,
@@ -291,8 +294,6 @@ class _SharingScreenState extends State<SharingScreen> {
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
-
-                            // In your _buildSharedContentList method:
                             Row(
                               children: [
                                 Text(
@@ -303,12 +304,10 @@ class _SharingScreenState extends State<SharingScreen> {
                                 ),
                                 const SizedBox(width: 5),
                                 PostPrivacyIndicator(
-                                  privacy: post.isPublic ? 'public' : 'private',
-                                  size:
-                                      14,
-                                  color:
-                                      Colors
-                                          .black54,
+                                  privacy:
+                                      post.isPublic ? 'public' : 'private',
+                                  size: 14,
+                                  color: Colors.black54,
                                 ),
                               ],
                             ),
@@ -325,47 +324,8 @@ class _SharingScreenState extends State<SharingScreen> {
                     ],
                   ),
                   const SizedBox(height: 8),
-                  if (post.content.isNotEmpty) Text(post.content),
-                  const SizedBox(height: 8),
-                  if (videoId != null)
-                    GestureDetector(
-                      onTap: () => _eventHandler.playMusic(post.musicUrl!),
-                      child: Container(
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(8.0),
-                        ),
-                        child: Row(
-                          children: [
-                            SizedBox(
-                              width: 100,
-                              height: 70,
-                              child: Image.network(
-                                "http://img.youtube.com/vi/$videoId/0.jpg",
-                                fit: BoxFit.cover,
-                                errorBuilder: (context, error, stackTrace) {
-                                  return const Center(
-                                    child: Icon(
-                                      Icons.music_note,
-                                      size: 30,
-                                      color: Colors.grey,
-                                    ),
-                                  );
-                                },
-                              ),
-                            ),
-                            const Spacer(),
-                            const Padding(
-                              padding: EdgeInsets.all(8.0),
-                              child: Icon(
-                                Icons.play_circle_fill,
-                                color: Colors.blue,
-                                size: 30,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
+                  if (post.content.isNotEmpty) _buildPostContent(post),
+                  if (post.musicUrl != null) _buildMusicContent(post), // Pass the entire post
                 ],
               ),
             ),
@@ -380,6 +340,123 @@ class _SharingScreenState extends State<SharingScreen> {
           return Container();
         }
       },
+    );
+  }
+
+  Widget _buildPostContent(PostModel post) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final textPainterCollapsed = TextPainter(
+          text: TextSpan(text: post.content, style: const TextStyle()),
+          maxLines: _maxLinesCollapsed,
+          textDirection: TextDirection.ltr,
+        )..layout(maxWidth: constraints.maxWidth);
+
+        final didExceedCollapsed = textPainterCollapsed.didExceedMaxLines;
+        final isExpanded = _expandedPosts.contains(post.id);
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              post.content,
+              maxLines: isExpanded ? null : _maxLinesCollapsed,
+              overflow: isExpanded ? TextOverflow.visible : TextOverflow.clip,
+            ),
+            if (didExceedCollapsed && !isExpanded)
+              const SizedBox(height: 4),
+            if (didExceedCollapsed && !isExpanded)
+              GestureDetector(
+                onTap: () {
+                  setState(() {
+                    _expandedPosts.add(post.id!);
+                  });
+                },
+                child: const Text(
+                  "See more",
+                  style: TextStyle(color: Colors.blue),
+                ),
+              ),
+            if (isExpanded && didExceedCollapsed)
+              const SizedBox(height: 4),
+            if (isExpanded && didExceedCollapsed)
+              GestureDetector(
+                onTap: () {
+                  setState(() {
+                    _expandedPosts.remove(post.id);
+                  });
+                },
+                child: const Text(
+                  "See less",
+                  style: TextStyle(color: Colors.blue),
+                ),
+              ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildMusicContent(PostModel post) {
+    final videoId = _eventHandler.getYouTubeVideoId(post.musicUrl!);
+    return GestureDetector(
+      onTap: () => _eventHandler.playMusic(post.musicUrl!),
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(8.0),
+          color: Colors.grey[200], // Add a background color for better visual separation
+        ),
+        padding: const EdgeInsets.all(8.0),
+        child: Row(
+          children: [
+            SizedBox(
+              width: 70,
+              height: 70,
+              child: Image.network(
+                "http://img.youtube.com/vi/$videoId/mqdefault.jpg", // Placeholder, will be overridden
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) {
+                  return const Center(
+                    child: Icon(
+                      Icons.music_note,
+                      size: 30,
+                      color: Colors.grey,
+                    ),
+                  );
+                },
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    post.musicTitle ?? "Untitled", // Display music title
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  if (post.musicUrl != null)
+                    Text(
+                      "Tap to play",
+                      style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                ],
+              ),
+            ),
+            const Padding(
+              padding: EdgeInsets.all(8.0),
+              child: Icon(
+                Icons.play_circle_fill,
+                color: Colors.blue,
+                size: 30,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
