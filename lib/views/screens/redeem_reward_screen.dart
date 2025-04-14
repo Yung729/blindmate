@@ -1,6 +1,8 @@
 import 'package:blindmate/models/dataModels/redeem_rewards_model.dart';
 import 'package:blindmate/services/reward_service.dart';
+import 'package:blindmate/viewmodels/eventHandlers/redeem_reward_event_handler.dart';
 import 'package:blindmate/views/UIComponents/custom_button.dart';
+import 'package:blindmate/views/UIComponents/reward_click.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -51,6 +53,7 @@ class _RedeemRewardScreenState extends State<RedeemRewardScreen> {
   Future<void> _loadRewards() async {
     try {
       final rewards = await RewardService().getAvailableRewards();
+      print("Fetched rewards: ${rewards.map((e) => e.rewardTitle).toList()}");
       setState(() {
         _rewards = rewards;
         _isLoading = false;
@@ -62,6 +65,18 @@ class _RedeemRewardScreenState extends State<RedeemRewardScreen> {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text('Error fetching rewards: $e')));
+    }
+  }
+
+  void _redeemReward(RewardModel reward) {
+    if (_currentUser!.fragmentNumber >= reward.fragmentCost) {
+      setState(() {
+        _currentUser!.fragmentNumber -= reward.fragmentCost;
+      });
+
+      // Call reward redemption logic (you can update Firestore here if needed)
+      final handler = RedeemRewardEventHandler(user: _currentUser!);
+      handler.redeemReward(context, reward.fragmentCost, reward.redeemRewardId);
     }
   }
 
@@ -86,43 +101,105 @@ class _RedeemRewardScreenState extends State<RedeemRewardScreen> {
                       '${_currentUser!.fragmentNumber}',
                     ), // Optional: using your shared method
                     const SizedBox(height: 24),
-                    CustomButton(
-                      text: "Redeem",
-                      onPressed: () async {
-                        const int fragmentCost = 500; // Set your cost here
-
-                        if (_currentUser!.fragmentNumber >= fragmentCost) {
-                          setState(() {
-                            _currentUser!.fragmentNumber -= fragmentCost;
-                          });
-
-                          // 🔄 Update Firestore
-                          await FirebaseFirestore.instance
-                              .collection('users')
-                              .doc(_currentUser!.userId)
-                              .update({
-                                'fragmentNumber': _currentUser!.fragmentNumber,
-                              });
-
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(
-                                'Successfully redeemed for $fragmentCost fragments!',
-                              ),
-                            ),
-                          );
-                        } else {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Not enough fragments to redeem!'),
-                            ),
-                          );
-                        }
-                      },
+                    Center(
+                      child: Text(
+                        "Redeem Rewards",
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ),
+                    Expanded(
+                      child: RewardGrid(
+                        rewards: _rewards,
+                        onRewardTap: (reward) {
+                          // Use your event handler to redeem
+                          final handler = RedeemRewardEventHandler(
+                            user: _currentUser!,
+                          );
+                          handler.redeemReward(
+                            context,
+                            reward.fragmentCost!,
+                            reward.redeemRewardId!,
+                          );
+                        },
+                      ),
+                    ),
+
+                    // CustomButton(
+                    //   text: "Redeem",
+                    //   onPressed: () async {
+                    //     const int fragmentCost = 500; // Set your cost here
+
+                    //     if (_currentUser!.fragmentNumber >= fragmentCost) {
+                    //       setState(() {
+                    //         _currentUser!.fragmentNumber -= fragmentCost;
+                    //       });
+
+                    //       // 🔄 Update Firestore
+                    //       await FirebaseFirestore.instance
+                    //           .collection('users')
+                    //           .doc(_currentUser!.userId)
+                    //           .update({
+                    //             'fragmentNumber': _currentUser!.fragmentNumber,
+                    //           });
+
+                    //       ScaffoldMessenger.of(context).showSnackBar(
+                    //         SnackBar(
+                    //           content: Text(
+                    //             'Successfully redeemed for $fragmentCost fragments!',
+                    //           ),
+                    //         ),
+                    //       );
+                    //     } else {
+                    //       ScaffoldMessenger.of(context).showSnackBar(
+                    //         const SnackBar(
+                    //           content: Text('Not enough fragments to redeem!'),
+                    //         ),
+                    //       );
+                    //     }
+                    //   },
+                    // ),
                   ],
                 ),
               ),
+    );
+  }
+}
+
+class RewardGrid extends StatelessWidget {
+  final List<RewardModel> rewards;
+  final Function(RewardModel) onRewardTap;
+
+  const RewardGrid({
+    super.key,
+    required this.rewards,
+    required this.onRewardTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GridView.builder(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      itemCount: rewards.length,
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        mainAxisSpacing: 20,
+        crossAxisSpacing: 20,
+        childAspectRatio: 0.8,
+      ),
+      itemBuilder: (context, index) {
+        final reward = rewards[index];
+        return RewardButton(
+          imagePath: reward.imageUrl ?? '',
+          title: reward.rewardTitle ?? 'Reward',
+          cost: reward.fragmentCost ?? 0,
+          onPressed: () {
+            onRewardTap(reward);
+          },
+        );
+      },
     );
   }
 }

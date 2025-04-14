@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 class RewardModel {
   final String redeemRewardId;
   final int fragmentCost;
@@ -11,12 +13,13 @@ class RewardModel {
     required this.rewardTitle,
   });
 
-  factory RewardModel.fromJson(Map<String, dynamic> json) {
+  factory RewardModel.fromFirestore(DocumentSnapshot doc) {
+    final data = doc.data() as Map<String, dynamic>;
     return RewardModel(
-      redeemRewardId: json['redeemRewardId'] ?? '',
-      fragmentCost: json['fragmentCost'] ?? 0,
-      imageUrl: json['imageUrl'] ?? '',
-      rewardTitle: json['rewardTitle'] ?? '',
+      redeemRewardId: data['redeemRewardId'] ?? '',
+      fragmentCost: data['fragmentCost'] ?? 0,
+      imageUrl: data['imageUrl'] ?? '',
+      rewardTitle: data['rewardTitle'] ?? '',
     );
   }
 

@@ -12,11 +12,20 @@ class RedeemRewardEventHandler {
   RedeemRewardEventHandler({required this.user}) : rewardService = RewardService();
 
   // Redeem the reward
-  Future<void> redeemReward(BuildContext context, int rewardCost, String rewardId) async {
+  Future<void> redeemReward(BuildContext context, int rewardCost, String rewardId,
+    {
+      Function(int updatedFragmentNumber)? onSuccess,
+    }
+  ) async {
     try {
       if (user.fragmentNumber >= rewardCost) {
-        // Proceed with reward redemption
-        await rewardService.redeemReward(user.userId, rewardCost, rewardId);
+        final updatedFragmentNumber = await rewardService.redeemReward(
+        user.userId,
+        rewardCost,
+        rewardId,
+      );
+      user.fragmentNumber = updatedFragmentNumber;
+      if (onSuccess != null) onSuccess(updatedFragmentNumber);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Reward redeemed successfully!')),
         );

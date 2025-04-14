@@ -39,9 +39,11 @@ class _DoMissionScreenState extends State<DoMissionScreen> {
 
   Future<void> _loadUserData() async {
     final user = await DoMissionScreen.fetchUserData();
-    setState(() {
-      _currentUser = user;
-    });
+    if (mounted) {  // Check if widget is still mounted
+      setState(() {
+        _currentUser = user;
+      });
+    }
   }
 
   Widget _buildMissionField(String missionName) {
