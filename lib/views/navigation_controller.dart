@@ -55,12 +55,12 @@ class _NavigationControllerState extends State<NavigationController> {
     final List<Widget> screens = [
       const HomeScreen(),
       SharingScreen(user: currentUserState.currentUser!),
-      const DoMissionScreen(),
+      DoMissionScreen(user: currentUserState.currentUser!),
       const BottleNoteHomeScreen(),
       const PickUpScreen(),
       const SendBottleNoteScreen(),
       const MyBottleNotesScreen(),
-      const RedeemRewardScreen(),
+      RedeemRewardScreen(user: currentUserState.currentUser!),
     ];
 
     return Scaffold(

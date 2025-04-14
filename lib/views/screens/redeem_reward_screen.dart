@@ -7,7 +7,7 @@ import 'package:flutter/material.dart';
 import '../../models/dataModels/user_model.dart';
 import 'package:blindmate/views/UIComponents/crystal_box.dart';
 
-class RedeemRewardScreen extends StatefulWidget { 
+class RedeemRewardScreen extends StatefulWidget {
   final UserModel user;
 
   const RedeemRewardScreen({super.key, required this.user});
@@ -59,9 +59,9 @@ class _RedeemRewardScreenState extends State<RedeemRewardScreen> {
       setState(() {
         _isLoading = false;
       });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error fetching rewards: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error fetching rewards: $e')));
     }
   }
 
@@ -69,31 +69,60 @@ class _RedeemRewardScreenState extends State<RedeemRewardScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text("Redeem Reward")),
-      body: _currentUser == null || _isLoading
-        ? Center(child: CircularProgressIndicator())
-      : Container(
-        padding: const EdgeInsets.only(
-          top: 40.0,
-          left: 16.0,
-          right: 16.0,
-          bottom: 16.0,
-        ),
-        child: Column(
-          // ✅ Use Column here instead of children on Container
-          children: [
-            buildCrystalBox(
-              '${_currentUser!.fragmentNumber}',
-            ), // Optional: using your shared method
-            const SizedBox(height: 24),
-            CustomButton(
-              text: "Redeem",
-              onPressed: () {
-                // Redeem logic here
-              },
-            ),
-          ],
-        ),
-      ),
+      body:
+          _currentUser == null || _isLoading
+              ? Center(child: CircularProgressIndicator())
+              : Container(
+                padding: const EdgeInsets.only(
+                  top: 40.0,
+                  left: 16.0,
+                  right: 16.0,
+                  bottom: 16.0,
+                ),
+                child: Column(
+                  // ✅ Use Column here instead of children on Container
+                  children: [
+                    buildCrystalBox(
+                      '${_currentUser!.fragmentNumber}',
+                    ), // Optional: using your shared method
+                    const SizedBox(height: 24),
+                    CustomButton(
+                      text: "Redeem",
+                      onPressed: () async {
+                        const int fragmentCost = 500; // Set your cost here
+
+                        if (_currentUser!.fragmentNumber >= fragmentCost) {
+                          setState(() {
+                            _currentUser!.fragmentNumber -= fragmentCost;
+                          });
+
+                          // 🔄 Update Firestore
+                          await FirebaseFirestore.instance
+                              .collection('users')
+                              .doc(_currentUser!.userId)
+                              .update({
+                                'fragmentNumber': _currentUser!.fragmentNumber,
+                              });
+
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                'Successfully redeemed for $fragmentCost fragments!',
+                              ),
+                            ),
+                          );
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Not enough fragments to redeem!'),
+                            ),
+                          );
+                        }
+                      },
+                    ),
+                  ],
+                ),
+              ),
     );
   }
 }

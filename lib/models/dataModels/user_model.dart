@@ -10,7 +10,7 @@ class UserModel {
   final DateTime? lastActive;
   final String emotionalStatus;
   final double progressionValue;
-  final int fragmentNumber;
+  int fragmentNumber;
   final String currentMission;
 
   UserModel({

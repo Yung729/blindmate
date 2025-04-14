@@ -2,11 +2,13 @@ class RewardModel {
   final String redeemRewardId;
   final int fragmentCost;
   final String imageUrl;
+  final String rewardTitle;
 
   RewardModel({
     required this.redeemRewardId,
     required this.fragmentCost,
     required this.imageUrl,
+    required this.rewardTitle,
   });
 
   factory RewardModel.fromJson(Map<String, dynamic> json) {
@@ -14,6 +16,7 @@ class RewardModel {
       redeemRewardId: json['redeemRewardId'] ?? '',
       fragmentCost: json['fragmentCost'] ?? 0,
       imageUrl: json['imageUrl'] ?? '',
+      rewardTitle: json['rewardTitle'] ?? '',
     );
   }
 
@@ -22,6 +25,7 @@ class RewardModel {
       'redeemRewardId': redeemRewardId,
       'fragmentCost': fragmentCost,
       'imageUrl': imageUrl,
+      'rewardTitle':rewardTitle,
     };
   }
 }
