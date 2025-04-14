@@ -27,50 +27,19 @@ class UserModel {
     required this.currentMission,
   });
 
-  // Fetch user data, including the 'level' subcollection
-  static Future<UserModel> fromMap(Map<String, dynamic> data, String documentId) async {
-    final FirebaseFirestore firestore = FirebaseFirestore.instance;
-
-    // Fetch the 'level' subcollection
-    DocumentSnapshot levelDoc = await firestore
-        .collection('users')
-        .doc(documentId)
-        .collection('level')
-        .doc('current')
-        .get();
-
-    int levelValue = 1; // Default
-    double progressionValue = 0.0; // Default
-
-    if (levelDoc.exists) {
-      final levelData = levelDoc.data() as Map<String, dynamic>;
-      levelValue = (levelData['levelValue'] as int? ?? 1).clamp(1, 9999);
-      progressionValue = (levelData['progressionValue'] as num? ?? 0.0).toDouble().clamp(0.0, 1.0);
-    } else {
-      // If 'level' subcollection doesn't exist, create it with default values
-      await firestore
-          .collection('users')
-          .doc(documentId)
-          .collection('level')
-          .doc('current')
-          .set({
-        'levelValue': 1,
-        'progressionValue': 0.0,
-      });
-    }
-
+  factory UserModel.fromMap(Map<String, dynamic> data, String documentId) {
     return UserModel(
       userId: documentId,
       name: data['name'] ?? 'Unknown User',
       email: data['email'] ?? 'No Email',
-      levelValue: levelValue,
+      levelValue: (data['levelValue'] as int? ?? 1).clamp(1, 9999),
       online: data['online'] ?? false,
       status: data['status'] ?? 'available',
       lastActive: data['lastActive'] != null
           ? (data['lastActive'] as Timestamp).toDate()
           : null,
       emotionalStatus: data['emotionalStatus'] ?? 'neutral',
-      progressionValue: progressionValue,
+      progressionValue: (data['levelProgress'] as num? ?? 0.0).toDouble().clamp(0.0, 1.0),
       fragmentNumber: data['fragmentNumber'] ?? 0,
       currentMission: data['currentMission'] ?? '',
     );

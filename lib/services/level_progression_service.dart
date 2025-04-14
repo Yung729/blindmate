@@ -4,98 +4,51 @@ import 'dart:math';
 class LevelProgressionService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  Future<void> updateUserLevel(String userId, int score) async {
+ Future<void> updateUserLevel(String userId, int score) async {
     try {
-      // Fetch the current user data
-      DocumentSnapshot userDoc = await _firestore.collection('users').doc(userId).get();
+      final userRef = _firestore.collection('users').doc(userId);
+      DocumentSnapshot userDoc = await userRef.get();
+
       if (!userDoc.exists) {
         throw Exception('User not found in Firestore');
       }
 
-      // Fetch the 'level' subcollection
-      DocumentSnapshot levelDoc = await _firestore
-          .collection('users')
-          .doc(userId)
-          .collection('level')
-          .doc('current')
-          .get();
+      final data = userDoc.data() as Map<String, dynamic>;
 
-      int levelValue;
-      double progressionValue;
+      int levelValue = (data['levelValue'] as int? ?? 1).clamp(1, 9999);
+      double progressionValue = (data['progressionValue'] as num? ?? 0.0).toDouble().clamp(0.0, 1.0);
 
-      // Check if 'level' subcollection exists
-      if (levelDoc.exists) {
-        // Use the new structure
-        final levelData = levelDoc.data() as Map<String, dynamic>;
-        levelValue = (levelData['levelValue'] as int? ?? 1).clamp(1, 9999);
-        progressionValue = (levelData['progressionValue'] as num? ?? 0.0).toDouble().clamp(0.0, 1.0);
-      } else {
-        // Fallback to old structure (root document) if subcollection doesn't exist
-        final userData = userDoc.data() as Map<String, dynamic>;
-        levelValue = (userData['mentalLevel'] as int? ?? 1).clamp(1, 9999);
-        progressionValue = (userData['levelProgress'] as num? ?? 0.0).toDouble().clamp(0.0, 1.0);
+      // Level up logic
+      const double baseIncrement = 0.1;
 
-        // Migrate the data to the 'level' subcollection
-        await _firestore
-            .collection('users')
-            .doc(userId)
-            .collection('level')
-            .doc('current')
-            .set({
-          'levelValue': levelValue,
-          'progressionValue': progressionValue,
-        });
-
-        // Remove old fields from root document
-        await _firestore.collection('users').doc(userId).update({
-          'mentalLevel': FieldValue.delete(),
-          'levelProgress': FieldValue.delete(),
-        });
-
-        print('Migrated user $userId to new level subcollection structure during update');
-      }
-
-      // Level progression logic
-      const double baseIncrement = 0.1; // Base progress per positive score point
       if (score > 0) {
-        // Calculate progress increment
-        double progressIncrement = score * baseIncrement;
-
-        // Apply difficulty factor: higher levels make progress slower
+        double increment = score * baseIncrement;
         double difficultyFactor = 1 / (1 + log(levelValue));
-        progressIncrement *= difficultyFactor;
+        increment *= difficultyFactor;
 
-        // Update progressionValue
-        progressionValue += progressIncrement;
+        progressionValue += increment;
 
-        // Check for level up
         while (progressionValue >= 1.0 && levelValue < 9999) {
           levelValue += 1;
-          progressionValue -= 1.0; // Carry over excess progress
+          progressionValue -= 1.0;
         }
 
-        // Ensure levelValue doesn't exceed 9999
         if (levelValue >= 9999) {
           levelValue = 9999;
-          progressionValue = 0.0; // Cap progress at max level
+          progressionValue = 0.0;
         }
       }
 
-      // Update the 'level' subcollection with new values
-      await _firestore
-          .collection('users')
-          .doc(userId)
-          .collection('level')
-          .doc('current')
-          .set({
+      // Save back to Firestore root document
+      await userRef.update({
         'levelValue': levelValue,
         'progressionValue': progressionValue.clamp(0.0, 1.0),
       });
 
-      print('Updated user: levelValue=$levelValue, progressionValue=$progressionValue');
+      print('Updated $userId → levelValue: $levelValue | progressionValue: ${progressionValue.toStringAsFixed(2)}');
     } catch (e) {
-      print('Error updating user level: $e');
-      rethrow; // Let the caller handle the error
+      print('Error in updateUserLevel: $e');
+      rethrow;
     }
   }
 }
