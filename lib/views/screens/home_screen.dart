@@ -1,3 +1,5 @@
+import 'package:blindmate/viewmodels/dataBinding/auth_data_binding.dart';
+import 'package:blindmate/viewmodels/eventHandlers/auth_event_handler.dart';
 import 'package:blindmate/viewmodels/state/auth_state.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -14,13 +16,16 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  late final AuthState authState;
+
   @override
   void initState() {
     super.initState();
+    authState = context.read<AuthState>();
   }
 
   void _startRandomMatching() {
-    final currentUser = context.read<AuthState>().currentUser;
+    final currentUser = authState.currentUser;
     if (currentUser != null) {
       Navigator.push(
         context,
@@ -32,46 +37,53 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _goToSurvey() {
-    final authState = context.read<AuthState>();
+    final user = authState.currentUser;
     if (authState.currentUser != null) {
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => SurveyPage(userId: authState.currentUser!.userId),
+          builder:
+              (context) => SurveyPage(userId: user!.userId),
         ),
-      );
+      ).then((_) async {
+        // 🔄 Refresh user data after returning from SurveyPage
+        final eventHandler = AuthEventHandler(authState, AuthDataBinding());
+        await eventHandler.fetchUserData(context);
+        if (mounted) setState(() {}); // Rebuild UI
+      });
     } else {
       // Handle the case where currentUser is null
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('User not logged in')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('User not logged in')));
     }
   }
 
   void _showSurveyDialog() {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Survey Invitation'),
-        content: const Text(
-          'Would you like to answer survey question?\nNote: It may increase your level.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context); // Close the dialog
-            },
-            child: const Text('No'),
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Survey Invitation'),
+            content: const Text(
+              'Would you like to answer survey question?\nNote: It may increase your level.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context); // Close the dialog
+                },
+                child: const Text('No'),
+              ),
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context); // Close the dialog
+                  _goToSurvey(); // Navigate to SurveyPage
+                },
+                child: const Text('Yes'),
+              ),
+            ],
           ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context); // Close the dialog
-              _goToSurvey(); // Navigate to SurveyPage
-            },
-            child: const Text('Yes'),
-          ),
-        ],
-      ),
     );
   }
 
@@ -140,7 +152,8 @@ class _HomeScreenState extends State<HomeScreen> {
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (context) => const BottleNoteHomeScreen(),
+                                  builder:
+                                      (context) => const BottleNoteHomeScreen(),
                                 ),
                               );
                             },
