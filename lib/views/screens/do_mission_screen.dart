@@ -6,7 +6,9 @@ import 'package:flutter/material.dart';
 import '../../models/dataModels/user_model.dart';
 
 class DoMissionScreen extends StatefulWidget {
-  const DoMissionScreen({super.key});
+final UserModel user;
+
+  const DoMissionScreen({super.key, required this.user});
 
   @override
   _DoMissionScreenState createState() => _DoMissionScreenState();
@@ -148,7 +150,7 @@ class _DoMissionScreenState extends State<DoMissionScreen> {
             CustomButton(text: "reward", onPressed: () {
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => const RedeemRewardScreen()),
+      MaterialPageRoute(builder: (context) => RedeemRewardScreen(user: widget.user)),
     );
   },)
           ],

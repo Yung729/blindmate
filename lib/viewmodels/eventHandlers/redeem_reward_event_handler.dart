@@ -1,0 +1,58 @@
+import 'package:blindmate/views/screens/redeem_reward_screen.dart';
+import 'package:flutter/material.dart';
+import 'package:blindmate/models/dataModels/user_model.dart';
+import 'package:blindmate/models/dataModels/redeem_rewards_model.dart';
+import 'package:blindmate/services/reward_service.dart';
+import 'package:blindmate/models/dataModels/user_reward_model.dart'; // Assuming you have this model
+
+class RedeemRewardEventHandler {
+  final UserModel user;
+  final RewardService rewardService;
+
+  RedeemRewardEventHandler({required this.user}) : rewardService = RewardService();
+
+  // Redeem the reward
+  Future<void> redeemReward(BuildContext context, int rewardCost, String rewardId) async {
+    try {
+      if (user.fragmentNumber >= rewardCost) {
+        // Proceed with reward redemption
+        await rewardService.redeemReward(user.userId, rewardCost, rewardId);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Reward redeemed successfully!')),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Not enough fragments!')),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error redeeming reward: $e')),
+      );
+    }
+  }
+
+  // Fetch the available rewards
+  Future<void> fetchRewards(BuildContext context) async {
+    try {
+      final availableRewards = await rewardService.getAvailableRewards();
+      if (availableRewards.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('No rewards available at the moment.')),
+        );
+      } else {
+        // Pass the fetched rewards to the UI to display them
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => RedeemRewardScreen(user: user),
+          ),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error fetching rewards: $e')),
+      );
+    }
+  }
+}

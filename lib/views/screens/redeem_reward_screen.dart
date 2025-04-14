@@ -1,3 +1,5 @@
+import 'package:blindmate/models/dataModels/redeem_rewards_model.dart';
+import 'package:blindmate/services/reward_service.dart';
 import 'package:blindmate/views/UIComponents/custom_button.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -5,8 +7,10 @@ import 'package:flutter/material.dart';
 import '../../models/dataModels/user_model.dart';
 import 'package:blindmate/views/UIComponents/crystal_box.dart';
 
-class RedeemRewardScreen extends StatefulWidget {
-  const RedeemRewardScreen({super.key});
+class RedeemRewardScreen extends StatefulWidget { 
+  final UserModel user;
+
+  const RedeemRewardScreen({super.key, required this.user});
 
   @override
   _RedeemRewardScreenState createState() => _RedeemRewardScreenState();
@@ -27,11 +31,14 @@ class RedeemRewardScreen extends StatefulWidget {
 
 class _RedeemRewardScreenState extends State<RedeemRewardScreen> {
   UserModel? _currentUser;
+  List<RewardModel> _rewards = [];
+  bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
     _loadUserData();
+    _loadRewards();
   }
 
   Future<void> _loadUserData() async {
@@ -41,11 +48,30 @@ class _RedeemRewardScreenState extends State<RedeemRewardScreen> {
     });
   }
 
+  Future<void> _loadRewards() async {
+    try {
+      final rewards = await RewardService().getAvailableRewards();
+      setState(() {
+        _rewards = rewards;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error fetching rewards: $e')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text("Redeem Reward")),
-      body: Container(
+      body: _currentUser == null || _isLoading
+        ? Center(child: CircularProgressIndicator())
+      : Container(
         padding: const EdgeInsets.only(
           top: 40.0,
           left: 16.0,
