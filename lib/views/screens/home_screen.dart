@@ -28,20 +28,19 @@ class _HomeScreenState extends State<HomeScreen> {
     // Show the survey dialog immediately after the first frame, but only once
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!_hasShownSurveyDialog && authState.currentUser != null) {
-        // Fetch lastActive from Firestore
         DocumentSnapshot userDoc = await FirebaseFirestore.instance
             .collection('users')
             .doc(authState.currentUser!.userId)
             .get();
 
         if (userDoc.exists) {
-          Timestamp? lastActiveTimestamp = userDoc.get('lastActive') as Timestamp?;
-          if (lastActiveTimestamp != null) {
-            DateTime lastActive = lastActiveTimestamp.toDate();
+          Timestamp? surveyTimestamp = userDoc.get('surveyDate') as Timestamp?;
+          if (surveyTimestamp != null) {
+            DateTime surveyDate = surveyTimestamp.toDate();
             DateTime today = DateTime.now();
             // Calculate the difference in days
-            int daysDifference = today.difference(lastActive).inDays;
-            print('Last Active: $lastActive, Today: $today, Days Difference: $daysDifference');
+            int daysDifference = today.difference(surveyDate).inDays;
+            print('Survey Date: $surveyDate, Today: $today, Days Difference: $daysDifference');
 
             // Show dialog if 7 or more days have passed
             if (daysDifference >= 7) {

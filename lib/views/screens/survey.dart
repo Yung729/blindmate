@@ -210,14 +210,15 @@ class _SurveyPageState extends State<SurveyPage> {
                                       try {
                                         scores = await _levelService.updateUserLevel(widget.userId, totalScore, numberOfQuestions);
 
-                                        // Update lastActive to today's date
+                                        // Update surveyDate to today's date
                                         await FirebaseFirestore.instance
                                             .collection('users')
                                             .doc(widget.userId)
                                             .update({
-                                          'lastActive': Timestamp.fromDate(DateTime.now()),
+                                          'surveyDate': Timestamp.fromDate(DateTime.now()),
                                         });
-                                        print('Updated lastActive for user ${widget.userId} to ${DateTime.now()}');
+                                        print('Updated surveyDate for user ${widget.userId} to ${DateTime.now()}');
+
                                       } catch (e) {
                                         if (mounted) {
                                           ScaffoldMessenger.of(context).showSnackBar(

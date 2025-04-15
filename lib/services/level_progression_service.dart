@@ -29,25 +29,22 @@ class LevelProgressionService {
       int totalWarningCount = 0;
       int totalUnsafeCount = 0;
 
-      // Fetch lastActive date from the user's document
-      Timestamp lastActiveTimestamp = data['lastActive'] as Timestamp;
-
-      // Set targetDateStart to the beginning of the lastActive day (00:00:00)
-      DateTime lastActiveDate = lastActiveTimestamp.toDate();
+      // Fetch surveyDate from the user's document
+      Timestamp surveyTimestamp = data['surveyDate'] as Timestamp;
+      DateTime surveyDate = surveyTimestamp.toDate();
       DateTime targetDateStart = DateTime(
-        lastActiveDate.year,
-        lastActiveDate.month,
-        lastActiveDate.day,
+        surveyDate.year,
+        surveyDate.month,
+        surveyDate.day,
         0,
         0,
         0,
       );
-
-      // Set targetDateEnd to the beginning of the day 7 days after lastActive (00:00:00)
+      
       DateTime targetDateEnd = DateTime(
-        lastActiveDate.year,
-        lastActiveDate.month,
-        lastActiveDate.day + 7,
+        surveyDate.year,
+        surveyDate.month,
+        surveyDate.day + 7,
         0,
         0,
         0,
