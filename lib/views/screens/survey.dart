@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:blindmate/services/gemini_moderation_service.dart';
 import 'package:blindmate/models/dataModels/survey_question_model.dart';
 import 'package:blindmate/services/level_progression_service.dart'; // Import LevelProgressionService
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:convert';
 
 class SurveyPage extends StatefulWidget {
@@ -29,8 +30,6 @@ class _SurveyPageState extends State<SurveyPage> {
     super.initState();
     _fetchQuestions();
   }
-
-  
 
   Future<void> _fetchQuestions() async {
     setState(() {
@@ -191,62 +190,88 @@ class _SurveyPageState extends State<SurveyPage> {
                         const SizedBox(height: 20),
                         Center(
                           child: ElevatedButton(
-  onPressed: _areAllQuestionsAnswered()
-      ? () async {
-          if (_formKey.currentState?.validate() ?? false) {
-            _formKey.currentState?.save();
-            final totalScore = _optionScores.values.reduce((a, b) => a + b);
-            final numberOfQuestions = _questions.length; // Get the number of questions
-            String message;
-            if (totalScore >= _questions.length) {
-              message = 'You seem to be doing great! Keep it up!';
-            } else if (totalScore > 0) {
-              message = 'You’re doing okay, but consider checking in with yourself.';
-            } else {
-              message = 'It looks like you might need support. Consider reaching out.';
-            }
+                            onPressed: _areAllQuestionsAnswered()
+                                ? () async {
+                                    if (_formKey.currentState?.validate() ?? false) {
+                                      _formKey.currentState?.save();
+                                      final totalScore = _optionScores.values.reduce((a, b) => a + b);
+                                      final numberOfQuestions = _questions.length; // Get the number of questions
+                                      String message;
+                                      if (totalScore >= _questions.length) {
+                                        message = 'You seem to be doing great! Keep it up!';
+                                      } else if (totalScore > 0) {
+                                        message = 'You’re doing okay, but consider checking in with yourself.';
+                                      } else {
+                                        message = 'It looks like you might need support. Consider reaching out.';
+                                      }
 
-            // Update user level using LevelProgressionService
-            try {
-              await _levelService.updateUserLevel(widget.userId, totalScore, numberOfQuestions);
-            } catch (e) {
-              if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Error updating level: $e')),
-                );
-              }
-            }
+                                      // Update user level and get scores
+                                      Map<String, double> scores;
+                                      try {
+                                        scores = await _levelService.updateUserLevel(widget.userId, totalScore, numberOfQuestions);
 
-            showDialog(
-              context: context,
-              builder: (_) => AlertDialog(
-                title: const Text('Thank you!'),
-                content: Text(
-                  'Survey submitted successfully.\nScore: $totalScore\n$message',
-                ),
-                actions: [
-                  TextButton(
-                    onPressed: () {
-                      Navigator.pop(context);
-                      Navigator.pop(context);
-                    },
-                    child: const Text('OK'),
-                  ),
-                ],
-              ),
-            );
-          }
-        }
-      : () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Please answer the question before submitting.'),
-              duration: Duration(seconds: 2),
-            ),
-          );
-        },
-  child: const Text('Submit'),
-),
+                                        // Update lastActive to today's date
+                                        await FirebaseFirestore.instance
+                                            .collection('users')
+                                            .doc(widget.userId)
+                                            .update({
+                                          'lastActive': Timestamp.fromDate(DateTime.now()),
+                                        });
+                                        print('Updated lastActive for user ${widget.userId} to ${DateTime.now()}');
+                                      } catch (e) {
+                                        if (mounted) {
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            SnackBar(content: Text('Error updating level: $e')),
+                                          );
+                                        }
+                                        // Default scores in case of error
+                                        scores = {
+                                          'chatScore': 0.0,
+                                          'surveyScore': 0.0,
+                                          'scoreDifference': double.infinity,
+                                        };
+                                      }
+
+                                      // Determine the score comparison message
+                                      String scoreComparisonMessage;
+                                      if (scores['scoreDifference']! < 0.3) {
+                                        scoreComparisonMessage =
+                                            'Both chat score and survey score are tally. Your level will be increased.';
+                                      } else {
+                                        scoreComparisonMessage =
+                                            'Both chat score and survey score are not. Your level will be remained.';
+                                      }
+
+                                      showDialog(
+                                        context: context,
+                                        builder: (_) => AlertDialog(
+                                          title: const Text('Thank you!'),
+                                          content: Text(
+                                            'Survey submitted successfully.\nScore: $totalScore\n$message\n\n$scoreComparisonMessage\n\nChat Score: ${scores['chatScore']!.toStringAsFixed(2)}\nSurvey Score: ${scores['surveyScore']!.toStringAsFixed(2)}\nScore Difference: ${scores['scoreDifference']!.toStringAsFixed(2)}',
+                                          ),
+                                          actions: [
+                                            TextButton(
+                                              onPressed: () {
+                                                Navigator.pop(context);
+                                                Navigator.pop(context);
+                                              },
+                                              child: const Text('OK'),
+                                            ),
+                                          ],
+                                        ),
+                                      );
+                                    }
+                                  }
+                                : () {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text('Please answer the question before submitting.'),
+                                        duration: Duration(seconds: 2),
+                                      ),
+                                    );
+                                  },
+                            child: const Text('Submit'),
+                          ),
                         ),
                       ],
                     ),

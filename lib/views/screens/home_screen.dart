@@ -3,6 +3,7 @@ import 'package:blindmate/viewmodels/eventHandlers/auth_event_handler.dart';
 import 'package:blindmate/viewmodels/state/auth_state.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'matching_screen.dart';
 import 'bottle_note_home_screen.dart';
 import '../UIComponents/custom_button.dart';
@@ -25,10 +26,30 @@ class _HomeScreenState extends State<HomeScreen> {
     authState = context.read<AuthState>();
 
     // Show the survey dialog immediately after the first frame, but only once
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!_hasShownSurveyDialog) {
-        _showSurveyDialog();
-        _hasShownSurveyDialog = true; // Set flag to true after showing
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!_hasShownSurveyDialog && authState.currentUser != null) {
+        // Fetch lastActive from Firestore
+        DocumentSnapshot userDoc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(authState.currentUser!.userId)
+            .get();
+
+        if (userDoc.exists) {
+          Timestamp? lastActiveTimestamp = userDoc.get('lastActive') as Timestamp?;
+          if (lastActiveTimestamp != null) {
+            DateTime lastActive = lastActiveTimestamp.toDate();
+            DateTime today = DateTime.now();
+            // Calculate the difference in days
+            int daysDifference = today.difference(lastActive).inDays;
+            print('Last Active: $lastActive, Today: $today, Days Difference: $daysDifference');
+
+            // Show dialog if 7 or more days have passed
+            if (daysDifference >= 7) {
+              _showSurveyDialog();
+              _hasShownSurveyDialog = true;
+            }
+          } 
+        }
       }
     });
   }

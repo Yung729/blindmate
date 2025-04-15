@@ -4,7 +4,7 @@ import 'dart:math';
 class LevelProgressionService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  Future<void> updateUserLevel(
+  Future<Map<String, double>> updateUserLevel(
     String userId,
     int totalScore,
     int numberOfQuestions,
@@ -29,40 +29,45 @@ class LevelProgressionService {
       int totalWarningCount = 0;
       int totalUnsafeCount = 0;
 
-      // Define the target date (13 April 2025), ignoring time by covering the entire day
-      final targetDateStart = DateTime(
-        2025,
-        4,
-        13,
+      // Fetch lastActive date from the user's document
+      Timestamp lastActiveTimestamp = data['lastActive'] as Timestamp;
+
+      // Set targetDateStart to the beginning of the lastActive day (00:00:00)
+      DateTime lastActiveDate = lastActiveTimestamp.toDate();
+      DateTime targetDateStart = DateTime(
+        lastActiveDate.year,
+        lastActiveDate.month,
+        lastActiveDate.day,
         0,
         0,
         0,
-      ); // Start of 13 April 2025 (00:00:00)
-      final targetDateEnd = DateTime(
-        2025,
-        4,
-        14,
+      );
+
+      // Set targetDateEnd to the beginning of the day 7 days after lastActive (00:00:00)
+      DateTime targetDateEnd = DateTime(
+        lastActiveDate.year,
+        lastActiveDate.month,
+        lastActiveDate.day + 7,
         0,
         0,
         0,
-      ); // Start of 14 April 2025 (00:00:00, exclusive)
+      );
 
       // Convert target dates to Firestore Timestamps
       final targetDateStartTimestamp = Timestamp.fromDate(targetDateStart);
       final targetDateEndTimestamp = Timestamp.fromDate(targetDateEnd);
 
-      print('Filtering chats for date 13 April 2025 (ignoring time)');
-      print('Range: $targetDateStart to $targetDateEnd');
+      print('Filtering summaries from $targetDateStart to $targetDateEnd');
 
-      // Query chats collection, filtering by createdAt to match only the date 13 April 2025
+      // Query summaries using collectionGroup, filtering by userId and timestamp
       QuerySnapshot<Map<String, dynamic>> summariesSnapshot = await _firestore
           .collectionGroup('summaries')
-          .where('userId', isEqualTo: userId)
+          .where('userID', isEqualTo: userId)
           .where('timestamp', isGreaterThanOrEqualTo: targetDateStartTimestamp)
           .where('timestamp', isLessThan: targetDateEndTimestamp)
           .get();
 
-      print('Found ${summariesSnapshot.docs.length} summaries for user $userId on 13 April 2025');
+      print('Found ${summariesSnapshot.docs.length} summaries for user $userId between $targetDateStart and $targetDateEnd');
 
       for (var summaryDoc in summariesSnapshot.docs) {
         var summaryData = summaryDoc.data();
@@ -72,7 +77,7 @@ class LevelProgressionService {
       }
 
       // Log the counts to the terminal
-      print('Chat Behavior Counts (13 April 2025):');
+      print('Chat Behavior Counts (from $targetDateStart to $targetDateEnd):');
       print('Total Safe Count: $totalSafeCount');
       print('Total Warning Count: $totalWarningCount');
       print('Total Unsafe Count: $totalUnsafeCount');
@@ -145,6 +150,13 @@ class LevelProgressionService {
       print(
         'chatScore: ${chatScore.toStringAsFixed(2)} | surveyScore: ${surveyScore.toStringAsFixed(2)} | scoreDifference: ${scoreDifference.toStringAsFixed(2)}',
       );
+
+      // Return the scores for use in SurveyPage
+      return {
+        'chatScore': chatScore,
+        'surveyScore': surveyScore,
+        'scoreDifference': scoreDifference,
+      };
     } catch (e) {
       print('Error in updateUserLevel: $e');
       rethrow;
