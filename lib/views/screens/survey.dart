@@ -191,62 +191,62 @@ class _SurveyPageState extends State<SurveyPage> {
                         const SizedBox(height: 20),
                         Center(
                           child: ElevatedButton(
-                            onPressed: _areAllQuestionsAnswered()
-                                ? () async {
-                                    if (_formKey.currentState?.validate() ?? false) {
-                                      _formKey.currentState?.save();
-                                      final totalScore = _optionScores.values.reduce((a, b) => a + b);
-                                      String message;
-                                      if (totalScore >= _questions.length) {
-                                        message = 'You seem to be doing great! Keep it up!';
-                                      } else if (totalScore > 0) {
-                                        message = 'You’re doing okay, but consider checking in with yourself.';
-                                      } else {
-                                        message = 'It looks like you might need support. Consider reaching out.';
-                                      }
+  onPressed: _areAllQuestionsAnswered()
+      ? () async {
+          if (_formKey.currentState?.validate() ?? false) {
+            _formKey.currentState?.save();
+            final totalScore = _optionScores.values.reduce((a, b) => a + b);
+            final numberOfQuestions = _questions.length; // Get the number of questions
+            String message;
+            if (totalScore >= _questions.length) {
+              message = 'You seem to be doing great! Keep it up!';
+            } else if (totalScore > 0) {
+              message = 'You’re doing okay, but consider checking in with yourself.';
+            } else {
+              message = 'It looks like you might need support. Consider reaching out.';
+            }
 
-                                      // Update user level using LevelProgressionService
-                                      try {
-                                        await _levelService.updateUserLevel(widget.userId, totalScore);
-                                        
-                                      } catch (e) {
-                                        if (mounted) {
-                                          ScaffoldMessenger.of(context).showSnackBar(
-                                            SnackBar(content: Text('Error updating level: $e')),
-                                          );
-                                        }
-                                      }
+            // Update user level using LevelProgressionService
+            try {
+              await _levelService.updateUserLevel(widget.userId, totalScore, numberOfQuestions);
+            } catch (e) {
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Error updating level: $e')),
+                );
+              }
+            }
 
-                                      showDialog(
-                                        context: context,
-                                        builder: (_) => AlertDialog(
-                                          title: const Text('Thank you!'),
-                                          content: Text(
-                                            'Survey submitted successfully.\nScore: $totalScore\n$message',
-                                          ),
-                                          actions: [
-                                            TextButton(
-                                              onPressed: () {
-                                                Navigator.pop(context);
-                                                Navigator.pop(context);
-                                              },
-                                              child: const Text('OK'),
-                                            ),
-                                          ],
-                                        ),
-                                      );
-                                    }
-                                  }
-                                : () {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text('Please answer the question before submitting.'),
-                                        duration: Duration(seconds: 2),
-                                      ),
-                                    );
-                                  },
-                            child: const Text('Submit'),
-                          ),
+            showDialog(
+              context: context,
+              builder: (_) => AlertDialog(
+                title: const Text('Thank you!'),
+                content: Text(
+                  'Survey submitted successfully.\nScore: $totalScore\n$message',
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () {
+                      Navigator.pop(context);
+                      Navigator.pop(context);
+                    },
+                    child: const Text('OK'),
+                  ),
+                ],
+              ),
+            );
+          }
+        }
+      : () {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Please answer the question before submitting.'),
+              duration: Duration(seconds: 2),
+            ),
+          );
+        },
+  child: const Text('Submit'),
+),
                         ),
                       ],
                     ),
