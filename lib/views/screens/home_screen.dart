@@ -17,11 +17,20 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   late final AuthState authState;
+  bool _hasShownSurveyDialog = false; // Track if the dialog has been shown
 
   @override
   void initState() {
     super.initState();
     authState = context.read<AuthState>();
+
+    // Show the survey dialog immediately after the first frame, but only once
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!_hasShownSurveyDialog) {
+        _showSurveyDialog();
+        _hasShownSurveyDialog = true; // Set flag to true after showing
+      }
+    });
   }
 
   void _startRandomMatching() {
@@ -42,8 +51,7 @@ class _HomeScreenState extends State<HomeScreen> {
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder:
-              (context) => SurveyPage(userId: user!.userId),
+          builder: (context) => SurveyPage(userId: user!.userId),
         ),
       ).then((_) async {
         // 🔄 Refresh user data after returning from SurveyPage
@@ -53,37 +61,36 @@ class _HomeScreenState extends State<HomeScreen> {
       });
     } else {
       // Handle the case where currentUser is null
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('User not logged in')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('User not logged in')),
+      );
     }
   }
 
   void _showSurveyDialog() {
     showDialog(
       context: context,
-      builder:
-          (context) => AlertDialog(
-            title: const Text('Survey Invitation'),
-            content: const Text(
-              'Would you like to answer survey question?\nNote: It may increase your level.',
-            ),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.pop(context); // Close the dialog
-                },
-                child: const Text('No'),
-              ),
-              TextButton(
-                onPressed: () {
-                  Navigator.pop(context); // Close the dialog
-                  _goToSurvey(); // Navigate to SurveyPage
-                },
-                child: const Text('Yes'),
-              ),
-            ],
+      builder: (context) => AlertDialog(
+        title: const Text('Survey Invitation'),
+        content: const Text(
+          'Would you like to answer survey question?\nNote: It may increase your level.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context); // Close the dialog
+            },
+            child: const Text('No'),
           ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context); // Close the dialog
+              _goToSurvey(); // Navigate to SurveyPage
+            },
+            child: const Text('Yes'),
+          ),
+        ],
+      ),
     );
   }
 
@@ -132,11 +139,6 @@ class _HomeScreenState extends State<HomeScreen> {
                           text: "Start Matching",
                           onPressed: _startRandomMatching,
                         ),
-                        const SizedBox(height: 20),
-                        CustomButton(
-                          text: "Survey",
-                          onPressed: _showSurveyDialog,
-                        ),
                       ],
                     ),
 
@@ -152,8 +154,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder:
-                                      (context) => const BottleNoteHomeScreen(),
+                                  builder: (context) => const BottleNoteHomeScreen(),
                                 ),
                               );
                             },
