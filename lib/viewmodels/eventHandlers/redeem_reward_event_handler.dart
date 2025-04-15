@@ -1,7 +1,7 @@
 import 'package:blindmate/views/screens/redeem_reward_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:blindmate/models/dataModels/user_model.dart';
-import 'package:blindmate/models/dataModels/redeem_rewards_model.dart';
+import 'package:blindmate/models/dataModels/rewards_model.dart';
 import 'package:blindmate/services/reward_service.dart';
 import 'package:blindmate/models/dataModels/user_reward_model.dart'; // Assuming you have this model
 

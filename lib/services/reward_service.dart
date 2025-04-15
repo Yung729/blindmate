@@ -1,11 +1,9 @@
-import 'package:blindmate/models/dataModels/redeem_rewards_model.dart';
+import 'package:blindmate/models/dataModels/rewards_model.dart';
 import 'package:blindmate/models/dataModels/user_reward_model.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 
 class RewardService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final FirebaseAuth _auth = FirebaseAuth.instance;
 
   // Fetch the available rewards from the Firestore collection
   Future<List<RewardModel>> getAvailableRewards() async {

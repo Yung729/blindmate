@@ -1,4 +1,4 @@
-import 'package:blindmate/models/dataModels/redeem_rewards_model.dart';
+import 'package:blindmate/models/dataModels/rewards_model.dart';
 import 'package:blindmate/services/reward_service.dart';
 import 'package:blindmate/viewmodels/eventHandlers/redeem_reward_event_handler.dart';
 import 'package:blindmate/views/UIComponents/custom_button.dart';

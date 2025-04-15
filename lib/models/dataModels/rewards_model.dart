@@ -16,7 +16,7 @@ class RewardModel {
   factory RewardModel.fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
     return RewardModel(
-      redeemRewardId: data['redeemRewardId'] ?? '',
+      redeemRewardId: doc.id,
       fragmentCost: data['fragmentCost'] ?? 0,
       imageUrl: data['imageUrl'] ?? '',
       rewardTitle: data['rewardTitle'] ?? '',
