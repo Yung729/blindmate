@@ -7,6 +7,8 @@ class CreatePostState extends ChangeNotifier {
   String? selectedMusicUrl;
   String? selectedMusicTitle;
   String postContent = '';
+  String? _tripLocation;
+  DateTime? _tripDate;
 
   void setIsPublic(bool value) {
     isPublic = value;
@@ -32,6 +34,12 @@ class CreatePostState extends ChangeNotifier {
 
   void setPostContent(String content) {
     postContent = content;
+    notifyListeners();
+  }
+
+  void clearMusicSelection() {
+    selectedMusicUrl = null;
+    selectedMusicTitle = null;
     notifyListeners();
   }
 

@@ -1,3 +1,4 @@
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/dataModels/post_model.dart';
@@ -81,5 +82,39 @@ class PostService {
     );
     Match? urlMatch = urlRegExp.firstMatch(content);
     return urlMatch?.group(0);
+  }
+
+  // =========================
+  // Hidden Posts Management
+  // =========================
+
+  /// Fetch hidden post IDs for the current user
+  Future<List<String>> getHiddenPosts() async {
+    final user = _auth.currentUser;
+    if (user == null) return [];
+    final doc = await _firestore.collection('users').doc(user.uid).get();
+    final data = doc.data();
+    if (data != null && data['hiddenPosts'] != null) {
+      return List<String>.from(data['hiddenPosts']);
+    }
+    return [];
+  }
+
+  /// Hide a post for the current user (add postId to hiddenPosts)
+  Future<void> hidePost(String postId) async {
+    final user = _auth.currentUser;
+    if (user == null) return;
+    await _firestore.collection('users').doc(user.uid).set({
+      'hiddenPosts': FieldValue.arrayUnion([postId])
+    }, SetOptions(merge: true));
+  }
+
+  /// Unhide a post for the current user (remove postId from hiddenPosts)
+  Future<void> unhidePost(String postId) async {
+    final user = _auth.currentUser;
+    if (user == null) return;
+    await _firestore.collection('users').doc(user.uid).set({
+      'hiddenPosts': FieldValue.arrayRemove([postId])
+    }, SetOptions(merge: true));
   }
 }

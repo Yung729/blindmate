@@ -21,23 +21,33 @@ class CreatePostDataBinding {
     createPostState.setMusicResults(results);
   }
 
-  Future<PostModel?> createPost(UserModel user) async {
+  /// Updated: Accepts optional Trip Journal fields and sets postType accordingly
+  Future<PostModel?> createPost(
+    UserModel user, {
+    String? location,
+    DateTime? tripDate,
+  }) async {
     if (createPostState.postContent.trim().isEmpty && createPostState.selectedMusicUrl == null) {
       return null;
     }
 
-  final newPost = PostModel(
-    userId: user.userId,
-    userName: user.name,
-    content: createPostState.postContent.trim(),
-    musicUrl: createPostState.selectedMusicUrl,
-    musicTitle: createPostState.selectedMusicTitle,
-    timestamp: DateTime.now(),
-    visibility: createPostState.isPublic ? 'public' : 'private',
-  );
+    final isTripJournal = location != null && tripDate != null;
 
-  // Add the post to Firestore
-  await _postService.createPost(newPost);
+    final newPost = PostModel(
+      userId: user.userId,
+      userName: user.name,
+      content: createPostState.postContent.trim(),
+      musicUrl: createPostState.selectedMusicUrl,
+      musicTitle: createPostState.selectedMusicTitle,
+      timestamp: DateTime.now(),
+      visibility: createPostState.isPublic ? 'public' : 'private',
+      postType: isTripJournal ? PostType.tripJournal : PostType.normal,
+      location: location,
+      tripDate: tripDate,
+    );
+
+    // Add the post to Firestore
+    await _postService.createPost(newPost);
 
     return newPost;
   }

@@ -1,3 +1,4 @@
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../models/dataModels/user_model.dart';
@@ -8,6 +9,11 @@ import '../UIComponents/floating_music_player.dart';
 import '../UIComponents/custom_button.dart';
 import '../../models/dataModels/post_model.dart';
 import '../UIComponents/post_privacy_indicator.dart';
+import '../UIComponents/post_card.dart';
+import '../UIComponents/post_header.dart';
+import '../UIComponents/post_content.dart';
+import '../UIComponents/post_music_preview.dart';
+import 'my_posts_list.dart';
 
 class SharingScreen extends StatefulWidget {
   final UserModel user;
@@ -27,7 +33,9 @@ class _SharingScreenState extends State<SharingScreen> {
   static const int _loadMoreThreshold = 2;
   bool _isLoadingMore = false;
   final Set<String> _expandedPosts = <String>{};
-  static const int _maxLinesCollapsed = 3; // Adjust as needed
+  static const int _maxLinesCollapsed = 3;
+  final Set<String> _hiddenPostIds = <String>{};
+  PostModel? _recentlyHiddenPost;
 
   @override
   void initState() {
@@ -115,6 +123,15 @@ class _SharingScreenState extends State<SharingScreen> {
                   _eventHandler.togglePostVisibility(post.id!);
                 },
               ),
+            if (post.userId != widget.user.userId)
+              ListTile(
+                leading: const Icon(Icons.visibility_off),
+                title: const Text("I don't want to see this post"),
+                onTap: () {
+                  Navigator.pop(context);
+                  _hidePost(post);
+                },
+              ),
             ListTile(
               leading: const Icon(Icons.cancel),
               title: const Text('Cancel'),
@@ -126,17 +143,40 @@ class _SharingScreenState extends State<SharingScreen> {
     );
   }
 
+  void _hidePost(PostModel post) {
+    Provider.of<SharingState>(context, listen: false).hidePost(post.id!);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Text('Post hidden.'),
+        action: SnackBarAction(
+          label: 'Undo',
+          onPressed: () {
+            Provider.of<SharingState>(
+              context,
+              listen: false,
+            ).unhidePost(post.id!);
+          },
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Consumer<SharingState>(
       builder: (context, sharingState, child) {
-        final filteredPosts = _showMyPostsOnly
-            ? sharingState.posts
-                .where((post) => post.userId == widget.user.userId)
-                .toList()
-            : sharingState.posts;
+        final filteredPosts =
+            _showMyPostsOnly
+                ? sharingState.posts
+                    .where((post) => post.userId == widget.user.userId)
+                    .toList()
+                : sharingState.posts;
 
-        final displayedPosts = filteredPosts.take(_loadedPostCount).toList();
+        final displayedPosts =
+            filteredPosts
+                .where((post) => !sharingState.hiddenPostIds.contains(post.id))
+                .take(_loadedPostCount)
+                .toList();
 
         return Stack(
           children: [
@@ -146,7 +186,37 @@ class _SharingScreenState extends State<SharingScreen> {
                 children: [
                   _buildCreatePostButton(),
                   _buildToggleButtons(),
-                  Expanded(child: _buildSharedContentList(displayedPosts)),
+                  Expanded(
+                    child:
+                        _showMyPostsOnly
+                            ? MyPostsList(
+                              posts: displayedPosts,
+                              userId: widget.user.userId,
+                              loadedPostCount: _loadedPostCount,
+                              isLoadingMore: _isLoadingMore,
+                              scrollController: _scrollController,
+                              expandedPosts: _expandedPosts,
+                              maxLinesCollapsed: _maxLinesCollapsed,
+                              onShowPostOptions:
+                                  (post) => _showPostOptions(context, post),
+                              onPlayMusic:
+                                  (post) =>
+                                      _eventHandler.playMusic(post.musicUrl!),
+                              getTimeAgo: getTimeAgo,
+                              onExpand: (postId) {
+                                setState(() {
+                                  _expandedPosts.add(postId);
+                                });
+                              },
+                              onCollapse: (postId) {
+                                setState(() {
+                                  _expandedPosts.remove(postId);
+                                });
+                              },
+                              onViewTripJournal: _showTripJournalDialog,
+                            )
+                            : _buildSharedContentList(displayedPosts),
+                  ),
                   if (_isLoadingMore)
                     const Padding(
                       padding: EdgeInsets.all(8.0),
@@ -216,7 +286,7 @@ class _SharingScreenState extends State<SharingScreen> {
                 _showMyPostsOnly = false;
                 _loadedPostCount = 5;
                 _scrollController.jumpTo(0);
-                _expandedPosts.clear(); // Reset expanded state
+                _expandedPosts.clear();
               });
             },
             backgroundColor: !_showMyPostsOnly ? Colors.blue : Colors.grey,
@@ -233,7 +303,7 @@ class _SharingScreenState extends State<SharingScreen> {
                 _showMyPostsOnly = true;
                 _loadedPostCount = 5;
                 _scrollController.jumpTo(0);
-                _expandedPosts.clear(); // Reset expanded state
+                _expandedPosts.clear();
               });
             },
             backgroundColor: _showMyPostsOnly ? Colors.blue : Colors.grey,
@@ -247,6 +317,7 @@ class _SharingScreenState extends State<SharingScreen> {
     );
   }
 
+  // Now uses UI components for "All Posts" view
   Widget _buildSharedContentList(List<PostModel> posts) {
     if (_sharingState.isLoading && posts.isEmpty) {
       return const Center(child: CircularProgressIndicator());
@@ -263,71 +334,55 @@ class _SharingScreenState extends State<SharingScreen> {
       itemBuilder: (context, index) {
         if (index < posts.length) {
           final post = posts[index];
-          final videoId = _eventHandler.getYouTubeVideoId(post.musicUrl ?? "");
+          final isTripJournal = post.postType == PostType.tripJournal;
 
-          return Container(
-            margin: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
-            decoration: BoxDecoration(
-              color: Colors.grey[100],
-              borderRadius: BorderRadius.circular(10.0),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.all(12.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      const CircleAvatar(
-                        backgroundImage: AssetImage('assets/default_pic.jpg'),
+          return PostCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    // PostHeader (contains the 3-dots button at the end)
+                    Expanded(
+                      child: PostHeader(
+                        userName:
+                            post.userId == widget.user.userId
+                                ? "You"
+                                : "Depression People",
+                        avatarAsset: 'assets/default_pic.jpg',
+                        timeAgo: getTimeAgo(post.timestamp),
+                        isPublic: post.isPublic,
+                        onOptions: () => _showPostOptions(context, post),
+                        isTripJournal: isTripJournal,
+                        onTripJournalTap: isTripJournal ? () => _showTripJournalDialog(context, post) : null,
                       ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              post.userId == widget.user.userId
-                                  ? "You"
-                                  : "Depression People",
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            Row(
-                              children: [
-                                Text(
-                                  getTimeAgo(post.timestamp),
-                                  style: const TextStyle(
-                                    color: Color.fromARGB(255, 120, 120, 120),
-                                  ),
-                                ),
-                                const SizedBox(width: 5),
-                                PostPrivacyIndicator(
-                                  privacy:
-                                      post.isPublic ? 'public' : 'private',
-                                  size: 14,
-                                  color: Colors.black54,
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                      if (post.userId == widget.user.userId)
-                        IconButton(
-                          icon: const Icon(Icons.more_vert),
-                          onPressed: () => _showPostOptions(context, post),
-                        )
-                      else
-                        const Icon(Icons.more_vert),
-                    ],
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                if (post.content.isNotEmpty)
+                  PostContent(
+                    content: post.content,
+                    isExpanded: _expandedPosts.contains(post.id),
+                    maxLinesCollapsed: _maxLinesCollapsed,
+                    onExpand: () {
+                      setState(() {
+                        _expandedPosts.add(post.id!);
+                      });
+                    },
+                    onCollapse: () {
+                      setState(() {
+                        _expandedPosts.remove(post.id);
+                      });
+                    },
                   ),
-                  const SizedBox(height: 8),
-                  if (post.content.isNotEmpty) _buildPostContent(post),
-                  if (post.musicUrl != null) _buildMusicContent(post), // Pass the entire post
-                ],
-              ),
+                if (post.musicUrl != null)
+                  PostMusicPreview(
+                    musicUrl: post.musicUrl,
+                    musicTitle: post.musicTitle,
+                    onPlay: () => _eventHandler.playMusic(post.musicUrl!),
+                  ),
+              ],
             ),
           );
         } else if (_sharingState.posts.length > posts.length &&
@@ -343,120 +398,49 @@ class _SharingScreenState extends State<SharingScreen> {
     );
   }
 
-  Widget _buildPostContent(PostModel post) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final textPainterCollapsed = TextPainter(
-          text: TextSpan(text: post.content, style: const TextStyle()),
-          maxLines: _maxLinesCollapsed,
-          textDirection: TextDirection.ltr,
-        )..layout(maxWidth: constraints.maxWidth);
-
-        final didExceedCollapsed = textPainterCollapsed.didExceedMaxLines;
-        final isExpanded = _expandedPosts.contains(post.id);
-
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              post.content,
-              maxLines: isExpanded ? null : _maxLinesCollapsed,
-              overflow: isExpanded ? TextOverflow.visible : TextOverflow.clip,
-            ),
-            if (didExceedCollapsed && !isExpanded)
-              const SizedBox(height: 4),
-            if (didExceedCollapsed && !isExpanded)
-              GestureDetector(
-                onTap: () {
-                  setState(() {
-                    _expandedPosts.add(post.id!);
-                  });
-                },
-                child: const Text(
-                  "See more",
-                  style: TextStyle(color: Colors.blue),
-                ),
-              ),
-            if (isExpanded && didExceedCollapsed)
-              const SizedBox(height: 4),
-            if (isExpanded && didExceedCollapsed)
-              GestureDetector(
-                onTap: () {
-                  setState(() {
-                    _expandedPosts.remove(post.id);
-                  });
-                },
-                child: const Text(
-                  "See less",
-                  style: TextStyle(color: Colors.blue),
-                ),
-              ),
-          ],
-        );
-      },
-    );
-  }
-
-  Widget _buildMusicContent(PostModel post) {
-    final videoId = _eventHandler.getYouTubeVideoId(post.musicUrl!);
-    return GestureDetector(
-      onTap: () => _eventHandler.playMusic(post.musicUrl!),
-      child: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(8.0),
-          color: Colors.grey[200], // Add a background color for better visual separation
-        ),
-        padding: const EdgeInsets.all(8.0),
-        child: Row(
-          children: [
-            SizedBox(
-              width: 70,
-              height: 70,
-              child: Image.network(
-                "http://img.youtube.com/vi/$videoId/mqdefault.jpg", // Placeholder, will be overridden
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) {
-                  return const Center(
-                    child: Icon(
-                      Icons.music_note,
-                      size: 30,
-                      color: Colors.grey,
-                    ),
-                  );
-                },
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    post.musicTitle ?? "Untitled", // Display music title
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  if (post.musicUrl != null)
+  /// Dialog to show trip journal details
+  void _showTripJournalDialog(BuildContext context, PostModel post) {
+    showDialog(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Trip Journal Details'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.location_on, color: Colors.green),
+                    const SizedBox(width: 8),
                     Text(
-                      "Tap to play",
-                      style: TextStyle(color: Colors.grey[600], fontSize: 12),
-                      overflow: TextOverflow.ellipsis,
+                      post.location ?? 'Unknown location',
+                      style: const TextStyle(fontWeight: FontWeight.bold),
                     ),
-                ],
-              ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    const Icon(Icons.date_range, color: Colors.blueGrey),
+                    const SizedBox(width: 8),
+                    Text(
+                      post.tripDate != null
+                          ? '${post.tripDate!.day}/${post.tripDate!.month}/${post.tripDate!.year}'
+                          : 'Unknown date',
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                  ],
+                ),
+              ],
             ),
-            const Padding(
-              padding: EdgeInsets.all(8.0),
-              child: Icon(
-                Icons.play_circle_fill,
-                color: Colors.blue,
-                size: 30,
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Close'),
               ),
-            ),
-          ],
-        ),
-      ),
+            ],
+          ),
     );
   }
 }

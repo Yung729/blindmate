@@ -12,7 +12,8 @@ class UserModel {
   final double progressionValue;
   int fragmentNumber;
   final String currentMission;
-  final DateTime surveyDate; 
+  final DateTime surveyDate;
+  final List<String> hiddenPosts; // ADD THIS LINE
 
   UserModel({
     required this.userId,
@@ -26,7 +27,8 @@ class UserModel {
     required this.progressionValue,
     required this.fragmentNumber,
     required this.currentMission,
-    required this.surveyDate, 
+    required this.surveyDate,
+    this.hiddenPosts = const [], // Initialize with an empty list
   });
 
   factory UserModel.fromMap(Map<String, dynamic> data, String documentId) {
@@ -48,7 +50,8 @@ class UserModel {
       currentMission: data['currentMission'] ?? '',
       surveyDate: data['surveyDate'] != null
           ? (data['surveyDate'] as Timestamp).toDate()
-          : DateTime.now(), 
+          : DateTime.now(),
+      hiddenPosts: (data['hiddenPosts'] as List<dynamic>?)?.cast<String>() ?? [], // Read hiddenPosts
     );
   }
 
@@ -66,7 +69,8 @@ class UserModel {
       'currentMission': currentMission,
       'levelValue': levelValue,
       'progressionValue': progressionValue,
-      'surveyDate': Timestamp.fromDate(surveyDate), // Include in map
+      'surveyDate': Timestamp.fromDate(surveyDate),
+      'hiddenPosts': hiddenPosts, // Include hiddenPosts in the map
     };
   }
 }

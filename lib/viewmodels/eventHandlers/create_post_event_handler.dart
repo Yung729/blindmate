@@ -1,3 +1,4 @@
+
 import 'package:flutter/material.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -20,10 +21,13 @@ class CreatePostEventHandler {
     await dataBinding.searchYouTubeMusic(query);
   }
 
-void selectMusic(String? url, String? title) {
-  createPostState.selectedMusicUrl = url;
-  createPostState.selectedMusicTitle = title;
-}
+  void selectMusic(String? url, String? title) {
+    if (url != null && title != null) {
+      createPostState.selectMusic(url, title);
+    } else {
+      createPostState.clearMusicSelection();
+    }
+  }
 
   void toggleVisibility(bool isPublic) {
     createPostState.setIsPublic(isPublic);
@@ -33,8 +37,16 @@ void selectMusic(String? url, String? title) {
     createPostState.setPostContent(content);
   }
 
-  Future<void> sharePost() async {
-    await dataBinding.createPost(user);
+  /// Modified: Accepts optional Trip Journal fields and passes them to dataBinding.createPost
+  Future<void> sharePost({
+    String? location,
+    DateTime? tripDate,
+  }) async {
+    await dataBinding.createPost(
+      user,
+      location: location,
+      tripDate: tripDate,
+    );
   }
 
   void shareMusic() {
