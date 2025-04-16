@@ -1,3 +1,4 @@
+
 import 'package:flutter/material.dart';
 
 class PostMusicPreview extends StatelessWidget {
@@ -22,7 +23,7 @@ class PostMusicPreview extends StatelessWidget {
       child: Container(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(8.0),
-          color: Colors.grey[200],
+          color: Color(0xFFE3F2FD),
         ),
         padding: const EdgeInsets.all(8.0),
         child: Row(
@@ -30,18 +31,21 @@ class PostMusicPreview extends StatelessWidget {
             SizedBox(
               width: 70,
               height: 70,
-              child: Image.network(
-                "http://img.youtube.com/vi/$videoId/mqdefault.jpg",
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) {
-                  return const Center(
-                    child: Icon(
-                      Icons.music_note,
-                      size: 30,
-                      color: Colors.grey,
-                    ),
-                  );
-                },
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(8.0), // Rounded corners for image
+                child: Image.network(
+                  "http://img.youtube.com/vi/$videoId/mqdefault.jpg",
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) {
+                    return const Center(
+                      child: Icon(
+                        Icons.music_note,
+                        size: 30,
+                        color: Colors.grey,
+                      ),
+                    );
+                  },
+                ),
               ),
             ),
             const SizedBox(width: 8),
