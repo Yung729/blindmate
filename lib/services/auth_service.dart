@@ -22,13 +22,20 @@ class AuthService {
     return 'unknown';
   }
 
+  Future<void> updateEmotionalStatus(String userId, String emotion) async {
+    await _firestore.collection('users').doc(userId).update({
+      'emotionStatus': emotion,
+    });
+  }
+
   // Session checking
   Future<bool> checkDeviceSession(String email, String deviceId) async {
-    final userQuery = await _firestore
-        .collection('users')
-        .where('email', isEqualTo: email)
-        .limit(1)
-        .get();
+    final userQuery =
+        await _firestore
+            .collection('users')
+            .where('email', isEqualTo: email)
+            .limit(1)
+            .get();
 
     if (userQuery.docs.isNotEmpty) {
       var userDoc = userQuery.docs.first;
@@ -45,7 +52,11 @@ class AuthService {
   }
 
   // User status management
-  Future<void> updateUserStatus(String userId, String deviceId, {bool isOnline = true}) async {
+  Future<void> updateUserStatus(
+    String userId,
+    String deviceId, {
+    bool isOnline = true,
+  }) async {
     await _firestore.collection('users').doc(userId).update({
       'online': isOnline,
       'deviceId': isOnline ? deviceId : '',
@@ -63,7 +74,7 @@ class AuthService {
   // Sign out
   Future<void> signOut(String userId) async {
     await updateUserStatus(userId, '', isOnline: false);
-    
+
     final prefs = await SharedPreferences.getInstance();
     await prefs.clear();
     await _auth.signOut();
@@ -75,16 +86,13 @@ class AuthService {
       final user = _auth.currentUser;
       if (user == null) return null;
 
-      final userDoc = await _firestore
-          .collection('users')
-          .doc(user.uid)
-          .get();
-      
+      final userDoc = await _firestore.collection('users').doc(user.uid).get();
+
       if (!userDoc.exists) return null;
 
       return UserModel.fromMap(
-        userDoc.data() as Map<String, dynamic>, 
-        user.uid
+        userDoc.data() as Map<String, dynamic>,
+        user.uid,
       );
     } catch (e) {
       return null;

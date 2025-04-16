@@ -8,7 +8,7 @@ class UserModel {
   final bool online;
   final String status;
   final DateTime? lastActive;
-  final String emotionalStatus;
+  final String emotionStatus;
   final double progressionValue;
   int fragmentNumber;
   final String currentMission;
@@ -23,7 +23,7 @@ class UserModel {
     required this.online,
     required this.status,
     this.lastActive,
-    required this.emotionalStatus,
+    required this.emotionStatus,
     required this.progressionValue,
     required this.fragmentNumber,
     required this.currentMission,
@@ -42,7 +42,7 @@ class UserModel {
       lastActive: data['lastActive'] != null
           ? (data['lastActive'] as Timestamp).toDate()
           : null,
-      emotionalStatus: data['emotionalStatus'] ?? 'neutral',
+      emotionStatus: data['emotionStatus'] ?? 'neutral',
       progressionValue: (data['progressionValue'] as num? ?? 0.0)
           .toDouble()
           .clamp(0.0, 1.0),
@@ -64,7 +64,7 @@ class UserModel {
       'lastActive': lastActive != null
           ? Timestamp.fromDate(lastActive!)
           : FieldValue.serverTimestamp(),
-      'emotionalStatus': emotionalStatus,
+      'emotionStatus': emotionStatus,
       'fragmentNumber': fragmentNumber,
       'currentMission': currentMission,
       'levelValue': levelValue,

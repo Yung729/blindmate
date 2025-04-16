@@ -61,5 +61,9 @@ class AuthDataBinding {
     await _service.updateUserStatus(userId, deviceId, isOnline: isOnline);
   }
 
+  Future<void> updateEmotionalStatus(String userId, String emotion) async {
+    await _service.updateEmotionalStatus(userId, emotion);
+  }
+
   Future<UserModel?> getUserData() => _service.loadUserData();
 }

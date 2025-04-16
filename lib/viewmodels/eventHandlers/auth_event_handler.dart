@@ -11,8 +11,8 @@ class AuthEventHandler {
   AuthEventHandler(this._authState, this._dataBinding);
 
   Future<void> onLoginPressed(
-    BuildContext context, 
-    String email, 
+    BuildContext context,
+    String email,
     String password,
   ) async {
     if (email.isEmpty || password.isEmpty) {
@@ -22,7 +22,11 @@ class AuthEventHandler {
 
     try {
       _authState.setLoading(true);
-      final result = await _dataBinding.validateAndLogin(context, email, password);
+      final result = await _dataBinding.validateAndLogin(
+        context,
+        email,
+        password,
+      );
 
       if (result['success']) {
         _authState.setAuthStatus(
@@ -56,13 +60,9 @@ class AuthEventHandler {
       }
       _authState.clear();
       _authState.clearCurrentUser();
-      
+
       if (context.mounted) {
-        Navigator.pushNamedAndRemoveUntil(
-          context, 
-          '/login', 
-          (route) => false
-        );
+        Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
       }
     } catch (e) {
       _authState.setError('Failed to logout');
@@ -82,5 +82,13 @@ class AuthEventHandler {
       _authState.setError(e.toString());
       return null;
     }
+  }
+
+  Future<void> onEmotionSelected(BuildContext context, String emotion) async {
+    final userId = _authState.currentUser?.userId;
+    if (userId == null) return;
+    await _dataBinding.updateEmotionalStatus(userId, emotion);
+    // Refresh user data so UI updates
+    await fetchUserData(context);
   }
 }

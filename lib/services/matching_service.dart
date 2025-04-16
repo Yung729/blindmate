@@ -57,7 +57,7 @@ class MatchingService {
         .where((matchedUser) =>
             !reportedByMe.contains(matchedUser.userId) &&
             !reportedMe.contains(matchedUser.userId) &&
-            _isValidMatch(user.emotionalStatus, matchedUser.emotionalStatus))
+            _isValidMatch(user.emotionStatus, matchedUser.emotionStatus))
         .toList();
 
     print("🎯 Filtered down to ${filteredMatches.length} valid matches");
