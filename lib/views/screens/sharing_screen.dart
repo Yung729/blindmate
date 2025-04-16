@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../models/dataModels/user_model.dart';
@@ -14,6 +13,7 @@ import '../UIComponents/post_header.dart';
 import '../UIComponents/post_content.dart';
 import '../UIComponents/post_music_preview.dart';
 import 'my_posts_list.dart';
+import '../UIComponents/dialog_utils.dart'; // Import the dialog_utils
 
 class SharingScreen extends StatefulWidget {
   final UserModel user;
@@ -109,18 +109,34 @@ class _SharingScreenState extends State<SharingScreen> {
               ListTile(
                 leading: const Icon(Icons.delete),
                 title: const Text('Delete Post'),
-                onTap: () {
+                onTap: () async {
                   Navigator.pop(context);
-                  _eventHandler.deletePost(post.id!);
+                  final confirmDelete = await showConfirmDialog(
+                    context,
+                    'Delete Post',
+                    'Are you sure you want to delete this post?',
+                  );
+                  if (confirmDelete) {
+                    _eventHandler.deletePost(post.id!);
+                  }
                 },
               ),
             if (post.userId == widget.user.userId)
               ListTile(
                 leading: const Icon(Icons.visibility),
                 title: Text(post.isPublic ? 'Make Private' : 'Make Public'),
-                onTap: () {
+                onTap: () async {
                   Navigator.pop(context);
-                  _eventHandler.togglePostVisibility(post.id!);
+                  final confirmVisibility = await showConfirmDialog(
+                    context,
+                    post.isPublic ? 'Make Private' : 'Make Public',
+                    post.isPublic
+                        ? 'Are you sure you want to make this post private?'
+                        : 'Are you sure you want to make this post public?',
+                  );
+                  if (confirmVisibility) {
+                    _eventHandler.togglePostVisibility(post.id!);
+                  }
                 },
               ),
             if (post.userId != widget.user.userId)
@@ -354,7 +370,10 @@ class _SharingScreenState extends State<SharingScreen> {
                         isPublic: post.isPublic,
                         onOptions: () => _showPostOptions(context, post),
                         isTripJournal: isTripJournal,
-                        onTripJournalTap: isTripJournal ? () => _showTripJournalDialog(context, post) : null,
+                        onTripJournalTap:
+                            isTripJournal
+                                ? () => _showTripJournalDialog(context, post)
+                                : null,
                       ),
                     ),
                   ],

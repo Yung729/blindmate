@@ -1,3 +1,4 @@
+
 // lib/widgets/music_search_dialog.dart
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -67,6 +68,10 @@ class _MusicSearchDialogState extends State<MusicSearchDialog> {
     });
   }
 
+  void _triggerSearch() {
+    _musicSearchHandler.handleMusicSearch(_musicSearchController.text);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Consumer<CreatePostState>(
@@ -126,7 +131,6 @@ class _MusicSearchDialogState extends State<MusicSearchDialog> {
                 padding: const EdgeInsets.symmetric(horizontal: 16.0),
                 child: TextField(
                   controller: _musicSearchController,
-                  onChanged: (text) => _musicSearchHandler.handleMusicSearch(text),
                   decoration: InputDecoration(
                     hintText: "Search for a song...",
                     border: OutlineInputBorder(
@@ -135,11 +139,16 @@ class _MusicSearchDialogState extends State<MusicSearchDialog> {
                     ),
                     filled: true,
                     fillColor: Colors.grey[100],
-                    prefixIcon: const Icon(Icons.search, color: Colors.grey),
+                    prefixIcon: const Icon(Icons.music_note, color: Colors.grey),
+                    suffixIcon: IconButton(
+                      icon: const Icon(Icons.search, color: Colors.blue),
+                      onPressed: _triggerSearch,
+                    ),
                     contentPadding: const EdgeInsets.symmetric(
                         horizontal: 16, vertical: 12),
                   ),
                   autofocus: true,
+                  onSubmitted: (text) => _triggerSearch(),
                 ),
               ),
               const SizedBox(height: 12),
