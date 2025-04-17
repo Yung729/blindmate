@@ -66,4 +66,17 @@ class RewardService {
       throw Exception("Failed to redeem reward: $e");
     }
   }
+
+  Future<bool> sendFlower(String userId) async {
+    final userRef = _firestore.collection('users').doc(userId);
+    final snapshot = await userRef.get();
+    final currentFlower = snapshot.data()?['flower'] ?? 0;
+
+    if (currentFlower > 0) {
+      await userRef.update({'flower': currentFlower - 1});
+      return true;
+    } else {
+      return false;
+    }
+  }
 }

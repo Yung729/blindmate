@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 class BottomDrawer extends StatefulWidget {
-  final Function(String) onEmojiSelected;
+  final Function(dynamic) onFlowerSelected;
   final Function(String) onStickerSelected;
   final Function() onPlayMiniGame;
   final Function() onShareMusic;
@@ -17,7 +17,7 @@ class BottomDrawer extends StatefulWidget {
 
   const BottomDrawer({
     super.key,
-    required this.onEmojiSelected,
+    required this.onFlowerSelected,
     required this.onStickerSelected,
     required this.onPlayMiniGame,
     required this.onShareMusic,
@@ -62,9 +62,9 @@ class _BottomDrawerState extends State<BottomDrawer> {
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
                 _buildDrawerButton(
-                  icon: Icons.emoji_emotions,
-                  label: "Emoji",
-                  onTap: () => widget.onEmojiSelected("😊"),
+                  icon: Icons.local_florist,
+                  label: "Flower",
+                  onTap: () => widget.onFlowerSelected(null),
                 ),
                 _buildDrawerButton(
                   icon: Icons.music_note,
@@ -183,7 +183,7 @@ class _BottomDrawerState extends State<BottomDrawer> {
         const SizedBox(height: 8),
         // Sticker grid
         SizedBox(
-          height: 120,
+          height: 140, // 2 rows of stickers, adjust as needed
           child: GridView.builder(
             scrollDirection: Axis.horizontal,
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
@@ -199,8 +199,8 @@ class _BottomDrawerState extends State<BottomDrawer> {
                     () => widget.onStickerSelected(widget.stickerList[index]),
                 child: Image.network(
                   widget.stickerList[index],
-                  height: 50,
-                  width: 50,
+                  height: 60,
+                  width: 60,
                 ),
               );
             },

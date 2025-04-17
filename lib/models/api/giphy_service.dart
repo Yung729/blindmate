@@ -6,7 +6,7 @@ class GiphyService {
 
   Future<List<String>> fetchStickers(String query) async {
     final url = Uri.parse(
-      "https://api.giphy.com/v1/stickers/search?api_key=$apiKey&q=$query&limit=10&rating=g",
+      "https://api.giphy.com/v1/stickers/search?api_key=$apiKey&q=$query&limit=30&rating=g",
     );
 
     final response = await http.get(url);

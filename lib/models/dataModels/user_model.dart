@@ -14,6 +14,7 @@ class UserModel {
   final String currentMission;
   final DateTime surveyDate;
   final List<String> hiddenPosts; // ADD THIS LINE
+  int flower;
 
   UserModel({
     required this.userId,
@@ -29,6 +30,7 @@ class UserModel {
     required this.currentMission,
     required this.surveyDate,
     this.hiddenPosts = const [], // Initialize with an empty list
+    this.flower = 0,
   });
 
   factory UserModel.fromMap(Map<String, dynamic> data, String documentId) {
@@ -52,6 +54,7 @@ class UserModel {
           ? (data['surveyDate'] as Timestamp).toDate()
           : DateTime.now(),
       hiddenPosts: (data['hiddenPosts'] as List<dynamic>?)?.cast<String>() ?? [], // Read hiddenPosts
+      flower: data['flower'] ?? 0,
     );
   }
 
@@ -71,6 +74,7 @@ class UserModel {
       'progressionValue': progressionValue,
       'surveyDate': Timestamp.fromDate(surveyDate),
       'hiddenPosts': hiddenPosts, // Include hiddenPosts in the map
+      'flower': flower,
     };
   }
 }

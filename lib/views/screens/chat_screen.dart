@@ -1,3 +1,4 @@
+import 'package:blindmate/services/reward_service.dart';
 import 'package:blindmate/viewmodels/dataBinding/matching_data_binding.dart';
 import 'package:blindmate/viewmodels/eventHandlers/matching_event_handler.dart';
 import 'package:blindmate/viewmodels/state/matching_state.dart';
@@ -32,6 +33,8 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   late TextEditingController _messageController;
   bool _isDrawerVisible = false;
   bool _showStickers = false;
+  bool _showFlowerGif = false;
+  final RewardService _rewardService = RewardService();
 
   @override
   void initState() {
@@ -223,6 +226,27 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     );
   }
 
+  Future<void> _sendFlower() async {
+    final success = await _rewardService.sendFlower(widget.currentUserId);
+
+    if (success) {
+      setState(() {
+        _showFlowerGif = true;
+      });
+      Future.delayed(const Duration(seconds: 2), () {
+        if (mounted) {
+          setState(() {
+            _showFlowerGif = false;
+          });
+        }
+      });
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("You don't have any flowers left!")),
+      );
+    }
+  }
+
   @override
   @override
   Widget build(BuildContext context) {
@@ -286,6 +310,15 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                 // Main chat UI
                 Column(
                   children: [
+                    if (_showFlowerGif)
+                      Center(
+                        child: Image.asset(
+                          'assets/flower.gif', // Place your flower GIF in assets
+                          width: 120,
+                          height: 120,
+                        ),
+                      ),
+
                     Expanded(
                       child: Padding(
                         padding: EdgeInsets.only(
@@ -293,7 +326,7 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                               _isDrawerVisible
                                   ? MediaQuery.of(context).size.height *
                                       (_showStickers
-                                          ? 0.35
+                                          ? 0.30
                                           : 0.21) // Adjust padding based on drawer height
                                   : 0,
                         ),
@@ -336,7 +369,7 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                           duration: const Duration(milliseconds: 300),
                           height:
                               MediaQuery.of(context).size.height *
-                              (_showStickers ? 0.35 : 0.21),
+                              (_showStickers ? 0.30 : 0.21),
                           decoration: const BoxDecoration(
                             color: Colors.white,
                             borderRadius: BorderRadius.only(
@@ -352,12 +385,12 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                             ],
                           ),
                           child: BottomDrawer(
-                            onEmojiSelected: (emoji) {
-                              _chatHandler.sendMessage(context, text: emoji);
-                              setState(() {
-                                _isDrawerVisible = false;
-                              });
-                            },
+                            onFlowerSelected: (_) async {
+                            await _sendFlower();
+                            setState(() {
+                              _isDrawerVisible = false;
+                            });
+                          },
                             onStickerSelected: (sticker) {
                               _chatHandler.sendMessage(
                                 context,
