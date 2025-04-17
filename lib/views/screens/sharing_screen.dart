@@ -13,7 +13,7 @@ import '../UIComponents/post_header.dart';
 import '../UIComponents/post_content.dart';
 import '../UIComponents/post_music_preview.dart';
 import 'my_posts_list.dart';
-import '../UIComponents/dialog_utils.dart'; // Import the dialog_utils
+import '../UIComponents/custom_dialog.dart'; // Import the dialog_utils
 
 class SharingScreen extends StatefulWidget {
   final UserModel user;

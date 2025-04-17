@@ -1,6 +1,7 @@
 import 'package:blindmate/viewmodels/dataBinding/matching_data_binding.dart';
 import 'package:blindmate/viewmodels/eventHandlers/matching_event_handler.dart';
 import 'package:blindmate/viewmodels/state/matching_state.dart';
+import 'package:blindmate/views/UIComponents/custom_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../viewmodels/state/chat_state.dart';
@@ -8,6 +9,7 @@ import '../../viewmodels/eventHandlers/chat_event_handler.dart';
 import '../../viewmodels/dataBinding/chat_data_binding.dart';
 import '../../views/UIComponents/bottom_drawer.dart';
 import '../../views/UIComponents/typing_bubble.dart';
+import '../../views/UIComponents/chat_bubble.dart';
 import 'mini_game_screen.dart';
 
 class ChatScreen extends StatefulWidget {
@@ -108,32 +110,12 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   }
 
   Future<void> _showReportDialog() async {
-    final bool? shouldReport = await showDialog<bool>(
-      context: context,
-      builder:
-          (context) => AlertDialog(
-            title: const Text("Report User"),
-            content: const Text(
-              "Are you sure you want to report this user? "
-              "You will not be matched with them again.",
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context, false),
-                child: const Text("Cancel"),
-              ),
-              TextButton(
-                onPressed: () => Navigator.pop(context, true),
-                child: const Text(
-                  "Report",
-                  style: TextStyle(color: Colors.red),
-                ),
-              ),
-            ],
-          ),
+    final shouldReport = await showConfirmDialog(
+      context,
+      "Report User",
+      "Are you sure you want to report this user? You will not be matched with them again.",
     );
-
-    if (shouldReport == true) {
+    if (shouldReport) {
       await _chatHandler.reportUser();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -152,60 +134,28 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   Future<void> _showBanDialog() async {
     if (_chatState.hasSummaryShown) return;
 
-    await showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder:
-          (context) => AlertDialog(
-            title: const Text("Account Warning"),
-            content: const Text(
-              "You have been removed from this chat due to multiple inappropriate messages. "
-              "Please be mindful of our community guidelines.",
-            ),
-            actions: [
-              TextButton(
-                onPressed: () async {
-                  Navigator.pop(context);
-                  await _showChatSummary();
-                  _chatState.markSummaryShown();
-                  await _chatHandler.handleExit();
-                  if (mounted) {
-                    Navigator.popUntil(context, (route) => route.isFirst);
-                  }
-                },
-                child: const Text("Understood"),
-              ),
-            ],
-          ),
+    showErrorDialog(
+      context,
+      "You have been removed from this chat due to multiple inappropriate messages. "
+      "Please be mindful of our community guidelines.",
+      onOk: () async {
+        await _showChatSummary();
+        _chatState.markSummaryShown();
+        await _chatHandler.handleExit();
+        if (mounted) {
+          Navigator.popUntil(context, (route) => route.isFirst);
+        }
+      },
     );
   }
 
   Future<void> _confirmEndChat() async {
-    final bool? shouldEnd = await showDialog<bool>(
-      context: context,
-      builder:
-          (context) => AlertDialog(
-            title: const Text("End Chat?"),
-            content: const Text(
-              "Are you sure you want to leave this chat? This action cannot be undone.",
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context, false),
-                child: const Text("Cancel"),
-              ),
-              TextButton(
-                onPressed: () => Navigator.pop(context, true),
-                child: const Text(
-                  "End Chat",
-                  style: TextStyle(color: Colors.red),
-                ),
-              ),
-            ],
-          ),
+    final shouldEnd = await showConfirmDialog(
+      context,
+      "End Chat?",
+      "Are you sure you want to leave this chat? This action cannot be undone.",
     );
-
-    if (shouldEnd == true) {
+    if (shouldEnd) {
       await _showChatSummary();
       _chatState.markSummaryShown();
       await _chatHandler.handleExit();
@@ -218,64 +168,58 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   Future<void> _showChatSummary() async {
     if (_chatState.hasSummaryShown) return;
 
-    await showDialog(
+    await showCustomDialog(
       context: context,
-      barrierDismissible: false,
-      builder:
-          (context) => AlertDialog(
-            title: const Text("Your Chat Summary"),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text("Safe messages: ${_chatState.safeMessageCount} 👍"),
-                const SizedBox(height: 4),
-                Text("Warning messages: ${_chatState.warningMessageCount} ⚠️"),
-                const SizedBox(height: 4),
-                Text("Unsafe messages: ${_chatState.unsafeMessageCount} 🚫"),
-                const SizedBox(height: 8),
-                Text(
-                  "Total messages: ${_chatState.messages.where((m) => m.senderId == widget.currentUserId).length}",
-                ),
-              ],
-            ),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                },
-                child: const Text("Close"),
-              ),
-            ],
+      title: "Your Chat Summary",
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text("Safe messages: ${_chatState.safeMessageCount} 👍"),
+          const SizedBox(height: 4),
+          Text("Warning messages: ${_chatState.warningMessageCount} ⚠️"),
+          const SizedBox(height: 4),
+          Text("Unsafe messages: ${_chatState.unsafeMessageCount} 🚫"),
+          const SizedBox(height: 8),
+          Text(
+            "Total messages: ${_chatState.messages.where((m) => m.senderId == widget.currentUserId).length}",
           ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () {
+            Navigator.pop(context);
+          },
+          child: const Text("Close"),
+        ),
+      ],
+      barrierDismissible: false,
     );
   }
 
   Future<void> _showInactivityDialog() async {
     if (_chatState.hasSummaryShown) return;
 
-    await showDialog(
+    await showCustomDialog(
       context: context,
+      title: "Chat Ended Due to Inactivity",
+      content: const Text(
+        "No messages were sent for 10 minutes. This chat will now close.",
+      ),
+      actions: [
+        TextButton(
+          onPressed: () async {
+            Navigator.pop(context);
+            await _showChatSummary();
+            if (mounted && Navigator.canPop(context)) {
+              Navigator.pop(context);
+            }
+          },
+          child: const Text("OK"),
+        ),
+      ],
       barrierDismissible: false,
-      builder:
-          (context) => AlertDialog(
-            title: const Text("Chat Ended Due to Inactivity"),
-            content: const Text(
-              "No messages were sent for 10 minutes. This chat will now close.",
-            ),
-            actions: [
-              TextButton(
-                onPressed: () async {
-                  Navigator.pop(context);
-                  await _showChatSummary();
-                  if (mounted && Navigator.canPop(context)) {
-                    Navigator.pop(context);
-                  }
-                },
-                child: const Text("OK"),
-              ),
-            ],
-          ),
     );
   }
 
@@ -471,87 +415,14 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   }
 
   Widget _buildTypingIndicatorBubble() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
-      child: Row(
-        mainAxisAlignment:
-            MainAxisAlignment.start, // Partner typing, align left
-        children: [
-          const CircleAvatar(
-            radius: 20,
-            backgroundImage: AssetImage(
-              'assets/default_pic.jpg',
-            ), // Replace with other user's avatar if you have it
-          ),
-          const SizedBox(width: 8),
-          Flexible(
-            child: Container(
-              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
-              decoration: BoxDecoration(
-                color: Colors.grey[300], // Match other user's bubble color
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: const [
-                  BoxShadow(
-                    color: Colors.black12,
-                    blurRadius: 4,
-                    offset: Offset(2, 2),
-                  ),
-                ],
-              ),
-              child: const TypingBubble(), // Your custom animated bubble widget
-            ),
-          ),
-        ],
-      ),
-    );
+    return ChatBubble(isMe: false, child: const TypingBubble());
   }
 
   Widget _buildChatBubble(message, bool isMe) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
-      child: Row(
-        mainAxisAlignment:
-            isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
-        children: [
-          if (!isMe)
-            const CircleAvatar(
-              radius: 20,
-              backgroundImage: AssetImage('assets/default_pic.jpg'),
-            ),
-          const SizedBox(width: 8),
-          Flexible(
-            child: Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: isMe ? Colors.blueAccent : Colors.grey[300],
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: const [
-                  BoxShadow(
-                    color: Colors.black12,
-                    blurRadius: 4,
-                    offset: Offset(2, 2),
-                  ),
-                ],
-              ),
-              child:
-                  message.stickerUrl != null
-                      ? Image.network(message.stickerUrl!, height: 100)
-                      : Text(
-                        message.text ?? "",
-                        style: TextStyle(
-                          color: isMe ? Colors.white : Colors.black,
-                        ),
-                      ),
-            ),
-          ),
-          const SizedBox(width: 8),
-          if (isMe)
-            const CircleAvatar(
-              radius: 20,
-              backgroundImage: AssetImage('assets/default_pic.jpg'),
-            ),
-        ],
-      ),
+    return ChatBubble(
+      isMe: isMe,
+      text: message.text,
+      stickerUrl: message.stickerUrl,
     );
   }
 
