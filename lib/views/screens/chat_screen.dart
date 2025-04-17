@@ -12,6 +12,7 @@ import '../../views/UIComponents/bottom_drawer.dart';
 import '../../views/UIComponents/typing_bubble.dart';
 import '../../views/UIComponents/chat_bubble.dart';
 import 'mini_game_screen.dart';
+import '../../viewmodels/state/auth_state.dart';
 
 class ChatScreen extends StatefulWidget {
   final String chatRoomId;
@@ -35,11 +36,13 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   bool _showStickers = false;
   bool _showFlowerGif = false;
   final RewardService _rewardService = RewardService();
+  int _localFlowerCount = 0; // Add local state for immediate updates
 
   @override
   void initState() {
     super.initState();
     _messageController = TextEditingController();
+    _localFlowerCount = context.read<AuthState>().currentUser?.flower ?? 0; // Initialize with current count
 
     _chatState = context.read<ChatState>();
     final chatBinding = ChatDataBinding(chatState: _chatState);
@@ -227,11 +230,12 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   }
 
   Future<void> _sendFlower() async {
-    final success = await _rewardService.sendFlower(widget.currentUserId);
+    final updatedCount = await _rewardService.sendFlower(widget.currentUserId, context);
 
-    if (success) {
+    if (updatedCount >= 0) {
       setState(() {
         _showFlowerGif = true;
+        _localFlowerCount = updatedCount; // Update local count immediately
       });
       Future.delayed(const Duration(seconds: 2), () {
         if (mounted) {
@@ -248,10 +252,14 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   }
 
   @override
-  @override
   Widget build(BuildContext context) {
-    return Consumer<ChatState>(
-      builder: (context, chatState, child) {
+    return Consumer2<ChatState, AuthState>(
+      builder: (context, chatState, authState, child) {
+        // Update local flower count if auth state changes
+        if (authState.currentUser?.flower != _localFlowerCount) {
+          _localFlowerCount = authState.currentUser?.flower ?? 0;
+        }
+
         if (chatState.errorMessage != null) {
           // Delay to ensure previous SnackBar is dismissed
           Future.microtask(() {
@@ -313,7 +321,7 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                     if (_showFlowerGif)
                       Center(
                         child: Image.asset(
-                          'assets/flower.gif', // Place your flower GIF in assets
+                          'assets/flower.gif',
                           width: 120,
                           height: 120,
                         ),
@@ -327,7 +335,7 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                                   ? MediaQuery.of(context).size.height *
                                       (_showStickers
                                           ? 0.30
-                                          : 0.21) // Adjust padding based on drawer height
+                                          : 0.21)
                                   : 0,
                         ),
                         child: ListView.builder(
@@ -358,7 +366,7 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                 // Bottom drawer overlay
                 if (_isDrawerVisible)
                   Positioned(
-                    bottom: 0, // Align the drawer to the bottom of the screen
+                    bottom: 0,
                     left: 0,
                     right: 0,
                     child: Column(
@@ -386,11 +394,11 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                           ),
                           child: BottomDrawer(
                             onFlowerSelected: (_) async {
-                            await _sendFlower();
-                            setState(() {
-                              _isDrawerVisible = false;
-                            });
-                          },
+                              await _sendFlower();
+                              setState(() {
+                                _isDrawerVisible = false;
+                              });
+                            },
                             onStickerSelected: (sticker) {
                               _chatHandler.sendMessage(
                                 context,
@@ -402,19 +410,15 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                               });
                             },
                             onPlayMiniGame: () {
-                              // Add your mini-game logic here
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder:
-                                      (context) => MiniGameScreen(
-                                        chatRoomId: widget.chatRoomId,
-                                        currentUserId: widget.currentUserId,
-                                        opponentId:
-                                            _chatState.otherUserId ??
-                                            '', // fallback if null
-                                        isDrawer: true,
-                                      ),
+                                  builder: (context) => MiniGameScreen(
+                                    chatRoomId: widget.chatRoomId,
+                                    currentUserId: widget.currentUserId,
+                                    opponentId: _chatState.otherUserId ?? '',
+                                    isDrawer: true,
+                                  ),
                                 ),
                               );
                             },
@@ -428,12 +432,13 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                               _chatHandler.searchStickers(query);
                             },
                             stickerList: _chatState.stickerList,
-                            showStickers: _showStickers, // Pass the state
+                            showStickers: _showStickers,
                             toggleStickers: (bool value) {
                               setState(() {
-                                _showStickers = value; // Update the state
+                                _showStickers = value;
                               });
                             },
+                            flowerCount: _localFlowerCount,
                           ),
                         ),
                       ],

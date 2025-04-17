@@ -14,6 +14,7 @@ class BottomDrawer extends StatefulWidget {
   final bool showStickers; // Add this parameter
   final Function(bool) toggleStickers;
   final Function(String) onStickerSearch;
+  final int flowerCount; // Add this parameter
 
   const BottomDrawer({
     super.key,
@@ -26,6 +27,7 @@ class BottomDrawer extends StatefulWidget {
     required this.showStickers,
     required this.toggleStickers,
     required this.onStickerSearch,
+    required this.flowerCount, // Add this parameter
   });
 
   @override
@@ -110,13 +112,37 @@ class _BottomDrawerState extends State<BottomDrawer> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.grey[200],
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(icon, size: 24, color: Colors.black),
+          Stack(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.grey[200],
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(icon, size: 24, color: Colors.black),
+              ),
+              if (label == "Flower" && widget.flowerCount >= 0)
+                Positioned(
+                  right: 0,
+                  top: 0,
+                  child: Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      color: Colors.red,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      widget.flowerCount.toString(),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+            ],
           ),
           const SizedBox(height: 8),
           Text(label, style: const TextStyle(fontSize: 12)),

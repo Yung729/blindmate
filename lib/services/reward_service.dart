@@ -1,6 +1,9 @@
 import 'package:blindmate/models/dataModels/rewards_model.dart';
 import 'package:blindmate/models/dataModels/user_reward_model.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:provider/provider.dart';
+import 'package:flutter/material.dart';
+import '../viewmodels/state/auth_state.dart';
 
 class RewardService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -67,16 +70,22 @@ class RewardService {
     }
   }
 
-  Future<bool> sendFlower(String userId) async {
+  Future<int> sendFlower(String userId, BuildContext context) async {
     final userRef = _firestore.collection('users').doc(userId);
     final snapshot = await userRef.get();
     final currentFlower = snapshot.data()?['flower'] ?? 0;
 
     if (currentFlower > 0) {
       await userRef.update({'flower': currentFlower - 1});
-      return true;
+      // Update auth state
+      final authState = Provider.of<AuthState>(context, listen: false);
+      if (authState.currentUser != null) {
+        authState.currentUser!.flower = currentFlower - 1;
+        authState.notifyListeners();
+      }
+      return currentFlower - 1;
     } else {
-      return false;
+      return 0;
     }
   }
 }
