@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../../models/dataModels/message_model.dart';
 import '../state/chat_state.dart';
 import '../dataBinding/chat_data_binding.dart';
+import '../uiValidation/chat_validator.dart';
 
 class ChatEventHandler {
   final ChatState chatState;
@@ -46,7 +47,7 @@ class ChatEventHandler {
     String? text,
     String? stickerUrl,
   }) async {
-    if ((text == null || text.trim().isEmpty) &&
+    if ((text == null || !MessageValidator.isValid(text)) &&
         (stickerUrl == null || stickerUrl.isEmpty)) {
       return;
     }

@@ -82,6 +82,8 @@ class _NavigationControllerState extends State<NavigationController> {
       },
     ];
 
+    final currentEmotion = authState.currentUser?.emotionStatus;
+
     showModalBottomSheet(
       context: context,
       builder: (context) {
@@ -96,24 +98,38 @@ class _NavigationControllerState extends State<NavigationController> {
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
               ),
-              ...emotions.map(
-                (emotion) => ListTile(
-                  leading: Icon(emotion['icon'] as IconData),
-                  title: Text(emotion['label'] as String),
-                  onTap: () async {
-                    Navigator.pop(context);
-                    final handler = AuthEventHandler(
-                      authState,
-                      AuthDataBinding(),
-                    );
-                    await handler.onEmotionSelected(
-                      context,
-                      emotion['value'] as String,
-                    );
-                    setState(() {}); // Refresh UI if needed
-                  },
-                ),
-              ),
+              ...emotions.map((emotion) {
+                final isSelected = emotion['value'] == currentEmotion;
+                return Container(
+                  color: isSelected ? Colors.blue.withOpacity(0.15) : null,
+                  child: ListTile(
+                    leading: Icon(
+                      emotion['icon'] as IconData,
+                      color: isSelected ? Colors.blue : null,
+                    ),
+                    title: Text(
+                      emotion['label'] as String,
+                      style: TextStyle(
+                        fontWeight:
+                            isSelected ? FontWeight.bold : FontWeight.normal,
+                        color: isSelected ? Colors.blue : null,
+                      ),
+                    ),
+                    onTap: () async {
+                      Navigator.pop(context);
+                      final handler = AuthEventHandler(
+                        authState,
+                        AuthDataBinding(),
+                      );
+                      await handler.onEmotionSelected(
+                        context,
+                        emotion['value'] as String,
+                      );
+                      setState(() {}); // Refresh UI if needed
+                    },
+                  ),
+                );
+              }),
             ],
           ),
         );

@@ -23,9 +23,6 @@ class _MatchingScreenState extends State<MatchingScreen>
   late MatchingEventHandler _matchingHandler;
   bool _isNavigating = false;
 
-  late AnimationController _animationController;
-  late Animation<double> _scaleAnimation;
-
   @override
   void initState() {
     super.initState();
@@ -37,19 +34,7 @@ class _MatchingScreenState extends State<MatchingScreen>
     );
 
     _initializeMatchingSystem();
-    _setupAnimationController();
     _listenForStateChanges();
-  }
-
-  void _setupAnimationController() {
-    _animationController = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 2),
-    )..repeat(reverse: true);
-
-    _scaleAnimation = Tween<double>(begin: 0.8, end: 1.2).animate(
-      CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
-    );
   }
 
   Future<void> _initializeMatchingSystem() async {
@@ -79,7 +64,6 @@ class _MatchingScreenState extends State<MatchingScreen>
 
   @override
   void dispose() {
-    _animationController.dispose();
     _matchingState.removeListener(_listenForStateChanges);
     super.dispose();
   }
