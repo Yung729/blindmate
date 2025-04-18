@@ -3,9 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../viewmodels/state/bottle_note_state.dart';
 import '../../viewmodels/eventHandlers/bottle_note_event_handler.dart';
-import '../../viewmodels/dataBinding/bottle_note_data_binding.dart';
 import 'bottle_note_home_screen.dart';
-import '../UIComponents/custom_dialog.dart';
+import '../UIComponents/custom_snackbar.dart';
 
 class SendBottleNoteScreen extends StatefulWidget {
   final String? content;
@@ -16,17 +15,29 @@ class SendBottleNoteScreen extends StatefulWidget {
   State<SendBottleNoteScreen> createState() => _SendBottleNoteScreenState();
 }
 
-class _SendBottleNoteScreenState extends State<SendBottleNoteScreen> {
-  late final BottleNoteDataBinding _dataBinding;
+class _SendBottleNoteScreenState extends State<SendBottleNoteScreen>
+    with SingleTickerProviderStateMixin {
   late final BottleNoteEventHandler _eventHandler;
+  late AnimationController _animationController;
+  late Animation<double> _swingAnimation;
 
   @override
   void initState() {
     super.initState();
 
-    _dataBinding = BottleNoteDataBinding();
     _eventHandler = BottleNoteEventHandler(
       state: context.read<BottleNoteState>(),
+    );
+
+    // Initialize animation controller
+    _animationController = AnimationController(
+      duration: const Duration(seconds: 2),
+      vsync: this,
+    )..repeat(reverse: true);
+
+    // Create swinging animation
+    _swingAnimation = Tween<double>(begin: -0.1, end: 0.1).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
     );
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -38,67 +49,74 @@ class _SendBottleNoteScreenState extends State<SendBottleNoteScreen> {
     final user = context.read<AuthState>().currentUser;
 
     if (user == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Failed to fetch user data!")),
+      CustomSnackBar.show(
+        context: context,
+        message: "Failed to fetch user data!",
+        status: 'ERROR',
       );
+      await Future.delayed(const Duration(seconds: 3));
+      Navigator.pop(context);
       return;
     }
 
     if (!mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Bottle Note failed to send!\nPlease try again later."),
-        ),
+      CustomSnackBar.show(
+        context: context,
+        message: "Bottle Note failed to send!\nPlease try again later.",
+        status: 'ERROR',
       );
+      await Future.delayed(const Duration(seconds: 3));
+      Navigator.pop(context);
       return;
     }
 
-    // // Show loading while processing moderation and sending
-    // showDialog(
-    //   context: context,
-    //   barrierDismissible: false,
-    //   builder: (_) => const Center(child: CircularProgressIndicator()),
-    // );
-
     try {
+      // Check content moderation first
       await _eventHandler.sendNote(
         content: widget.content!,
         userId: user.userId,
       );
 
-      Navigator.pop(context);
-
       if (mounted) {
         String message;
-        if (_eventHandler.wasLastNoteSafe == 'SAFE') {
-          _dataBinding.clear();
-          message = "✅ Bottle Note sent!";
-        } else if (_eventHandler.wasLastNoteSafe == 'WARNING') {
-          message = "⚠️ Bottle Note sent but it contains sensitive content.";
+        if (_eventHandler.state.lastNoteStatus == 'SAFE') {
+          message =
+              "✅ Your bottle note has been sent! You will be redirected in 3 seconds";
+        } else if (_eventHandler.state.lastNoteStatus == 'WARNING') {
+          message =
+              "⚠️ Your bottle note has been sent, but contains sensitive content. You will be redirected in 3 seconds";
         } else {
-          message = "❌ Message blocked due to inappropriate content.";
+          message =
+              "❌ Your message was blocked due to inappropriate content. You will be redirected in 3 seconds";
         }
+        CustomSnackBar.show(
+          context: context,
+          message: message,
+          status: _eventHandler.state.lastNoteStatus,
+        );
 
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(message)));
-
+        await Future.delayed(const Duration(seconds: 3));
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => const BottleNoteHomeScreen()),
         );
       }
     } catch (e) {
-      Navigator.pop(context); 
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text("❌ Error: ${e.toString()}")));
+      if (mounted) {
+        CustomSnackBar.show(
+          context: context,
+          message: "❌ Error: ${e.toString()}",
+          status: 'ERROR',
+        );
+        await Future.delayed(const Duration(seconds: 3));
+        Navigator.pop(context);
+      }
     }
   }
 
   @override
   void dispose() {
-    _dataBinding.dispose();
+    _animationController.dispose();
     super.dispose();
   }
 
@@ -131,7 +149,15 @@ class _SendBottleNoteScreenState extends State<SendBottleNoteScreen> {
                     ),
                   ),
                   const Spacer(),
-                  Image.asset('assets/bottle.png', height: 120),
+                  AnimatedBuilder(
+                    animation: _swingAnimation,
+                    builder: (context, child) {
+                      return Transform.rotate(
+                        angle: _swingAnimation.value,
+                        child: Image.asset('assets/bottle.png', height: 120),
+                      );
+                    },
+                  ),
                   const SizedBox(height: 120),
                 ],
               ),

@@ -57,11 +57,13 @@ Future<void> showCustomDialog({
   required Widget content,
   required List<Widget> actions,
   bool barrierDismissible = true,
+  Color? backgroundColor = Colors.white,
 }) {
   return showDialog(
     context: context,
     barrierDismissible: barrierDismissible,
     builder: (context) => AlertDialog(
+      backgroundColor: backgroundColor,
       title: Text(title),
       content: content,
       actions: actions,

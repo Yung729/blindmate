@@ -5,7 +5,7 @@ class BottleNote {
   final DateTime timestamp;
   final DateTime expirationTime;
   final String status;
-  final List<String> replies;
+  final List<String> replyIds;
 
   BottleNote({
     required this.noteId,
@@ -14,7 +14,7 @@ class BottleNote {
     required this.timestamp,
     required this.expirationTime,
     required this.status,
-    this.replies = const [],
+    this.replyIds = const [],
   });
 
   factory BottleNote.fromJson(Map<String, dynamic> map) {
@@ -29,11 +29,9 @@ class BottleNote {
       expirationTime:
           map['expirationTime'] != null
               ? DateTime.parse(map['expirationTime'])
-              : DateTime.now().add(Duration(hours: 24)),
+              : DateTime.now().add(const Duration(hours: 24)),
       status: map['status'] ?? 'active',
-      replies: map['replies'] != null
-        ? List<String>.from(map['replies'])
-        : [],
+      replyIds: map['replies'] != null ? List<String>.from(map['replies']) : [],
     );
   }
 
@@ -44,6 +42,6 @@ class BottleNote {
     'timestamp': timestamp.toIso8601String(),
     'expirationTime': expirationTime.toIso8601String(),
     'status': status,
-    'replies': replies,
+    'replies': replyIds,
   };
 }

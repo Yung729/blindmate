@@ -5,6 +5,8 @@ import 'package:provider/provider.dart';
 import '../../viewmodels/state/bottle_note_state.dart';
 import '../../viewmodels/eventHandlers/bottle_note_event_handler.dart';
 import '../../models/dataModels/bottle_note_model.dart';
+import '../UIComponents/custom_dialog.dart';
+import '../UIComponents/custom_snackbar.dart';
 
 class MyBottleNotesScreen extends StatefulWidget {
   const MyBottleNotesScreen({super.key});
@@ -14,9 +16,7 @@ class MyBottleNotesScreen extends StatefulWidget {
 }
 
 class _MyBottleNotesScreenState extends State<MyBottleNotesScreen> {
-  late BottleNoteEventHandler _eventHandler;
-  List<BottleNote> _myNotes = [];
-  bool _loading = true;
+  late final BottleNoteEventHandler _eventHandler;
 
   @override
   void initState() {
@@ -26,67 +26,133 @@ class _MyBottleNotesScreenState extends State<MyBottleNotesScreen> {
     _loadMyNotes();
   }
 
+  @override
+  void dispose() {
+    super.dispose();
+  }
+
   Future<void> _loadMyNotes() async {
     final user = context.read<AuthState>().currentUser;
     if (user == null) return;
 
-    final notes = await _eventHandler.getNotesByUserId(user.userId);
-    setState(() {
-      _myNotes = notes;
-      _loading = false;
-    });
+    try {
+      final notes = await _eventHandler.getNotesByUserId(user.userId);
+      _eventHandler.state.setNotes(notes);
+    } catch (e) {
+      if (mounted) {
+        CustomSnackBar.show(
+          context: context,
+          message: "❌ Failed to load notes: ${e.toString()}",
+          status: 'ERROR',
+        );
+      }
+    }
   }
 
   Future<void> _deleteNote(String noteId) async {
-    await _eventHandler.deleteNote(noteId);
-    ScaffoldMessenger.of(
+    final shouldDelete = await showConfirmDialog(
       context,
-    ).showSnackBar(const SnackBar(content: Text("Note deleted")));
-    _loadMyNotes();
+      "Delete Note",
+      "Are you sure you want to delete this note? This action cannot be undone.",
+    );
+
+    if (!shouldDelete) return;
+
+    try {
+      await _eventHandler.deleteNote(noteId);
+      if (mounted) {
+        CustomSnackBar.show(
+          context: context,
+          message: "✅ Note deleted",
+          status: 'SAFE',
+        );
+        _loadMyNotes();
+      }
+    } catch (e) {
+      if (mounted) {
+        CustomSnackBar.show(
+          context: context,
+          message: "❌ Failed to delete note: ${e.toString()}",
+          status: 'ERROR',
+        );
+      }
+    }
   }
 
   Future<void> _showNoteDialog(BottleNote note) async {
-    final replies = await _eventHandler.getRepliesForNote(note.noteId);
+    try {
+      final replies = await _eventHandler.getRepliesForNote(note.noteId);
+      if (!mounted) return;
 
-    showDialog(
-      context: context,
-      builder: (_) {
-        return AlertDialog(
-          title: const Text("Bottle Note"),
-          content: SizedBox(
-            width: double.maxFinite,
-            child: SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(note.content),
-                  const SizedBox(height: 16),
+      await showCustomDialog(
+        context: context,
+        title: "Bottle Note",
+        backgroundColor: Colors.lightBlue.shade50,
+        content: SizedBox(
+          width: double.maxFinite,
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  child: Text(
+                    note.content,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                if (replies.isEmpty)
+                  const Text(
+                    "No replies yet",
+                    style: TextStyle(
+                      fontStyle: FontStyle.italic,
+                      color: Colors.grey,
+                    ),
+                  )
+                else ...[
                   const Text(
                     "Replies:",
-                    style: TextStyle(fontWeight: FontWeight.bold),
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 10),
                   ...replies.asMap().entries.map((entry) {
-                    final i = entry.key + 1; // Start from 1
+                    final i = entry.key + 1;
                     final reply = entry.value;
-                    return ListTile(
-                      title: Text("Reply $i"),
-                      subtitle: Text(reply.content),
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 8.0),
+                      padding: const EdgeInsets.all(12),
+                      child: Text(
+                        "Reply $i: ${reply.content}",
+                        style: const TextStyle(fontSize: 14),
+                      ),
                     );
                   }),
                 ],
-              ),
+              ],
             ),
           ),
-          actions: [
-            TextButton(
-              child: const Text("Close"),
-              onPressed: () => Navigator.pop(context),
-            ),
-          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Close"),
+          ),
+        ],
+        barrierDismissible: true,
+      );
+    } catch (e) {
+      if (mounted) {
+        CustomSnackBar.show(
+          context: context,
+          message: "❌ Failed to load replies: ${e.toString()}",
+          status: 'ERROR',
         );
-      },
-    );
+      }
+    }
   }
 
   @override
@@ -95,7 +161,6 @@ class _MyBottleNotesScreenState extends State<MyBottleNotesScreen> {
       body: Stack(
         fit: StackFit.expand,
         children: [
-          // Background image
           Image.asset('assets/bottlenote_bg.png', fit: BoxFit.cover),
           SafeArea(
             child: Column(
@@ -110,9 +175,7 @@ class _MyBottleNotesScreenState extends State<MyBottleNotesScreen> {
                     children: [
                       IconButton(
                         icon: const Icon(Icons.arrow_back, color: Colors.black),
-                        onPressed: () {
-                          Navigator.pop(context);
-                        },
+                        onPressed: () => Navigator.pop(context),
                       ),
                       const SizedBox(width: 8),
                       const Text(
@@ -127,29 +190,28 @@ class _MyBottleNotesScreenState extends State<MyBottleNotesScreen> {
                   ),
                 ),
                 Expanded(
-                  child:
-                      _loading
-                          ? const Center(child: CircularProgressIndicator())
-                          : _myNotes.isEmpty
+                  child: Consumer<BottleNoteState>(
+                    builder: (context, state, child) {
+                      return state.notes.isEmpty
                           ? const Center(
-                            child: Text("You haven't written any notes yet."),
+                            child: Text(
+                              "No notes yet",
+                              style: TextStyle(fontSize: 16),
+                            ),
                           )
                           : ListView.builder(
-                            itemCount: _myNotes.length,
+                            padding: const EdgeInsets.all(16),
+                            itemCount: state.notes.length,
                             itemBuilder: (context, index) {
-                              final note = _myNotes[index];
-                              return GestureDetector(
-                                onTap: () => _showNoteDialog(note),
-                                child: Container(
-                                  margin: const EdgeInsets.symmetric(
-                                    horizontal: 16,
-                                    vertical: 10,
-                                  ),
+                              final note = state.notes[index];
+                              return Card(
+                                color: Colors.lightBlue.shade100,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                margin: const EdgeInsets.only(bottom: 16),
+                                child: Padding(
                                   padding: const EdgeInsets.all(16),
-                                  decoration: BoxDecoration(
-                                    color: Colors.lightBlue[100],
-                                    borderRadius: BorderRadius.circular(16),
-                                  ),
                                   child: Column(
                                     crossAxisAlignment:
                                         CrossAxisAlignment.start,
@@ -162,29 +224,43 @@ class _MyBottleNotesScreenState extends State<MyBottleNotesScreen> {
                                         ),
                                       ),
                                       const SizedBox(height: 12),
-                                      Align(
-                                        alignment: Alignment.centerRight,
-                                        child: CustomButton(
-                                          text: 'Remove',
-                                          onPressed: () {
-                                            _deleteNote(note.noteId);
-                                          },
-                                          icon: const Icon(
-                                            Icons.delete,
-                                            color: Colors.white,
+                                      Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.end,
+                                        children: [
+                                          CustomButton(
+                                            text: 'View Replies',
+                                            onPressed:
+                                                () => _showNoteDialog(note),
+                                            backgroundColor: Colors.blue[400],
+                                            horizontalPadding: 20,
+                                            verticalPadding: 10,
+                                            fontSize: 12,
                                           ),
-                                          backgroundColor: Colors.red,
-                                          horizontalPadding: 20,
-                                          verticalPadding: 10,
-                                          fontSize: 12,
-                                        ),
+                                          const SizedBox(width: 8),
+                                          CustomButton(
+                                            text: 'Remove',
+                                            onPressed:
+                                                () => _deleteNote(note.noteId),
+                                            icon: const Icon(
+                                              Icons.delete,
+                                              color: Colors.white,
+                                            ),
+                                            backgroundColor: Colors.red[400],
+                                            horizontalPadding: 20,
+                                            verticalPadding: 10,
+                                            fontSize: 12,
+                                          ),
+                                        ],
                                       ),
                                     ],
                                   ),
                                 ),
                               );
                             },
-                          ),
+                          );
+                    },
+                  ),
                 ),
               ],
             ),

@@ -1,5 +1,6 @@
 import 'package:blindmate/viewmodels/state/auth_state.dart';
 import 'package:blindmate/views/UIComponents/custom_button.dart';
+import 'package:blindmate/views/UIComponents/custom_snackbar.dart';
 import 'package:flutter/material.dart';
 import 'package:animated_text_kit/animated_text_kit.dart';
 import 'package:provider/provider.dart';
@@ -17,51 +18,69 @@ class PickUpScreen extends StatefulWidget {
 }
 
 class _PickUpScreenState extends State<PickUpScreen> {
-  late BottleNoteEventHandler _eventHandler;
+  late final BottleNoteEventHandler _eventHandler;
 
   @override
   void initState() {
     super.initState();
-    _eventHandler = BottleNoteEventHandler(
-      state: context.read<BottleNoteState>(),
-    );
-
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _pickUpNote();
-    });
+    final state = context.read<BottleNoteState>();
+    _eventHandler = BottleNoteEventHandler(state: state);
+    _pickRandomNote();
   }
 
-  void _pickUpNote() async {
-    final user = context.read<AuthState>().currentUser;
-    if (user == null) return;
+  Future<void> _pickRandomNote() async {
+    try {
+      final user = context.read<AuthState>().currentUser;
+      if (user == null) {
+        throw Exception("User not found");
+      }
 
-    await _eventHandler.pickRandomNote(user.userId);
-    final pickedNote = context.read<BottleNoteState>().pickedNote;
+      await _eventHandler.pickRandomNote(user.userId);
+      final pickedNote = _eventHandler.state.pickedNote;
 
-    if (!mounted) return;
-
-    if (pickedNote != null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            "Bottle Note Found!.\nYou will be redirect in 3 seconds",
-          ),
-        ),
-      );
-      await Future.delayed(const Duration(seconds: 3));
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => ShowBottleNoteScreen(note: pickedNote),
-        ),
-      );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("No available note to pick!")),
-      );
-      await Future.delayed(const Duration(seconds: 5));
-      Navigator.pop(context);
-    }
+      if (pickedNote != null) {
+        if (mounted) {
+          CustomSnackBar.show(
+            context: context,
+            message: "Bottle Note Found!\nYou will be redirected in 3 seconds",
+            status: 'SUCCESS',
+          );
+          await Future.delayed(const Duration(seconds: 3));
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => ShowBottleNoteScreen(note: pickedNote),
+            ),
+          );
+        }
+      } else {
+        if (mounted) {
+          CustomSnackBar.show(
+            context: context,
+            message: "No available note to pick!",
+            status: 'ERROR',
+          );
+          await Future.delayed(const Duration(seconds: 3));
+          Navigator.pushAndRemoveUntil(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const BottleNoteHomeScreen(),
+            ),
+            (route) => route.isFirst,
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        CustomSnackBar.show(
+          context: context,
+          message: "❌ Error: ${e.toString()}",
+          status: 'ERROR',
+        );
+        await Future.delayed(const Duration(seconds: 3));
+        Navigator.pop(context);
+      }
+    } 
   }
 
   @override
@@ -73,6 +92,7 @@ class _PickUpScreenState extends State<PickUpScreen> {
           Image.asset('assets/bottlenote_bg.png', fit: BoxFit.cover),
           SafeArea(
             child: Column(
+              mainAxisSize: MainAxisSize.max,
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Row(
@@ -109,15 +129,14 @@ class _PickUpScreenState extends State<PickUpScreen> {
                 ),
                 CustomButton(
                   text: 'Cancel Pick Up',
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const BottleNoteHomeScreen(),
-                      ),
-                    );
-                  },
-                ),
+                  onPressed:
+                      () => Navigator.pushAndRemoveUntil(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const BottleNoteHomeScreen(),
+                        ),
+                        (route) => route.isFirst,
+                      ),                ),
               ],
             ),
           ),
@@ -126,3 +145,4 @@ class _PickUpScreenState extends State<PickUpScreen> {
     );
   }
 }
+

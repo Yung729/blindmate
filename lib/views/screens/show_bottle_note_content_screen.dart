@@ -6,8 +6,8 @@ import '../../models/dataModels/bottle_note_model.dart';
 import '../../viewmodels/eventHandlers/bottle_note_event_handler.dart';
 import '../../viewmodels/state/bottle_note_state.dart';
 import '../UIComponents/custom_button.dart';
+import '../UIComponents/custom_snackbar.dart';
 import 'bottle_note_home_screen.dart';
-import '../UIComponents/custom_dialog.dart';
 
 class ShowBottleNoteScreen extends StatefulWidget {
   final BottleNote note;
@@ -20,7 +20,7 @@ class ShowBottleNoteScreen extends StatefulWidget {
 
 class _ShowBottleNoteScreenState extends State<ShowBottleNoteScreen> {
   final TextEditingController _replyController = TextEditingController();
-  late BottleNoteEventHandler _eventHandler;
+  late final BottleNoteEventHandler _eventHandler;
 
   @override
   void initState() {
@@ -28,11 +28,28 @@ class _ShowBottleNoteScreenState extends State<ShowBottleNoteScreen> {
     _eventHandler = BottleNoteEventHandler(
       state: context.read<BottleNoteState>(),
     );
+    _loadReplies();
+  }
+
+  Future<void> _loadReplies() async {
+    try {
+      final replies = await _eventHandler.getRepliesForNote(widget.note.noteId);
+      _eventHandler.state.setReplies(replies);
+    } catch (e) {
+      if (mounted) {
+        CustomSnackBar.show(
+          context: context,
+          message: "❌ Failed to load replies: ${e.toString()}",
+          status: 'ERROR',
+        );
+      }
+    }
   }
 
   @override
   void dispose() {
     _replyController.dispose();
+    _eventHandler.dispose();
     super.dispose();
   }
 
@@ -50,7 +67,7 @@ class _ShowBottleNoteScreenState extends State<ShowBottleNoteScreen> {
     );
 
     try {
-      final result = await _eventHandler.replyToNote(
+      await _eventHandler.replyToNote(
         noteId: widget.note.noteId,
         userId: user.userId,
         content: replyText,
@@ -61,35 +78,31 @@ class _ShowBottleNoteScreenState extends State<ShowBottleNoteScreen> {
       if (!mounted) return;
 
       String message;
+      String? result = _eventHandler.state.lastNoteStatus;
       switch (result) {
         case 'SAFE':
           message = "✅ Reply sent!";
+          await _loadReplies(); // Reload replies after successful reply
           Navigator.of(context).pop(); // Close reply dialog/screen
           break;
         case 'WARNING':
           message = "⚠️ Reply sent, but it contains sensitive content.";
+          await _loadReplies(); // Reload replies after successful reply
           Navigator.of(context).pop();
           break;
         default:
           message = "❌ Reply blocked due to inappropriate content.";
       }
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(message),
-          backgroundColor:
-              result!.contains('Warning') ? Colors.orange[400] : Colors.red[400],
-          behavior: SnackBarBehavior.floating,
-          margin: const EdgeInsets.all(4),
-          duration: const Duration(seconds: 2),
-        ),
-      );
+      CustomSnackBar.show(context: context, message: message, status: result);
     } catch (e) {
       Navigator.pop(context); // Close loading
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text("Failed to send reply: $e")));
+        CustomSnackBar.show(
+          context: context,
+          message: "Failed to send reply: $e",
+          status: 'ERROR',
+        );
       }
     } finally {
       _replyController.clear();
@@ -158,89 +171,139 @@ class _ShowBottleNoteScreenState extends State<ShowBottleNoteScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.transparent,
-      body: Container(
-        decoration: const BoxDecoration(
-          image: DecorationImage(
-            image: AssetImage('assets/bottlenote_bg.png'),
-            fit: BoxFit.cover,
+    return WillPopScope(
+      onWillPop: () async {
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (context) => const BottleNoteHomeScreen()),
+          (route) => route.isFirst,
+        );
+        return false;
+      },
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        body: Container(
+          decoration: const BoxDecoration(
+            image: DecorationImage(
+              image: AssetImage('assets/bottlenote_bg.png'),
+              fit: BoxFit.cover,
+            ),
           ),
-        ),
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
-        child: Column(
-          children: [
-            Align(
-              alignment: Alignment.topLeft,
-              child: IconButton(
-                icon: const Icon(Icons.arrow_back, color: Colors.black),
-                onPressed:
-                    () => Navigator.pushAndRemoveUntil(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const BottleNoteHomeScreen(),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
+          child: Column(
+            children: [
+              Align(
+                alignment: Alignment.topLeft,
+                child: IconButton(
+                  icon: const Icon(Icons.arrow_back, color: Colors.black),
+                  onPressed:
+                      () => Navigator.pushAndRemoveUntil(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const BottleNoteHomeScreen(),
+                        ),
+                        (route) => route.isFirst,
                       ),
-                      (route) => route.isFirst, // keep the first route only
-                    ),
-              ),
-            ),
-            const SizedBox(height: 20),
-            Expanded(
-              child: Center(
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(20),
-                      width: double.infinity,
-                      decoration: BoxDecoration(
-                        color: Colors.lightBlue.shade100,
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.max,
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            widget.note.content,
-                            style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
                 ),
               ),
-            ),
-            const SizedBox(height: 20),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                CustomButton(
-                  text: 'Reply',
-                  onPressed: () {
-                    _showReplyDialog();
-                  },
-                ),
-                CustomButton(
-                  text: 'Pick Up Next',
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const PickUpScreen(),
+              const SizedBox(height: 20),
+              Expanded(
+                child: Center(
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(20),
+                        width: double.infinity,
+                        decoration: BoxDecoration(
+                          color: Colors.lightBlue.shade100,
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Consumer<BottleNoteState>(
+                          builder: (context, state, child) {
+                            return Column(
+                              mainAxisSize: MainAxisSize.max,
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  widget.note.content,
+                                  style: const TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.black,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                                const SizedBox(height: 20),
+                                if (state.replies.isEmpty)
+                                  const Text(
+                                    "No replies yet",
+                                    style: TextStyle(
+                                      fontStyle: FontStyle.italic,
+                                      color: Colors.grey,
+                                    ),
+                                  )
+                                else
+                                  Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      const Text(
+                                        "Replies:",
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 16,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 10),
+                                      ...state.replies.asMap().entries.map((
+                                        entry,
+                                      ) {
+                                        final i = entry.key + 1;
+                                        final reply = entry.value;
+                                        return Padding(
+                                          padding: const EdgeInsets.only(
+                                            bottom: 8.0,
+                                          ),
+                                          child: Text(
+                                            "Reply $i: ${reply.content}",
+                                            style: const TextStyle(
+                                              fontSize: 14,
+                                            ),
+                                          ),
+                                        );
+                                      }),
+                                    ],
+                                  ),
+                              ],
+                            );
+                          },
+                        ),
                       ),
-                    );
-                  },
+                    ],
+                  ),
                 ),
-              ],
-            ),
-          ],
+              ),
+              const SizedBox(height: 20),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  CustomButton(text: 'Reply', onPressed: _showReplyDialog),
+                  CustomButton(
+                    text: 'Pick Up Next',
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const PickUpScreen(),
+                        ),
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );

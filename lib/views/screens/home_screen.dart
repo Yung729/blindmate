@@ -16,14 +16,28 @@ class HomeScreen extends StatefulWidget {
   _HomeScreenState createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends State<HomeScreen>
+    with SingleTickerProviderStateMixin {
   late final AuthState authState;
   bool _hasShownSurveyDialog = false; // Track if the dialog has been shown
+  late AnimationController _animationController;
+  late Animation<double> _swingAnimation;
 
   @override
   void initState() {
     super.initState();
     authState = context.read<AuthState>();
+
+    // Initialize animation controller
+    _animationController = AnimationController(
+      duration: const Duration(seconds: 2),
+      vsync: this,
+    )..repeat(reverse: true);
+
+    // Create swinging animation
+    _swingAnimation = Tween<double>(begin: -0.1, end: 0.1).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
+    );
 
     // Show the survey dialog immediately after the first frame, but only once
     WidgetsBinding.instance.addPostFrameCallback((_) async {
@@ -54,6 +68,12 @@ class _HomeScreenState extends State<HomeScreen> {
         }
       }
     });
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
   }
 
   void _startRandomMatching() {
@@ -180,9 +200,17 @@ class _HomeScreenState extends State<HomeScreen> {
                                 ),
                               );
                             },
-                            child: Image.asset(
-                              'assets/bottle.png',
-                              height: 100,
+                            child: AnimatedBuilder(
+                              animation: _swingAnimation,
+                              builder: (context, child) {
+                                return Transform.rotate(
+                                  angle: _swingAnimation.value,
+                                  child: Image.asset(
+                                    'assets/bottle.png',
+                                    height: 100,
+                                  ),
+                                );
+                              },
                             ),
                           ),
                           const SizedBox(height: 10),

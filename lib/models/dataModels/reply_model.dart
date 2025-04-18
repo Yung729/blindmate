@@ -13,21 +13,24 @@ class Reply {
     required this.timestamp,
   });
 
-  factory Reply.fromJson(Map<String, dynamic> json) {
+  factory Reply.fromJson(Map<String, dynamic> map) {
     return Reply(
-      replyId: json['replyId'],
-      noteId: json['noteId'],
-      responderId: json['responderId'],
-      content: json['content'],
-      timestamp: DateTime.parse(json['timestamp']),
+      replyId: map['replyId'] ?? '',
+      noteId: map['noteId'] ?? '',
+      responderId: map['responderId'] ?? '',
+      content: map['content'] ?? '',
+      timestamp:
+          map['timestamp'] != null
+              ? DateTime.parse(map['timestamp'])
+              : DateTime.now(),
     );
   }
 
   Map<String, dynamic> toJson() => {
-        'replyId': replyId,
-        'noteId': noteId,
-        'responderId': responderId,
-        'content': content,
-        'timestamp': timestamp.toIso8601String(),
-      };
+    'replyId': replyId,
+    'noteId': noteId,
+    'responderId': responderId,
+    'content': content,
+    'timestamp': timestamp.toIso8601String(),
+  };
 }

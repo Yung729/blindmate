@@ -2,10 +2,10 @@ import 'package:blindmate/views/screens/pick_up_screen.dart';
 import 'package:blindmate/views/screens/send_bottle_note_screen.dart';
 import 'package:blindmate/views/screens/my_bottle_note_screen.dart';
 import 'package:flutter/material.dart';
-import '../../viewmodels/dataBinding/bottle_note_data_binding.dart';
 import 'package:blindmate/views/UIComponents/custom_button.dart';
-import 'home_screen.dart';
+import 'package:blindmate/views/UIComponents/custom_snackbar.dart';
 import '../../viewmodels/uiValidation/bottle_note_validator.dart';
+
 
 class BottleNoteHomeScreen extends StatefulWidget {
   const BottleNoteHomeScreen({super.key});
@@ -15,18 +15,32 @@ class BottleNoteHomeScreen extends StatefulWidget {
 }
 
 class _BottleNoteHomeScreenState extends State<BottleNoteHomeScreen>
-    with WidgetsBindingObserver {
-  late BottleNoteDataBinding _dataBinding;
+    with SingleTickerProviderStateMixin {
+  late AnimationController _animationController;
+  late Animation<double> _swingAnimation;
+  late TextEditingController _contentController;
 
   @override
   void initState() {
     super.initState();
-    _dataBinding = BottleNoteDataBinding();
+    _contentController = TextEditingController();
+
+    // Initialize animation controller
+    _animationController = AnimationController(
+      duration: const Duration(seconds: 2),
+      vsync: this,
+    )..repeat(reverse: true);
+
+    // Create swinging animation
+    _swingAnimation = Tween<double>(begin: -0.1, end: 0.1).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
+    );
   }
 
   @override
   void dispose() {
-    _dataBinding.dispose();
+    _animationController.dispose();
+    _contentController.dispose();
     super.dispose();
   }
 
@@ -48,7 +62,9 @@ class _BottleNoteHomeScreenState extends State<BottleNoteHomeScreen>
                     children: [
                       IconButton(
                         onPressed: () {
-                          Navigator.pop(context); // Go back to the previous screen
+                          Navigator.pop(
+                            context,
+                          ); // Go back to the previous screen
                         },
                         icon: Icon(Icons.arrow_back, color: Colors.black),
                       ),
@@ -83,7 +99,7 @@ class _BottleNoteHomeScreenState extends State<BottleNoteHomeScreen>
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         TextField(
-                          controller: _dataBinding.contentController,
+                          controller: _contentController,
                           maxLines: 4,
                           style: const TextStyle(fontWeight: FontWeight.bold),
                           decoration: const InputDecoration(
@@ -99,16 +115,18 @@ class _BottleNoteHomeScreenState extends State<BottleNoteHomeScreen>
                   CustomButton(
                     text: 'Send Bottle Note',
                     onPressed: () {
-                      final content = _dataBinding.contentController.text;
+                      final content = _contentController.text;
 
                       if (!BottleNoteValidator.isValid(content)) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text("❌ Bottle Note cannot be empty!"),
-                          ),
+                        CustomSnackBar.show(
+                          context: context,
+                          message: "❌ Bottle Note cannot be empty!",
+                          status: 'ERROR',
                         );
                         return;
                       }
+
+                      _contentController.clear();
 
                       Navigator.push(
                         context,
@@ -121,7 +139,15 @@ class _BottleNoteHomeScreenState extends State<BottleNoteHomeScreen>
                     },
                   ),
                   const SizedBox(height: 60),
-                  Image.asset('assets/bottle.png', height: 100),
+                  AnimatedBuilder(
+                    animation: _swingAnimation,
+                    builder: (context, child) {
+                      return Transform.rotate(
+                        angle: _swingAnimation.value,
+                        child: Image.asset('assets/bottle.png', height: 100),
+                      );
+                    },
+                  ),
                   const SizedBox(height: 20),
                   CustomButton(
                     text: "Pick Up",
