@@ -18,7 +18,7 @@ class RewardModel {
     return RewardModel(
       redeemRewardId: doc.id,
       fragmentCost: data['fragmentCost'] ?? 0,
-      imageUrl: data['imageUrl'] ?? '',
+      imageUrl: data['imgUrl'] ?? '',
       rewardTitle: data['rewardTitle'] ?? '',
     );
   }
