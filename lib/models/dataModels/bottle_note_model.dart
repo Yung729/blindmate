@@ -30,7 +30,7 @@ class BottleNote {
           map['expirationTime'] != null
               ? DateTime.parse(map['expirationTime'])
               : DateTime.now().add(const Duration(hours: 24)),
-      status: map['status'] ?? 'active',
+      status: map['status'] == 'INACTIVE' ? 'INACTIVE' : 'ACTIVE',
       replyIds: map['replies'] != null ? List<String>.from(map['replies']) : [],
     );
   }

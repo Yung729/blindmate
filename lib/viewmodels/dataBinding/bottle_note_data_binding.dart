@@ -49,7 +49,7 @@ class BottleNoteDataBinding {
       senderId: userId,
       timestamp: DateTime.now(),
       expirationTime: DateTime.now().add(const Duration(days: 1)),
-      status: 'active',
+      status: 'ACTIVE',
       replyIds: [],
     );
 
@@ -108,8 +108,8 @@ class BottleNoteDataBinding {
 
   Future<List<BottleNote>> getNotesByUserId(String userId) async {
     try {
-      final notes = await _bottleNoteService.getAllNotes();
-      return notes.where((note) => note.senderId == userId).toList();
+      final notes = await _bottleNoteService.getNotesByUserId(userId);
+      return notes;
     } catch (e) {
       debugPrint("❌ Failed to get user notes: $e");
       return [];

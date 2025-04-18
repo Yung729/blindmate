@@ -5,7 +5,9 @@ import 'package:flutter/material.dart';
 import 'package:blindmate/views/UIComponents/custom_button.dart';
 import 'package:blindmate/views/UIComponents/custom_snackbar.dart';
 import '../../viewmodels/uiValidation/bottle_note_validator.dart';
-
+import '../../viewmodels/eventHandlers/bottle_note_event_handler.dart';
+import '../../viewmodels/state/bottle_note_state.dart';
+import 'package:provider/provider.dart';
 
 class BottleNoteHomeScreen extends StatefulWidget {
   const BottleNoteHomeScreen({super.key});
@@ -19,11 +21,15 @@ class _BottleNoteHomeScreenState extends State<BottleNoteHomeScreen>
   late AnimationController _animationController;
   late Animation<double> _swingAnimation;
   late TextEditingController _contentController;
+  late final BottleNoteEventHandler _eventHandler;
 
   @override
   void initState() {
     super.initState();
     _contentController = TextEditingController();
+    _eventHandler = BottleNoteEventHandler(
+      state: context.read<BottleNoteState>(),
+    );
 
     // Initialize animation controller
     _animationController = AnimationController(
@@ -35,12 +41,31 @@ class _BottleNoteHomeScreenState extends State<BottleNoteHomeScreen>
     _swingAnimation = Tween<double>(begin: -0.1, end: 0.1).animate(
       CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
     );
+
+    // Load notes when screen is first opened
+    _loadNotes();
+  }
+
+  Future<void> _loadNotes() async {
+    try {
+      await _eventHandler.loadNotes();
+      _eventHandler.state.setNotes(_eventHandler.state.notes);
+    } catch (e) {
+      if (mounted) {
+        CustomSnackBar.show(
+          context: context,
+          message: "❌ Failed to load notes: ${e.toString()}",
+          status: 'ERROR',
+        );
+      }
+    }
   }
 
   @override
   void dispose() {
     _animationController.dispose();
     _contentController.dispose();
+    _eventHandler.dispose();
     super.dispose();
   }
 

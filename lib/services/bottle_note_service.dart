@@ -18,10 +18,23 @@ class BottleNoteService {
   }
 
   Future<List<BottleNote>> getAllNotes() async {
-    final querySnapshot = await _notesRef.get();
-    return querySnapshot.docs
-        .map((doc) => BottleNote.fromJson(doc.data()))
-        .toList();
+    final querySnapshot =
+        await _notesRef.where('status', isEqualTo: 'ACTIVE').get();
+
+    final List<BottleNote> notes = [];
+
+    for (var doc in querySnapshot.docs) {
+      final data = doc.data();
+      final note = BottleNote.fromJson(data);
+
+      if (note.expirationTime.isBefore(DateTime.now())) {
+        await _notesRef.doc(note.noteId).update({'status': 'INACTIVE'});
+      } else {
+        notes.add(note); 
+      }
+    }
+
+    return notes;
   }
 
   Future<BottleNote?> getNote(String noteId) async {
@@ -37,19 +50,15 @@ class BottleNoteService {
   }
 
   Future<void> removeNote(String noteId) async {
-    // First delete all replies
-    final replies = await getRepliesForNote(noteId);
-    for (final reply in replies) {
-      await _repliesRef.doc(reply.replyId).delete();
-    }
-
-    // Then delete the note
-    await _notesRef.doc(noteId).delete();
+    await _notesRef.doc(noteId).update({'status': 'INACTIVE'});
   }
 
   Future<List<BottleNote>> getNotesByUserId(String userId) async {
     final querySnapshot =
-        await _notesRef.where('senderId', isEqualTo: userId).get();
+        await _notesRef
+            .where('senderId', isEqualTo: userId)
+            .where('status', isEqualTo: 'ACTIVE')
+            .get();
     return querySnapshot.docs
         .map((doc) => BottleNote.fromJson(doc.data()))
         .toList();

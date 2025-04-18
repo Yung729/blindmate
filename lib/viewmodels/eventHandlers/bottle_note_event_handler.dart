@@ -43,7 +43,6 @@ class BottleNoteEventHandler {
           // 2. Have expired
           // 3. Have been replied to by the current user
           return note.senderId != userId &&
-              note.expirationTime.isAfter(DateTime.now()) &&
               !userReplies.containsKey(note.noteId);
         }).toList();
 
