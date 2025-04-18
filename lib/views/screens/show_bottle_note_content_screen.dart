@@ -7,6 +7,7 @@ import '../../viewmodels/eventHandlers/bottle_note_event_handler.dart';
 import '../../viewmodels/state/bottle_note_state.dart';
 import '../UIComponents/custom_button.dart';
 import 'bottle_note_home_screen.dart';
+import '../UIComponents/custom_dialog.dart';
 
 class ShowBottleNoteScreen extends StatefulWidget {
   final BottleNote note;
@@ -73,9 +74,16 @@ class _ShowBottleNoteScreenState extends State<ShowBottleNoteScreen> {
           message = "❌ Reply blocked due to inappropriate content.";
       }
 
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(message)));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message),
+          backgroundColor:
+              result!.contains('Warning') ? Colors.orange[400] : Colors.red[400],
+          behavior: SnackBarBehavior.floating,
+          margin: const EdgeInsets.all(4),
+          duration: const Duration(seconds: 2),
+        ),
+      );
     } catch (e) {
       Navigator.pop(context); // Close loading
       if (mounted) {
@@ -167,11 +175,12 @@ class _ShowBottleNoteScreenState extends State<ShowBottleNoteScreen> {
               child: IconButton(
                 icon: const Icon(Icons.arrow_back, color: Colors.black),
                 onPressed:
-                    () => Navigator.push(
+                    () => Navigator.pushAndRemoveUntil(
                       context,
                       MaterialPageRoute(
                         builder: (context) => const BottleNoteHomeScreen(),
                       ),
+                      (route) => route.isFirst, // keep the first route only
                     ),
               ),
             ),

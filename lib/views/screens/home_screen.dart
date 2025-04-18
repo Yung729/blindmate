@@ -28,10 +28,11 @@ class _HomeScreenState extends State<HomeScreen> {
     // Show the survey dialog immediately after the first frame, but only once
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!_hasShownSurveyDialog && authState.currentUser != null) {
-        DocumentSnapshot userDoc = await FirebaseFirestore.instance
-            .collection('users')
-            .doc(authState.currentUser!.userId)
-            .get();
+        DocumentSnapshot userDoc =
+            await FirebaseFirestore.instance
+                .collection('users')
+                .doc(authState.currentUser!.userId)
+                .get();
 
         if (userDoc.exists) {
           Timestamp? surveyTimestamp = userDoc.get('surveyDate') as Timestamp?;
@@ -40,14 +41,16 @@ class _HomeScreenState extends State<HomeScreen> {
             DateTime today = DateTime.now();
             // Calculate the difference in days
             int daysDifference = today.difference(surveyDate).inDays;
-            print('Survey Date: $surveyDate, Today: $today, Days Difference: $daysDifference');
+            print(
+              'Survey Date: $surveyDate, Today: $today, Days Difference: $daysDifference',
+            );
 
             // Show dialog if 7 or more days have passed
             if (daysDifference >= 7) {
               _showSurveyDialog();
               _hasShownSurveyDialog = true;
             }
-          } 
+          }
         }
       }
     });
@@ -81,36 +84,37 @@ class _HomeScreenState extends State<HomeScreen> {
       });
     } else {
       // Handle the case where currentUser is null
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('User not logged in')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('User not logged in')));
     }
   }
 
   void _showSurveyDialog() {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Survey Invitation'),
-        content: const Text(
-          'Would you like to answer survey question?\nNote: It may increase your level.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context); // Close the dialog
-            },
-            child: const Text('No'),
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Survey Invitation'),
+            content: const Text(
+              'Would you like to answer survey question?\nNote: It may increase your level.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context); // Close the dialog
+                },
+                child: const Text('No'),
+              ),
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context); // Close the dialog
+                  _goToSurvey(); // Navigate to SurveyPage
+                },
+                child: const Text('Yes'),
+              ),
+            ],
           ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context); // Close the dialog
-              _goToSurvey(); // Navigate to SurveyPage
-            },
-            child: const Text('Yes'),
-          ),
-        ],
-      ),
     );
   }
 
@@ -166,21 +170,22 @@ class _HomeScreenState extends State<HomeScreen> {
                       padding: const EdgeInsets.only(bottom: 30.0),
                       child: Column(
                         children: [
-                          Image.asset('assets/bottle.png', height: 100),
-                          const SizedBox(height: 10),
-                          CustomButton(
-                            text: "Bottle Note",
-                            onPressed: () {
+                          GestureDetector(
+                            onTap: () {
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (context) => const BottleNoteHomeScreen(),
+                                  builder:
+                                      (context) => const BottleNoteHomeScreen(),
                                 ),
                               );
                             },
-                            horizontalPadding: 40,
-                            verticalPadding: 14,
+                            child: Image.asset(
+                              'assets/bottle.png',
+                              height: 100,
+                            ),
                           ),
+                          const SizedBox(height: 10),
                         ],
                       ),
                     ),

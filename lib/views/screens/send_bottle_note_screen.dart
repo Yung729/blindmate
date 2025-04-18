@@ -5,6 +5,7 @@ import '../../viewmodels/state/bottle_note_state.dart';
 import '../../viewmodels/eventHandlers/bottle_note_event_handler.dart';
 import '../../viewmodels/dataBinding/bottle_note_data_binding.dart';
 import 'bottle_note_home_screen.dart';
+import '../UIComponents/custom_dialog.dart';
 
 class SendBottleNoteScreen extends StatefulWidget {
   final String? content;
@@ -52,12 +53,12 @@ class _SendBottleNoteScreenState extends State<SendBottleNoteScreen> {
       return;
     }
 
-    // Show loading while processing moderation and sending
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => const Center(child: CircularProgressIndicator()),
-    );
+    // // Show loading while processing moderation and sending
+    // showDialog(
+    //   context: context,
+    //   barrierDismissible: false,
+    //   builder: (_) => const Center(child: CircularProgressIndicator()),
+    // );
 
     try {
       await _eventHandler.sendNote(
@@ -65,7 +66,7 @@ class _SendBottleNoteScreenState extends State<SendBottleNoteScreen> {
         userId: user.userId,
       );
 
-      Navigator.pop(context); // close loading dialog
+      Navigator.pop(context);
 
       if (mounted) {
         String message;
@@ -88,7 +89,7 @@ class _SendBottleNoteScreenState extends State<SendBottleNoteScreen> {
         );
       }
     } catch (e) {
-      Navigator.pop(context); // close loading dialog
+      Navigator.pop(context); 
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text("❌ Error: ${e.toString()}")));
@@ -114,17 +115,6 @@ class _SendBottleNoteScreenState extends State<SendBottleNoteScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      IconButton(
-                        onPressed: () {
-                          Navigator.pop(context);
-                        },
-                        icon: Icon(Icons.arrow_back, color: Colors.black),
-                      ),
-                    ],
-                  ),
                   const Spacer(),
                   const Spacer(),
                   const Padding(
