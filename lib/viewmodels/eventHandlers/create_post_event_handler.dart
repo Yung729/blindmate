@@ -37,15 +37,13 @@ class CreatePostEventHandler {
     createPostState.setPostContent(content);
   }
 
-  /// Modified: Accepts optional Trip Journal fields and passes them to dataBinding.createPost
+  /// Updated: Accepts a list of trip journals and passes it to dataBinding.createPost
   Future<void> sharePost({
-    String? location,
-    DateTime? tripDate,
+    List<Map<String, dynamic>>? tripJournals,
   }) async {
     await dataBinding.createPost(
       user,
-      location: location,
-      tripDate: tripDate,
+      tripJournals: tripJournals,
     );
   }
 

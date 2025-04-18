@@ -21,17 +21,18 @@ class CreatePostDataBinding {
     createPostState.setMusicResults(results);
   }
 
-  /// Updated: Accepts optional Trip Journal fields and sets postType accordingly
+  /// Now: Stores all trip journals in a single post as a list.
   Future<PostModel?> createPost(
     UserModel user, {
-    String? location,
-    DateTime? tripDate,
+    List<Map<String, dynamic>>? tripJournals,
   }) async {
-    if (createPostState.postContent.trim().isEmpty && createPostState.selectedMusicUrl == null) {
+    if (createPostState.postContent.trim().isEmpty &&
+        createPostState.selectedMusicUrl == null &&
+        (tripJournals == null || tripJournals.isEmpty)) {
       return null;
     }
 
-    final isTripJournal = location != null && tripDate != null;
+    final isTripJournal = tripJournals != null && tripJournals.isNotEmpty;
 
     final newPost = PostModel(
       userId: user.userId,
@@ -42,11 +43,10 @@ class CreatePostDataBinding {
       timestamp: DateTime.now(),
       visibility: createPostState.isPublic ? 'public' : 'private',
       postType: isTripJournal ? PostType.tripJournal : PostType.normal,
-      location: location,
-      tripDate: tripDate,
+      tripJournals: tripJournals, // <-- assign the whole list here
+      // Remove location/tripDate at the post level if not needed
     );
 
-    // Add the post to Firestore
     await _postService.createPost(newPost);
 
     return newPost;

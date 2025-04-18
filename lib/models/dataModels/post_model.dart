@@ -1,4 +1,3 @@
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 enum PostType { normal, tripJournal }
@@ -12,11 +11,10 @@ class PostModel {
   final String? musicTitle;
   final DateTime timestamp;
   String visibility; // Made non-final to allow modification
+  final List<Map<String, dynamic>>? tripJournals;
 
-  // New fields for post type and trip journal
+  // Only postType remains for distinguishing post types
   final PostType postType;
-  final String? location;      // Only for trip journal
-  final DateTime? tripDate;    // Only for trip journal
 
   PostModel({
     this.id,
@@ -28,8 +26,7 @@ class PostModel {
     required this.timestamp,
     required this.visibility,
     this.postType = PostType.normal,
-    this.location,
-    this.tripDate,
+    this.tripJournals,
   });
 
   // Getter to check if the post is public
@@ -51,8 +48,7 @@ class PostModel {
       'timestamp': FieldValue.serverTimestamp(),
       'visibility': visibility,
       'postType': postType == PostType.tripJournal ? 'tripJournal' : 'normal',
-      'location': location,
-      'tripDate': tripDate?.toIso8601String(),
+      'tripJournals': tripJournals,
     };
   }
 
@@ -74,6 +70,14 @@ class PostModel {
       type = PostType.tripJournal;
     }
 
+    // Deserialize tripJournals if present
+    List<Map<String, dynamic>>? tripJournals;
+    if (map['tripJournals'] != null) {
+      tripJournals = List<Map<String, dynamic>>.from(
+        (map['tripJournals'] as List).map((e) => Map<String, dynamic>.from(e)),
+      );
+    }
+
     return PostModel(
       id: documentId,
       userId: map['userId'] ?? '',
@@ -84,10 +88,7 @@ class PostModel {
       timestamp: timestamp,
       visibility: map['visibility'] ?? 'public',
       postType: type,
-      location: map['location'],
-      tripDate: map['tripDate'] != null && map['tripDate'] != ''
-          ? DateTime.tryParse(map['tripDate'])
-          : null,
+      tripJournals: tripJournals,
     );
   }
 
@@ -99,8 +100,7 @@ class PostModel {
       'musicUrl': musicUrl,
       'musicTitle': musicTitle,
       'postType': postType == PostType.tripJournal ? 'tripJournal' : 'normal',
-      'location': location,
-      'tripDate': tripDate?.toIso8601String(),
+      'tripJournals': tripJournals,
     };
   }
 }
