@@ -36,39 +36,87 @@ class RewardService {
   }
 
   // Redeem the reward
+  // Future<int> redeemReward(
+  //   String userId,
+  //   int fragmentCost,
+  //   String rewardId,
+  // ) async {
+  //   try {
+
+      
+  //     // 🔻 Step 1: Update the user's fragmentNumber in Firestore (atomic)
+  //     final userRef = _firestore.collection('users').doc(userId);
+  //     await userRef.update({
+  //       'fragmentNumber': FieldValue.increment(-fragmentCost),
+  //     });
+
+  //     // 🔻 Step 2: Fetch updated user data (so all screens get the same number)
+  //     final updatedUserDoc = await userRef.get();
+  //     final updatedFragmentNumber =
+  //         updatedUserDoc.data()?['fragmentNumber'] ?? 0;
+
+  //     // Fetch the current redeemed rewards
+  //     final userReward = await fetchUserRewards(userId);
+  //     List<dynamic> redeemedRewards = userReward?.redeemedRewards ?? [];
+
+  //     redeemedRewards.add(rewardId);
+
+  //     // Update the user_rewards collection with the new list of redeemed rewards
+  //     await _firestore.collection('user_reward').doc(userId).set({
+  //       'userId': userId,
+  //       'redeemedReward': redeemedRewards,
+  //     }, SetOptions(merge: true));
+  //     return updatedFragmentNumber;
+  //   } catch (e) {
+  //     throw Exception("Failed to redeem reward: $e");
+  //   }
+  // }
+
   Future<int> redeemReward(
-    String userId,
-    int fragmentCost,
-    String rewardId,
-  ) async {
-    try {
-      // 🔻 Step 1: Update the user's fragmentNumber in Firestore (atomic)
-      final userRef = _firestore.collection('users').doc(userId);
+  String userId,
+  int fragmentCost,
+  String rewardId,
+) async {
+  try {
+    // Fetch reward info to check type
+    final rewardDoc = await _firestore.collection('reward').doc(rewardId).get();
+    final reward = RewardModel.fromFirestore(rewardDoc);
+
+    final userRef = _firestore.collection('users').doc(userId);
+
+    // 🔻 Deduct fragments no matter what
+    await userRef.update({
+      'fragmentNumber': FieldValue.increment(-fragmentCost),
+    });
+
+    // 🔻 If reward is "flower", increment flower count
+    if (reward.rewardTitle?.toLowerCase() == 'flower') {
       await userRef.update({
-        'fragmentNumber': FieldValue.increment(-fragmentCost),
+        'flower': FieldValue.increment(1),
       });
-
-      // 🔻 Step 2: Fetch updated user data (so all screens get the same number)
-      final updatedUserDoc = await userRef.get();
-      final updatedFragmentNumber =
-          updatedUserDoc.data()?['fragmentNumber'] ?? 0;
-
-      // Fetch the current redeemed rewards
+    } else {
+      // 🔻 Otherwise, update redeemed reward list
       final userReward = await fetchUserRewards(userId);
       List<dynamic> redeemedRewards = userReward?.redeemedRewards ?? [];
-
       redeemedRewards.add(rewardId);
 
-      // Update the user_rewards collection with the new list of redeemed rewards
       await _firestore.collection('user_reward').doc(userId).set({
         'userId': userId,
         'redeemedReward': redeemedRewards,
       }, SetOptions(merge: true));
-      return updatedFragmentNumber;
-    } catch (e) {
-      throw Exception("Failed to redeem reward: $e");
     }
+
+    // 🔻 Return updated fragment number
+    final updatedUserDoc = await userRef.get();
+    final updatedFragmentNumber =
+        updatedUserDoc.data()?['fragmentNumber'] ?? 0;
+
+    return updatedFragmentNumber;
+  } catch (e) {
+    throw Exception("Failed to redeem reward: $e");
   }
+}
+
 
   Future<int> sendFlower(String userId, BuildContext context) async {
     final userRef = _firestore.collection('users').doc(userId);

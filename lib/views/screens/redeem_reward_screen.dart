@@ -114,53 +114,10 @@ class _RedeemRewardScreenState extends State<RedeemRewardScreen> {
                       child: RewardGrid(
                         rewards: _rewards,
                         onRewardTap: (reward) {
-                          // Use your event handler to redeem
-                          final handler = RedeemRewardEventHandler(
-                            user: _currentUser!,
-                          );
-                          handler.redeemReward(
-                            context,
-                            reward.fragmentCost!,
-                            reward.redeemRewardId!,
-                          );
+                          _redeemReward(reward);
                         },
                       ),
                     ),
-
-                    // CustomButton(
-                    //   text: "Redeem",
-                    //   onPressed: () async {
-                    //     const int fragmentCost = 500; // Set your cost here
-
-                    //     if (_currentUser!.fragmentNumber >= fragmentCost) {
-                    //       setState(() {
-                    //         _currentUser!.fragmentNumber -= fragmentCost;
-                    //       });
-
-                    //       // 🔄 Update Firestore
-                    //       await FirebaseFirestore.instance
-                    //           .collection('users')
-                    //           .doc(_currentUser!.userId)
-                    //           .update({
-                    //             'fragmentNumber': _currentUser!.fragmentNumber,
-                    //           });
-
-                    //       ScaffoldMessenger.of(context).showSnackBar(
-                    //         SnackBar(
-                    //           content: Text(
-                    //             'Successfully redeemed for $fragmentCost fragments!',
-                    //           ),
-                    //         ),
-                    //       );
-                    //     } else {
-                    //       ScaffoldMessenger.of(context).showSnackBar(
-                    //         const SnackBar(
-                    //           content: Text('Not enough fragments to redeem!'),
-                    //         ),
-                    //       );
-                    //     }
-                    //   },
-                    // ),
                   ],
                 ),
               ),
