@@ -107,8 +107,11 @@ class _BottomDrawerState extends State<BottomDrawer> {
     required String label,
     required VoidCallback onTap,
   }) {
+    final bool isFlower = label == "Flower";
+    final bool hasFlowers = widget.flowerCount > 0;
+
     return GestureDetector(
-      onTap: onTap,
+      onTap: isFlower && !hasFlowers ? null : onTap,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -117,12 +120,16 @@ class _BottomDrawerState extends State<BottomDrawer> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.grey[200],
+                  color: isFlower && !hasFlowers ? Colors.grey[100] : Colors.grey[200],
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Icon(icon, size: 24, color: Colors.black),
+                child: Icon(
+                  icon, 
+                  size: 24, 
+                  color: isFlower && !hasFlowers ? Colors.grey[400] : Colors.black
+                ),
               ),
-              if (label == "Flower" && widget.flowerCount >= 0)
+              if (isFlower && hasFlowers)
                 Positioned(
                   right: 0,
                   top: 0,
@@ -145,7 +152,13 @@ class _BottomDrawerState extends State<BottomDrawer> {
             ],
           ),
           const SizedBox(height: 8),
-          Text(label, style: const TextStyle(fontSize: 12)),
+          Text(
+            label, 
+            style: TextStyle(
+              fontSize: 12,
+              color: isFlower && !hasFlowers ? Colors.grey[400] : Colors.black
+            )
+          ),
         ],
       ),
     );

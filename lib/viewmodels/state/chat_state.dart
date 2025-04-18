@@ -18,6 +18,7 @@ class ChatState extends ChangeNotifier {
   bool isInactive = false;
   bool isBanned = false;
   bool _reportedUser = false;
+  bool _showFlowerAnimation = false;
 
   bool get reportedUser => _reportedUser;
 
@@ -130,6 +131,13 @@ class ChatState extends ChangeNotifier {
     isBanned = false;
     _reportedUser = false;
     isChatOpen = true; // Reset this flag
+    notifyListeners();
+  }
+
+  bool get showFlowerAnimation => _showFlowerAnimation;
+
+  void setShowFlowerAnimation(bool show) {
+    _showFlowerAnimation = show;
     notifyListeners();
   }
 }

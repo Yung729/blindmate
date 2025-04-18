@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:blindmate/services/reward_service.dart';
 import 'package:blindmate/viewmodels/dataBinding/matching_data_binding.dart';
 import 'package:blindmate/viewmodels/eventHandlers/matching_event_handler.dart';
@@ -34,15 +35,15 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   late TextEditingController _messageController;
   bool _isDrawerVisible = false;
   bool _showStickers = false;
-  bool _showFlowerGif = false;
   final RewardService _rewardService = RewardService();
-  int _localFlowerCount = 0; // Add local state for immediate updates
+  int _localFlowerCount = 0;
+  StreamSubscription? _flowerEventSubscription;
 
   @override
   void initState() {
     super.initState();
     _messageController = TextEditingController();
-    _localFlowerCount = context.read<AuthState>().currentUser?.flower ?? 0; // Initialize with current count
+    _localFlowerCount = context.read<AuthState>().currentUser?.flower ?? 0;
 
     _chatState = context.read<ChatState>();
     final chatBinding = ChatDataBinding(chatState: _chatState);
@@ -95,6 +96,24 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
         _showInactivityDialog();
       }
     });
+
+    // Listen to flower events
+    _flowerEventSubscription = _rewardService
+        .listenToFlowerEvents(widget.chatRoomId)
+        .listen((snapshot) {
+      if (snapshot.docs.isNotEmpty) {
+        final event = snapshot.docs.first.data() as Map<String, dynamic>;
+        if (event['senderId'] != widget.currentUserId) {
+          // Show flower animation for the other user
+          _chatState.setShowFlowerAnimation(true);
+          Future.delayed(const Duration(seconds: 2), () {
+            if (mounted) {
+              _chatState.setShowFlowerAnimation(false);
+            }
+          });
+        }
+      }
+    });
   }
 
   @override
@@ -102,6 +121,7 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     WidgetsBinding.instance.removeObserver(this);
     _chatHandler.dispose();
     _messageController.dispose();
+    _flowerEventSubscription?.cancel();
     super.dispose();
   }
 
@@ -230,20 +250,30 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   }
 
   Future<void> _sendFlower() async {
-    final updatedCount = await _rewardService.sendFlower(widget.currentUserId, context);
+    final updatedCount = await _rewardService.sendFlower(
+      widget.currentUserId,
+      widget.chatRoomId,
+      context,
+    );
 
-    if (updatedCount >= 0) {
+    if (updatedCount > 0) {
       setState(() {
-        _showFlowerGif = true;
-        _localFlowerCount = updatedCount; // Update local count immediately
+        _localFlowerCount = updatedCount;
       });
+      _chatState.setShowFlowerAnimation(true);
       Future.delayed(const Duration(seconds: 2), () {
         if (mounted) {
-          setState(() {
-            _showFlowerGif = false;
-          });
+          _chatState.setShowFlowerAnimation(false);
         }
       });
+    } else if (updatedCount == -1) {
+      // Show cooldown message
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Please wait a moment before sending another flower."),
+          duration: Duration(seconds: 1),
+        ),
+      );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("You don't have any flowers left!")),
@@ -318,7 +348,7 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                 // Main chat UI
                 Column(
                   children: [
-                    if (_showFlowerGif)
+                    if (chatState.showFlowerAnimation)
                       Center(
                         child: Image.asset(
                           'assets/flower.gif',
