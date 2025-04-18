@@ -48,12 +48,7 @@ class _BottleNoteHomeScreenState extends State<BottleNoteHomeScreen>
                     children: [
                       IconButton(
                         onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const HomeScreen(),
-                            ),
-                          );
+                          Navigator.pop(context); // Go back to the previous screen
                         },
                         icon: Icon(Icons.arrow_back, color: Colors.black),
                       ),

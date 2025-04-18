@@ -37,32 +37,7 @@ class _MiniGameScreenState extends State<MiniGameScreen> {
   @override
   void initState() {
     super.initState();
-
-     super.initState();
-
-  // Set presence to true on entry
-  _firestore.collection('games').doc(widget.chatRoomId).set({
-    'presence': {
-      widget.currentUserId: true,
-      widget.opponentId: true,
-    }
-  }, SetOptions(merge: true));
-
     _listenToGameState();
-
-    _firestore.collection('games').doc(widget.chatRoomId).snapshots().listen((snapshot) {
-  final data = snapshot.data();
-  if (data == null) return;
-
-  final presence = data['presence'] as Map<String, dynamic>?;
-
-  if (presence != null &&
-      presence[widget.opponentId] == false &&
-      presence[widget.currentUserId] == true) {
-    // Opponent left — show dialog & exit
-    _showOpponentLeftDialog();
-  }
-});
 
     _firestore.collection('games').doc(widget.chatRoomId).get().then((
       snapshot,
@@ -92,38 +67,37 @@ class _MiniGameScreenState extends State<MiniGameScreen> {
       });
     });
 
-    _firestore.collection('games').doc(widget.chatRoomId).snapshots().listen((
-      snapshot,
-    ) {
-      if (!mounted || _isGameEnded) return;
+    _firestore.collection('games').doc(widget.chatRoomId).snapshots().listen((snapshot) {
+  if (!mounted || _isGameEnded) return;
 
-      final data = snapshot.data();
-      if (data != null && data['winner'] != null && !_winnerDialogShown) {
-        final String winnerId = data['winner'];
-        _winnerDialogShown = true;
-        _isGameEnded = true;
-        _showWinnerDialog(winnerId);
-      }
-    });
-    //     _firestore.collection('games').doc(widget.chatRoomId).snapshots().listen((snapshot) {
-    //   final data = snapshot.data();
-    //   if (data != null && data['winner'] != null && !_guessCorrect) {
-    //     final String winnerId = data['winner'];
-    //     if (winnerId == widget.currentUserId) {
-    //       // Already shown locally after correct guess
-    //       return;
-    //     }
-    //     _showWinnerDialog(winnerId);
-    //   }
-    // });_firestore.collection('games').doc(widget.chatRoomId).snapshots().listen((snapshot) {
-    //   final data = snapshot.data();
-    //   if (data != null && data['winner'] != null && !_winnerDialogShown) {
-    //     final String winnerId = data['winner'];
+  final data = snapshot.data();
+  if (data != null && data['winner'] != null && !_winnerDialogShown) {
+    final String winnerId = data['winner'];
+    _winnerDialogShown = true;
+    _isGameEnded = true;
+    _showWinnerDialog(winnerId);
+  }
+});
 
-    //     _winnerDialogShown = true; // 🔐 Prevent repeat dialogs
-    //     _showWinnerDialog(winnerId);
-    //   }
-    // });
+//     _firestore.collection('games').doc(widget.chatRoomId).snapshots().listen((snapshot) {
+//   final data = snapshot.data();
+//   if (data != null && data['winner'] != null && !_guessCorrect) {
+//     final String winnerId = data['winner'];
+//     if (winnerId == widget.currentUserId) {
+//       // Already shown locally after correct guess
+//       return;
+//     }
+//     _showWinnerDialog(winnerId);
+//   }
+// });_firestore.collection('games').doc(widget.chatRoomId).snapshots().listen((snapshot) {
+//   final data = snapshot.data();
+//   if (data != null && data['winner'] != null && !_winnerDialogShown) {
+//     final String winnerId = data['winner'];
+
+//     _winnerDialogShown = true; // 🔐 Prevent repeat dialogs
+//     _showWinnerDialog(winnerId);
+//   }
+// });
   }
 
   Future<void> _updateGameData() async {
@@ -167,28 +141,6 @@ class _MiniGameScreenState extends State<MiniGameScreen> {
     //   'roles': roles,
     // }, SetOptions(merge: true));
   }
-
-  void _showOpponentLeftDialog() {
-  if (!mounted) return;
-
-  showDialog(
-    context: context,
-    barrierDismissible: false,
-    builder: (context) => AlertDialog(
-      title: Text("👋 Opponent Left"),
-      content: Text("Your opponent has left the game."),
-      actions: [
-        TextButton(
-          onPressed: () {
-            Navigator.of(context).pop(); // Close dialog
-            Navigator.of(context).pop(); // Leave game screen
-          },
-          child: Text("OK"),
-        ),
-      ],
-    ),
-  );
-}
 
   void _listenToGameState() {
     _firestore.collection('games').doc(widget.chatRoomId).snapshots().listen((
@@ -256,124 +208,121 @@ class _MiniGameScreenState extends State<MiniGameScreen> {
   }
 
   void submitGuess() {
-    String guess = _guessController.text.trim().toLowerCase();
-    if (guess.isEmpty) return;
+  String guess = _guessController.text.trim().toLowerCase();
+  if (guess.isEmpty) return;
 
-    final correct = guess == _currentWord.toLowerCase();
+  final correct = guess == _currentWord.toLowerCase();
 
-    if (correct) {
-      setState(() {
-        _guessCorrect = true;
+  if (correct) {
+    setState(() {
+      _guessCorrect = true;
+    });
+
+    _firestore.collection('games').doc(widget.chatRoomId).get().then((doc) {
+      final data = doc.data()!;
+      final Map<String, dynamic> scores = data['scores'] ?? {};
+
+      int currentScore = (scores[widget.currentUserId] ?? 0) + 1;
+      scores[widget.currentUserId] = currentScore;
+
+      _firestore.collection('games').doc(widget.chatRoomId).update({
+        'scores': scores,
       });
 
-      _firestore.collection('games').doc(widget.chatRoomId).get().then((doc) {
-        final data = doc.data()!;
-        final Map<String, dynamic> scores = data['scores'] ?? {};
-
-        int currentScore = (scores[widget.currentUserId] ?? 0) + 1;
-        scores[widget.currentUserId] = currentScore;
-
+      if (currentScore >= 3) {
         _firestore.collection('games').doc(widget.chatRoomId).update({
           'scores': scores,
+          'winner': widget.currentUserId,
         });
-
-        if (currentScore >= 3) {
-          _firestore.collection('games').doc(widget.chatRoomId).update({
-            'scores': scores,
-            'winner': widget.currentUserId,
-          });
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text("🎉 Correct! Swapping roles...")),
-          );
-          Future.delayed(Duration(seconds: 2), _swapRoles);
-        }
-      });
-    } else {
-      _remainingAttempts--;
-
-      if (_remainingAttempts > 0) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text("❌ Wrong! You have $_remainingAttempts tries left."),
-          ),
-        );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("😢 No more tries! Swapping roles...")),
+          SnackBar(content: Text("🎉 Correct! Swapping roles...")),
         );
         Future.delayed(Duration(seconds: 2), _swapRoles);
       }
-    }
+    });
+  } else {
+    _remainingAttempts--;
 
-    _guessController.clear();
+    if (_remainingAttempts > 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("❌ Wrong! You have $_remainingAttempts tries left.")),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("😢 No more tries! Swapping roles...")),
+      );
+      Future.delayed(Duration(seconds: 2), _swapRoles);
+    }
   }
 
-  void _showWinnerDialog(String winnerId) async {
-    final isSelf = winnerId == widget.currentUserId;
+  _guessController.clear();
+}
 
-    String winnerName = "Someone";
+ void _showWinnerDialog(String winnerId) async {
+  final isSelf = winnerId == widget.currentUserId;
 
-    // 🔍 Try to get the winner's name from Firestore
-    try {
-      final snapshot = await _firestore.collection('users').doc(winnerId).get();
-      if (snapshot.exists) {
-        final data = snapshot.data();
-        if (data != null && data['name'] != null) {
-          winnerName = data['name'];
-        }
+  String winnerName = "Someone";
+
+  // 🔍 Try to get the winner's name from Firestore
+  try {
+    final snapshot = await _firestore.collection('users').doc(winnerId).get();
+    if (snapshot.exists) {
+      final data = snapshot.data();
+      if (data != null && data['name'] != null) {
+        winnerName = data['name'];
       }
-    } catch (e) {
-      print("Error fetching winner name: $e");
     }
-
-    if (!mounted) return;
-
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder:
-          (context) => AlertDialog(
-            title: Text("🏁 Game Over"),
-            content: Text(
-              isSelf
-                  ? "🎉 You won the game!"
-                  : "😢 You lost! The winner is $winnerName",
-            ),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.of(context).pop(); // close dialog
-                  Navigator.of(context).popUntil((route) => route.isFirst);
-                  //Navigator.of(context).pop(); // leave game screen
-                },
-                child: Text("OK"),
-              ),
-            ],
-          ),
-    );
+  } catch (e) {
+    print("Error fetching winner name: $e");
   }
+
+  if (!mounted) return;
+
+  showDialog(
+    context: context,
+    barrierDismissible: false,
+    builder: (context) => AlertDialog(
+      title: Text("🏁 Game Over"),
+      content: Text(
+        isSelf
+            ? "🎉 You won the game!"
+            : "😢 You lost! The winner is $winnerName",
+      ),
+      actions: [
+        TextButton(
+          onPressed: () {
+            Navigator.of(context).pop(); // close dialog
+            Navigator.of(context).popUntil((route) => route.isFirst);
+            //Navigator.of(context).pop(); // leave game screen
+          },
+          child: Text("OK"),
+        ),
+      ],
+    ),
+  );
+}
 
   void _swapRoles() {
-    setState(() {
-      _isDrawer = !_isDrawer;
-      _currentWord = _getRandomWord();
-      _guessCorrect = false;
-      _remainingAttempts = 2; // ⬅️ Reset on new round
-      points.clear();
-    });
+  setState(() {
+    _isDrawer = !_isDrawer;
+    _currentWord = _getRandomWord();
+    _guessCorrect = false;
+    _remainingAttempts = 2; // ⬅️ Reset on new round
+    points.clear();
+  });
 
-    final roles = {
-      widget.currentUserId: _isDrawer ? 'drawer' : 'guesser',
-      widget.opponentId: _isDrawer ? 'guesser' : 'drawer',
-    };
+  final roles = {
+    widget.currentUserId: _isDrawer ? 'drawer' : 'guesser',
+    widget.opponentId: _isDrawer ? 'guesser' : 'drawer',
+  };
 
-    _firestore.collection('games').doc(widget.chatRoomId).update({
-      'roles': roles,
-      'word': _currentWord,
-      'points': [],
-    });
-  }
+  _firestore.collection('games').doc(widget.chatRoomId).update({
+    'roles': roles,
+    'word': _currentWord,
+    'points': [],
+  });
+}
 
   void _sendPointsToFirestore() async {
     final List<Map<String, dynamic>> pointMap =
@@ -517,18 +466,6 @@ class _MiniGameScreenState extends State<MiniGameScreen> {
       ),
     );
   }
-
-  @override
-void dispose() {
-  _guessController.dispose(); // Clean up the text controller
-
-  // 👋 Mark this user as offline in Firestore
-  _firestore.collection('games').doc(widget.chatRoomId).set({
-    'presence': {widget.currentUserId: false}
-  }, SetOptions(merge: true));
-
-  super.dispose(); // Always call super.dispose()
-}
 }
 
 class DrawingPainter extends CustomPainter {
@@ -553,6 +490,4 @@ class DrawingPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(DrawingPainter oldDelegate) => true;
-
-  
 }
