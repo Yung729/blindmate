@@ -9,6 +9,8 @@ class CreatePostState extends ChangeNotifier {
   String postContent = '';
   String? _tripLocation;
   DateTime? _tripDate;
+  List<Map<String, dynamic>> _tripJournals = [];
+
 
   void setIsPublic(bool value) {
     isPublic = value;

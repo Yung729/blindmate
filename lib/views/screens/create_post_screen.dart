@@ -7,7 +7,8 @@ import '../../viewmodels/eventHandlers/create_post_event_handler.dart';
 import '../../viewmodels/state/create_post_state.dart';
 import '../../viewmodels/uiValidation/post_validator.dart';
 import '../UIComponents/loading_indicator.dart';
-import '../UIComponents/music_search_dialog.dart'; // Import our new widget
+import '../UIComponents/music_search_dialog.dart';
+import '../UIComponents/trip_journal_create_dialog.dart';
 
 class CreatePostScreen extends StatefulWidget {
   final UserModel user;
@@ -25,9 +26,8 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
   final GeminiModerationService _moderationService = GeminiModerationService();
   bool _isPosting = false;
 
-  // Trip Journal state
-  String? _tripLocation;
-  DateTime? _tripDate;
+  // Trip Journal state (multi-entry)
+  List<Map<String, dynamic>> _tripJournals = [];
 
   @override
   void initState() {
@@ -58,30 +58,22 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
     MusicSearchDialog.show(
       context,
       onMusicSelected: (url, title) {
-        // Update the state through the event handler
         _eventHandler.selectMusic(url, title);
-
-        // Force a rebuild of the UI
         setState(() {});
       },
     );
   }
 
   Future<void> _openTripJournalDialog() async {
-    final result = await showDialog<Map<String, dynamic>>(
-      context: context,
-      builder:
-          (context) => _TripJournalFieldsDialog(
-            initialLocation: _tripLocation,
-            initialDate: _tripDate,
-          ),
+    await TripJournalDialog.show(
+      context,
+      initialEntries: _tripJournals,
+      onJournalsAdded: (entries) {
+        setState(() {
+          _tripJournals = entries;
+        });
+      },
     );
-    if (result != null) {
-      setState(() {
-        _tripLocation = result['location'];
-        _tripDate = result['tripDate'];
-      });
-    }
   }
 
   Future<void> _handleSharePost(BuildContext context) async {
@@ -106,17 +98,14 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
       return;
     }
 
-    // Show posting status
     setState(() {
       _isPosting = true;
     });
 
-    // Call Gemini moderation service
     final moderationResult = await _moderationService.checkContentLevel(
       postContent,
     );
 
-    // Posting completed
     setState(() {
       _isPosting = false;
     });
@@ -139,8 +128,9 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
       return;
     }
 
-    // Proceed with sharing the post if it's SAFE or WARNING
-    await _eventHandler.sharePost(location: _tripLocation, tripDate: _tripDate);
+    // Pass the list of trip journals to your event handler (update your handler if needed)
+    await _eventHandler.sharePost(tripJournals: _tripJournals);
+
     final createPostState = Provider.of<CreatePostState>(
       context,
       listen: false,
@@ -148,8 +138,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
     createPostState.reset();
     _textController.clear();
     setState(() {
-      _tripLocation = null;
-      _tripDate = null;
+      _tripJournals = [];
     });
 
     if (context.mounted) {
@@ -207,29 +196,28 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
         actions: [
           Padding(
             padding: const EdgeInsets.only(right: 16.0),
-            child:
-                _isPosting
-                    ? Container(
-                      width: 40,
-                      height: 40,
-                      padding: const EdgeInsets.all(8),
-                      child: UIComponents.loadingIndicator(
-                        width: 24,
-                        height: 24,
-                      ),
-                    )
-                    : ElevatedButton(
-                      onPressed: () => _handleSharePost(context),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.blue,
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        elevation: 0,
-                      ),
-                      child: const Text("Post"),
+            child: _isPosting
+                ? Container(
+                    width: 40,
+                    height: 40,
+                    padding: const EdgeInsets.all(8),
+                    child: UIComponents.loadingIndicator(
+                      width: 24,
+                      height: 24,
                     ),
+                  )
+                : ElevatedButton(
+                    onPressed: () => _handleSharePost(context),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blue,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      elevation: 0,
+                    ),
+                    child: const Text("Post"),
+                  ),
           ),
         ],
       ),
@@ -316,8 +304,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                       controller: _textController,
                       maxLines: null,
                       minLines: 5,
-                      onChanged:
-                          (value) => _eventHandler.updatePostContent(value),
+                      onChanged: (value) => _eventHandler.updatePostContent(value),
                       decoration: const InputDecoration(
                         hintText: "What's on your mind?",
                         border: InputBorder.none,
@@ -356,8 +343,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  createPostState.selectedMusicTitle ??
-                                      "Selected song",
+                                  createPostState.selectedMusicTitle ?? "Selected song",
                                   style: const TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.w500,
@@ -374,7 +360,6 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                               ],
                             ),
                           ),
-                          // Add remove button
                           IconButton(
                             onPressed: () {
                               _eventHandler.selectMusic(null, null);
@@ -385,44 +370,50 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                       ),
                     ),
 
-                  // Trip Journal info display
-                  if (_tripLocation != null && _tripDate != null)
+                  // Trip Journal info display (multi-entry)
+                  if (_tripJournals.isNotEmpty)
                     Padding(
                       padding: const EdgeInsets.only(top: 16.0),
-                      child: Container(
-                        padding: const EdgeInsets.all(14),
-                        decoration: BoxDecoration(
-                          color: Colors.green.withOpacity(0.05),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: Colors.green.withOpacity(0.2),
-                            width: 1,
-                          ),
-                        ),
-                        child: Row(
-                          children: [
-                            const Icon(Icons.location_on, color: Colors.green),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                '$_tripLocation (${_tripDate!.day}/${_tripDate!.month}/${_tripDate!.year})',
-                                style: const TextStyle(
-                                  fontSize: 15,
-                                  color: Colors.green,
-                                ),
+                      child: Column(
+                        children: _tripJournals.map((journal) {
+                          final location = journal['location'] as String?;
+                          final date = journal['date'] as DateTime?;
+                          return Container(
+                            margin: const EdgeInsets.only(bottom: 8),
+                            padding: const EdgeInsets.all(14),
+                            decoration: BoxDecoration(
+                              color: Colors.green.withOpacity(0.05),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: Colors.green.withOpacity(0.2),
+                                width: 1,
                               ),
                             ),
-                            IconButton(
-                              icon: const Icon(Icons.close, size: 18),
-                              onPressed: () {
-                                setState(() {
-                                  _tripLocation = null;
-                                  _tripDate = null;
-                                });
-                              },
+                            child: Row(
+                              children: [
+                                const Icon(Icons.location_on, color: Colors.green),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    '$location (${date != null ? '${date.day}/${date.month}/${date.year}' : ''})',
+                                    style: const TextStyle(
+                                      fontSize: 15,
+                                      color: Colors.green,
+                                    ),
+                                  ),
+                                ),
+                                IconButton(
+                                  icon: const Icon(Icons.close, size: 18),
+                                  onPressed: () {
+                                    setState(() {
+                                      _tripJournals.remove(journal);
+                                    });
+                                  },
+                                ),
+                              ],
                             ),
-                          ],
-                        ),
+                          );
+                        }).toList(),
                       ),
                     ),
 
@@ -433,7 +424,6 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
           );
         },
       ),
-
       bottomNavigationBar: SafeArea(
         child: Container(
           padding: const EdgeInsets.all(12),
@@ -517,96 +507,6 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
           ),
         ),
       ),
-    );
-  }
-}
-
-// Dialog for entering Trip Journal fields
-class _TripJournalFieldsDialog extends StatefulWidget {
-  final String? initialLocation;
-  final DateTime? initialDate;
-
-  const _TripJournalFieldsDialog({this.initialLocation, this.initialDate});
-
-  @override
-  State<_TripJournalFieldsDialog> createState() =>
-      _TripJournalFieldsDialogState();
-}
-
-class _TripJournalFieldsDialogState extends State<_TripJournalFieldsDialog> {
-  final _formKey = GlobalKey<FormState>();
-  String _location = '';
-  DateTime? _tripDate;
-
-  @override
-  void initState() {
-    super.initState();
-    _location = widget.initialLocation ?? '';
-    _tripDate = widget.initialDate;
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      title: const Text('Trip Journal Details'),
-      content: Form(
-        key: _formKey,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextFormField(
-              initialValue: _location,
-              decoration: const InputDecoration(labelText: 'Location'),
-              validator:
-                  (v) => v == null || v.isEmpty ? 'Enter location' : null,
-              onChanged: (v) => _location = v,
-            ),
-            const SizedBox(height: 10),
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    _tripDate == null
-                        ? 'Select Date'
-                        : '${_tripDate!.day}/${_tripDate!.month}/${_tripDate!.year}',
-                  ),
-                ),
-                TextButton(
-                  onPressed: () async {
-                    final picked = await showDatePicker(
-                      context: context,
-                      initialDate: _tripDate ?? DateTime.now(),
-                      firstDate: DateTime(2000),
-                      lastDate: DateTime(2100),
-                    );
-                    if (picked != null) {
-                      setState(() => _tripDate = picked);
-                    }
-                  },
-                  child: const Text('Pick Date'),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('Cancel'),
-        ),
-        ElevatedButton(
-          onPressed: () {
-            if (_formKey.currentState!.validate() && _tripDate != null) {
-              Navigator.pop(context, {
-                'location': _location,
-                'tripDate': _tripDate,
-              });
-            }
-          },
-          child: const Text('OK'),
-        ),
-      ],
     );
   }
 }
