@@ -1,8 +1,10 @@
 import 'package:blindmate/models/dataModels/rewards_model.dart';
 import 'package:blindmate/services/reward_service.dart';
 import 'package:blindmate/viewmodels/eventHandlers/redeem_reward_event_handler.dart';
+import 'package:blindmate/views/UIComponents/avatar_frame.dart';
 import 'package:blindmate/views/UIComponents/custom_button.dart';
 import 'package:blindmate/views/UIComponents/reward_click.dart';
+import 'package:blindmate/views/screens/switch_avatar_screen.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -97,6 +99,26 @@ class _RedeemRewardScreenState extends State<RedeemRewardScreen> {
                 child: Column(
                   // ✅ Use Column here instead of children on Container
                   children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        AvatarFrame(
+                          imagePath: widget.user.avatarImg,
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder:
+                                    (context) =>
+                                        SwitchAvatarScreen(user: _currentUser!),
+                              ),
+                            ).then((_) {
+                              _loadUserData();
+                            });
+                          },
+                        ),
+                      ],
+                    ),
                     buildCrystalBox(
                       '${_currentUser!.fragmentNumber}',
                     ), // Optional: using your shared method

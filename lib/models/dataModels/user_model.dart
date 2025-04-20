@@ -3,18 +3,19 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 class UserModel {
   final String userId;
   final String name;
-  final String email;
+  final String email; // 🔹 Added email field
   final int levelValue;
   final bool online;
   final String status;
-  final DateTime? lastActive;
-  final String emotionStatus;
+  final DateTime? lastActive; // 🔹 Added lastActive field
+  final String emotionStatus; 
   final double progressionValue;
   int fragmentNumber;
-  final String currentMission;
+  String currentMission;
+  String avatarImg;
+  int flower;
   final DateTime surveyDate;
   final List<String> hiddenPosts; // ADD THIS LINE
-  int flower;
 
   UserModel({
     required this.userId,
@@ -23,21 +24,23 @@ class UserModel {
     required this.levelValue,
     required this.online,
     required this.status,
-    this.lastActive,
+    this.lastActive, // Can be null if user never logged in
     required this.emotionStatus,
     required this.progressionValue,
     required this.fragmentNumber,
     required this.currentMission,
+    required this.avatarImg,
+    required this.flower,
     required this.surveyDate,
-    this.hiddenPosts = const [], // Initialize with an empty list
-    this.flower = 0,
+    this.hiddenPosts = const [],
   });
 
+  // 🔹 Convert Firestore Document to UserModel
   factory UserModel.fromMap(Map<String, dynamic> data, String documentId) {
     return UserModel(
-      userId: documentId,
+      userId: documentId, // Use Firestore doc ID as userId
       name: data['name'] ?? 'Unknown User',
-      email: data['email'] ?? 'No Email',
+      email: data['email'] ?? 'No Email', // 🔹 Default if missing
       levelValue: (data['levelValue'] as int? ?? 1).clamp(1, 9999),
       online: data['online'] ?? false,
       status: data['status'] ?? 'available',
@@ -50,26 +53,29 @@ class UserModel {
           .clamp(0.0, 1.0),
       fragmentNumber: data['fragmentNumber'] ?? 0,
       currentMission: data['currentMission'] ?? '',
+      avatarImg: data['avatarImg'] ?? '',
+      flower: data['flower'] ?? 0,
       surveyDate: data['surveyDate'] != null
           ? (data['surveyDate'] as Timestamp).toDate()
           : DateTime.now(),
-      hiddenPosts: (data['hiddenPosts'] as List<dynamic>?)?.cast<String>() ?? [], // Read hiddenPosts
-      flower: data['flower'] ?? 0,
+      hiddenPosts: (data['hiddenPosts'] as List<dynamic>?)?.cast<String>() ?? [],
     );
   }
 
+  // 🔹 Convert UserModel to Firestore Map
   Map<String, dynamic> toMap() {
     return {
       'name': name,
       'email': email,
       'online': online,
       'status': status,
-      'lastActive': lastActive != null
+       'lastActive': lastActive != null
           ? Timestamp.fromDate(lastActive!)
           : FieldValue.serverTimestamp(),
       'emotionStatus': emotionStatus,
       'fragmentNumber': fragmentNumber,
       'currentMission': currentMission,
+      'avatarImg': avatarImg,
       'levelValue': levelValue,
       'progressionValue': progressionValue,
       'surveyDate': Timestamp.fromDate(surveyDate),

@@ -30,7 +30,10 @@ class _NavigationControllerState extends State<NavigationController> {
     super.initState();
     final currentUserState = context.read<AuthState>();
     final dataBinding = AuthDataBinding();
-    _userEventHandler = AuthEventHandler(currentUserState, dataBinding);
+    _userEventHandler = AuthEventHandler(
+      currentUserState,
+      dataBinding,
+    );
     _initializeUser();
   }
 
@@ -39,102 +42,6 @@ class _NavigationControllerState extends State<NavigationController> {
     if (mounted) {
       setState(() {});
     }
-  }
-
-  IconData _getEmotionIcon(String emotion) {
-    switch (emotion) {
-      case 'happy':
-        return Icons.sentiment_satisfied_alt;
-      case 'sad':
-        return Icons.sentiment_dissatisfied;
-      case 'fear':
-        return Icons.mood_bad;
-      case 'disgust':
-        return Icons.sick;
-      case 'anger':
-        return Icons.sentiment_very_dissatisfied;
-      case 'surprise':
-        return Icons.sentiment_very_satisfied;
-      default:
-        return Icons.person;
-    }
-  }
-
-  void _showEmotionPicker(BuildContext context, AuthState authState) {
-    final emotions = [
-      {
-        'label': 'Happy',
-        'value': 'happy',
-        'icon': Icons.sentiment_satisfied_alt,
-      },
-      {'label': 'Sad', 'value': 'sad', 'icon': Icons.sentiment_dissatisfied},
-      {'label': 'Fear', 'value': 'fear', 'icon': Icons.mood_bad},
-      {'label': 'Disgust', 'value': 'disgust', 'icon': Icons.sick},
-      {
-        'label': 'Anger',
-        'value': 'anger',
-        'icon': Icons.sentiment_very_dissatisfied,
-      },
-      {
-        'label': 'Surprise',
-        'value': 'surprise',
-        'icon': Icons.sentiment_very_satisfied,
-      },
-    ];
-
-    final currentEmotion = authState.currentUser?.emotionStatus;
-
-    showModalBottomSheet(
-      context: context,
-      builder: (context) {
-        return SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Padding(
-                padding: EdgeInsets.all(16.0),
-                child: Text(
-                  'How are you feeling?',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-              ),
-              ...emotions.map((emotion) {
-                final isSelected = emotion['value'] == currentEmotion;
-                return Container(
-                  color: isSelected ? Colors.blue.withOpacity(0.15) : null,
-                  child: ListTile(
-                    leading: Icon(
-                      emotion['icon'] as IconData,
-                      color: isSelected ? Colors.blue : null,
-                    ),
-                    title: Text(
-                      emotion['label'] as String,
-                      style: TextStyle(
-                        fontWeight:
-                            isSelected ? FontWeight.bold : FontWeight.normal,
-                        color: isSelected ? Colors.blue : null,
-                      ),
-                    ),
-                    onTap: () async {
-                      Navigator.pop(context);
-                      final handler = AuthEventHandler(
-                        authState,
-                        AuthDataBinding(),
-                      );
-                      await handler.onEmotionSelected(
-                        context,
-                        emotion['value'] as String,
-                      );
-                      setState(() {}); // Refresh UI if needed
-                    },
-                  ),
-                );
-              }),
-            ],
-          ),
-        );
-      },
-    );
   }
 
   @override
@@ -153,7 +60,7 @@ class _NavigationControllerState extends State<NavigationController> {
       const PickUpScreen(),
       const SendBottleNoteScreen(),
       const MyBottleNotesScreen(),
-      RedeemRewardScreen(user: currentUserState.currentUser!),
+      RedeemRewardScreen(user: currentUserState.currentUser!)
     ];
 
     return Scaffold(
@@ -168,61 +75,44 @@ class _NavigationControllerState extends State<NavigationController> {
               backgroundColor: Colors.transparent,
               elevation: 0,
               toolbarHeight: 80,
-              title:
-                  _currentIndex == 0
-                      ? Padding(
-                        padding: const EdgeInsets.only(left: 8.0),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            GestureDetector(
-                              onTap:
-                                  () => _showEmotionPicker(
-                                    context,
-                                    currentUserState,
-                                  ),
-                              child: Icon(
-                                _getEmotionIcon(
-                                  currentUserState.currentUser!.emotionStatus,
+              title: _currentIndex == 0
+                  ? Padding(
+                      padding: const EdgeInsets.only(left: 8.0),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.person, color: Colors.black),
+                          const SizedBox(width: 8),
+                         Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                "Level ${currentUserState.currentUser!.levelValue}",
+                                style: const TextStyle(
+                                  color: Colors.black,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
                                 ),
-                                color: Colors.black,
-                                size: 32,
                               ),
-                            ),
-                            const SizedBox(width: 8),
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Text(
-                                  "Level ${currentUserState.currentUser!.levelValue}",
-                                  style: const TextStyle(
-                                    color: Colors.black,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 16,
-                                  ),
+                              const SizedBox(height: 4),
+                              SizedBox(
+                                width: 150,
+                                child: LinearPercentIndicator(
+                                  percent: currentUserState.currentUser!.progressionValue,
+                                  backgroundColor: Colors.grey[300],
+                                  progressColor: Colors.blue,
+                                  lineHeight: 6.0,
+                                  animation: true,
+                                  animationDuration: 1000,
                                 ),
-                                const SizedBox(height: 4),
-                                SizedBox(
-                                  width: 150,
-                                  child: LinearPercentIndicator(
-                                    percent:
-                                        currentUserState
-                                            .currentUser!
-                                            .progressionValue,
-                                    backgroundColor: Colors.grey[300],
-                                    progressColor: Colors.blue,
-                                    lineHeight: 6.0,
-                                    animation: true,
-                                    animationDuration: 1000,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      )
-                      : null,
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    )
+                  : null,
               actions: [
                 IconButton(
                   icon: const Icon(Icons.exit_to_app, color: Colors.black),

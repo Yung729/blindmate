@@ -1,9 +1,10 @@
-
-import '../../services/post_service.dart';
+import '../../services/post_service.dart'; // Import the merged service
+import '../../models/dataModels/post_model.dart'; // Import the merged model
+// import '../../services/sharing_service.dart';
 import '../state/sharing_state.dart';
 
 class SharingDataBinding {
-  final PostService _postService = PostService();
+  final PostService _postService = PostService(); // Use the merged service
   final SharingState sharingState;
 
   SharingDataBinding({required this.sharingState});
@@ -14,8 +15,7 @@ class SharingDataBinding {
     // Load user data
     final userData = await _postService.loadUserData();
     if (userData != null) {
-      // Await setCurrentUser to ensure hidden posts are loaded before posts stream
-      await sharingState.setCurrentUser(userData);
+      sharingState.setCurrentUser(userData);
     }
 
     // Set up stream for posts
@@ -23,19 +23,12 @@ class SharingDataBinding {
       _postService
           .getPosts(sharingState.currentUser!.userId)
           .listen((posts) {
+        // Convert PostModel to the type expected by SharingState (if needed)
         sharingState.setPosts(posts);
         sharingState.setLoading(false);
       });
     } else {
       sharingState.setLoading(false);
-    }
-  }
-
-  /// Optionally, expose a method to refresh hidden posts from Firestore
-  Future<void> refreshHiddenPosts() async {
-    if (sharingState.currentUser != null) {
-      final hiddenIds = await _postService.getHiddenPosts();
-      sharingState.setHiddenPostIds(hiddenIds.toSet());
     }
   }
 
@@ -47,6 +40,7 @@ class SharingDataBinding {
     } catch (e) {
       print("Error deleting post via service: $e");
       sharingState.setLoading(false);
+      // Optionally, show an error message to the user
     } finally {
       if (sharingState.isLoading) {
         sharingState.setLoading(false);
@@ -62,6 +56,7 @@ class SharingDataBinding {
     } catch (e) {
       print("Error updating post visibility via service: $e");
       sharingState.setLoading(false);
+      // Optionally, show an error message to the user
     } finally {
       if (sharingState.isLoading) {
         sharingState.setLoading(false);
