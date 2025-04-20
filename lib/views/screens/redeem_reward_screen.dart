@@ -103,7 +103,7 @@ class _RedeemRewardScreenState extends State<RedeemRewardScreen> {
                       mainAxisAlignment: MainAxisAlignment.end,
                       children: [
                         AvatarFrame(
-                          imagePath: widget.user.avatarImg,
+                          imagePath: _currentUser!.avatarImg,
                           onTap: () {
                             Navigator.push(
                               context,
