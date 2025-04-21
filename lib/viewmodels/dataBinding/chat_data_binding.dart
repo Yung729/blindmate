@@ -15,20 +15,25 @@ class ChatDataBinding {
   ChatDataBinding({required this.chatState});
 
   void initialize(String chatRoomId) {
-    // Clear previous chat state first
-    clearChatState();
-
+    // Initialize network connections first
     _chatService.connectWebSocket(chatRoomId);
 
+    // Set up listeners with optimized state updates
     _chatService.getMessages().listen((messages) {
-      chatState.setMessages(messages);
+      // Use microtask for better performance while avoiding setState errors
+      Future.microtask(() {
+        chatState.setMessages(messages);
+      });
     });
 
     _chatService.listenForChatUpdates(chatRoomId).listen((snapshot) {
       if (snapshot.exists && snapshot.data() != null) {
         final data = snapshot.data() as Map<String, dynamic>?;
         if (data != null && data['closed'] == true) {
-          chatState.setPartnerLeft(true);
+          // Use microtask for better performance
+          Future.microtask(() {
+            chatState.setPartnerLeft(true);
+          });
         }
       }
     });

@@ -110,12 +110,15 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       if (snapshot.docs.isNotEmpty) {
         final event = snapshot.docs.first.data() as Map<String, dynamic>;
         if (event['senderId'] != widget.currentUserId) {
-          // Show flower animation for the other user
-          _chatState.setShowFlowerAnimation(true);
-          Future.delayed(const Duration(seconds: 2), () {
-            if (mounted) {
-              _chatState.setShowFlowerAnimation(false);
-            }
+          // Use microtask for better performance
+          Future.microtask(() {
+            // Show flower animation for the other user
+            _chatState.setShowFlowerAnimation(true);
+            Future.delayed(const Duration(seconds: 2), () {
+              if (mounted) {
+                _chatState.setShowFlowerAnimation(false);
+              }
+            });
           });
         }
       }
@@ -308,8 +311,8 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     // Handle error messages outside of build
     final chatState = Provider.of<ChatState>(context, listen: false);
     if (chatState.errorMessage != null) {
-      // Use post-frame callback to show SnackBar after build is complete
-      WidgetsBinding.instance.addPostFrameCallback((_) {
+      // Use microtask for better performance
+      Future.microtask(() {
         if (!mounted) return;
         final messenger = ScaffoldMessenger.of(context);
         messenger.clearSnackBars();
@@ -336,9 +339,9 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     // Listen for changes but don't update state during build
     return Consumer2<ChatState, AuthState>(
       builder: (context, chatState, authState, child) {
-        // Schedule state updates for after this frame completes
+        // Schedule state updates with microtask for better performance
         if (authState.currentUser?.flower != _localFlowerCount || chatState.errorMessage != null) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
+          Future.microtask(() {
             if (!mounted) return;
             _updateFlowerCount();
             _handleErrorMessages();

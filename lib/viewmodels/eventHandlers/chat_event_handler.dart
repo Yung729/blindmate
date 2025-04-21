@@ -31,7 +31,12 @@ class ChatEventHandler {
 
   Future<void> init() async {
     _isChatOpen = true;
-    chatState.clear(); // Reset state when initializing new chat
+    
+    // Use microtask to schedule state updates without delaying UI
+    Future.microtask(() {
+      chatState.clear(); // Reset state when initializing new chat
+    });
+    
     dataBinding.initialize(chatRoomId);
     await dataBinding.fetchChatPartner(chatRoomId, currentUserId);
     dataBinding.listenTypingStatus(chatRoomId, chatState.otherUserId);
