@@ -1,4 +1,3 @@
-// Inside your post_header.dart file
 
 import 'package:flutter/material.dart';
 import '../UIComponents/post_privacy_indicator.dart';
@@ -8,9 +7,9 @@ class PostHeader extends StatelessWidget {
   final String avatarAsset;
   final String timeAgo;
   final bool isPublic;
-  final VoidCallback onOptions;
-  final bool isTripJournal; // Add this parameter
-  final VoidCallback? onTripJournalTap; // Optional tap action
+  final VoidCallback? onOptions; // Now nullable
+  final bool isTripJournal;
+  final VoidCallback? onTripJournalTap;
 
   const PostHeader({
     super.key,
@@ -18,8 +17,8 @@ class PostHeader extends StatelessWidget {
     required this.avatarAsset,
     required this.timeAgo,
     required this.isPublic,
-    required this.onOptions,
-    this.isTripJournal = false, // Default to false
+    this.onOptions, // Now optional
+    this.isTripJournal = false,
     this.onTripJournalTap,
   });
 
@@ -51,7 +50,6 @@ class PostHeader extends StatelessWidget {
                     size: 12,
                     color: Colors.grey,
                   ),
-                  // Conditionally add the Trip Journal icon here
                   if (isTripJournal)
                     Padding(
                       padding: const EdgeInsets.only(left: 8.0),
@@ -69,11 +67,12 @@ class PostHeader extends StatelessWidget {
             ],
           ),
         ),
-        // The options button (three dots)
-        IconButton(
-          icon: const Icon(Icons.more_vert),
-          onPressed: onOptions,
-        ),
+        // Only show the options button if onOptions is not null
+        if (onOptions != null)
+          IconButton(
+            icon: const Icon(Icons.more_vert),
+            onPressed: onOptions,
+          ),
       ],
     );
   }

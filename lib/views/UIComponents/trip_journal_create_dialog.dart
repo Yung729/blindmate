@@ -207,7 +207,6 @@ class _TripJournalDialogState extends State<TripJournalDialog> {
                                 TextFormField(
                                   controller: entry.locationController,
                                   decoration: InputDecoration(
-                                    labelText: "Location",
                                     hintText: "E.g. Mount Fuji",
                                     prefixIcon: const Icon(Icons.location_on, color: Colors.green),
                                     border: OutlineInputBorder(

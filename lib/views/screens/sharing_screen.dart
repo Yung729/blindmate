@@ -229,6 +229,19 @@ class _SharingScreenState extends State<SharingScreen> {
                                 });
                               },
                               onViewTripJournal: _showTripJournalDialog,
+                              onDeleteSelected: (selectedIds) async {
+                                // Optionally, show a confirmation dialog
+                                final confirm = await showConfirmDialog(
+                                  context,
+                                  'Delete Posts',
+                                  'Are you sure you want to delete ${selectedIds.length} post(s)?',
+                                );
+                                if (confirm) {
+                                  for (final id in selectedIds) {
+                                    _eventHandler.deletePost(id);
+                                  }
+                                }
+                              },
                             )
                             : _buildSharedContentList(displayedPosts),
                   ),
