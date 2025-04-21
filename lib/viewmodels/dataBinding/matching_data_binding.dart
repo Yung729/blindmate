@@ -23,9 +23,8 @@ class MatchingDataBinding {
     matchingState.setSearching(true);
     matchingState.updateStatus('waiting');
     
-    // Call service to find a match
-    await _matchingService.updateUserStatus(user.userId, 'waiting');
-    String? chatRoomId = await _matchingService.findMatch(user);
+    // Call service to start matching - this will properly trigger all debug logs
+    String? chatRoomId = await _matchingService.startMatching(user);
     
     // If no match was found through direct matching (unlikely but possible)
     if (chatRoomId == null) {

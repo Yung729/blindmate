@@ -59,7 +59,7 @@ class LevelProgressionService {
       // Query summaries using collectionGroup, filtering by userId and timestamp
       QuerySnapshot<Map<String, dynamic>> summariesSnapshot = await _firestore
           .collectionGroup('summaries')
-          .where('userID', isEqualTo: userId)
+          .where('userId', isEqualTo: userId)
           .where('timestamp', isGreaterThanOrEqualTo: targetDateStartTimestamp)
           .where('timestamp', isLessThan: targetDateEndTimestamp)
           .get();

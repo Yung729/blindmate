@@ -45,12 +45,19 @@ class _MatchingScreenState extends State<MatchingScreen>
   void _listenForStateChanges() {
     _matchingState.addListener(() {
       if (_matchingState.chatRoomId != null && !_isNavigating && mounted) {
-        _isNavigating = true;
-        _matchingHandler.navigateToChat(
-          context,
-          _matchingState.chatRoomId!,
-          widget.user.userId,
-        );
+        // Move setState outside of the listener callback and into a post-frame callback
+        // to avoid calling setState during build
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+          setState(() {
+            _isNavigating = true;
+          });
+          _matchingHandler.navigateToChat(
+            context,
+            _matchingState.chatRoomId!,
+            widget.user.userId,
+          );
+        });
       }
     });
   }
@@ -64,6 +71,7 @@ class _MatchingScreenState extends State<MatchingScreen>
 
   @override
   void dispose() {
+    // Proper cleanup to avoid memory leaks
     _matchingState.removeListener(_listenForStateChanges);
     super.dispose();
   }

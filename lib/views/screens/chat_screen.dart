@@ -70,6 +70,12 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
 
     WidgetsBinding.instance.addObserver(this);
     _chatHandler.startInactivityTimer(context);
+    
+    // Add post-frame callback to ensure UI is built before checking state
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _updateFlowerCount();
+      _handleErrorMessages();
+    });
 
     _chatState.addListener(() {
       if (!mounted || _chatState.hasSummaryShown) return;
@@ -282,33 +288,60 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _updateFlowerCount();
+    _handleErrorMessages();
+  }
+  
+  void _updateFlowerCount() {
+    // Check for auth state changes outside of build
+    final authState = Provider.of<AuthState>(context, listen: false);
+    if (authState.currentUser?.flower != _localFlowerCount) {
+      setState(() {
+        _localFlowerCount = authState.currentUser?.flower ?? 0;
+      });
+    }
+  }
+  
+  void _handleErrorMessages() {
+    // Handle error messages outside of build
+    final chatState = Provider.of<ChatState>(context, listen: false);
+    if (chatState.errorMessage != null) {
+      // Use post-frame callback to show SnackBar after build is complete
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        final messenger = ScaffoldMessenger.of(context);
+        messenger.clearSnackBars();
+        messenger.showSnackBar(
+          SnackBar(
+            content: Text(chatState.errorMessage!),
+            backgroundColor:
+                chatState.errorMessage!.contains('Warning')
+                    ? Colors.orange[400]
+                    : Colors.red[400],
+            behavior: SnackBarBehavior.floating,
+            margin: const EdgeInsets.all(4),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+        // Clear the error message after showing
+        chatState.setErrorMessage(null);
+      });
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    // Listen for changes but don't update state during build
     return Consumer2<ChatState, AuthState>(
       builder: (context, chatState, authState, child) {
-        // Update local flower count if auth state changes
-        if (authState.currentUser?.flower != _localFlowerCount) {
-          _localFlowerCount = authState.currentUser?.flower ?? 0;
-        }
-
-        if (chatState.errorMessage != null) {
-          // Delay to ensure previous SnackBar is dismissed
-          Future.microtask(() {
-            final messenger = ScaffoldMessenger.of(context);
-            messenger.clearSnackBars();
-            messenger.showSnackBar(
-              SnackBar(
-                content: Text(chatState.errorMessage!),
-                backgroundColor:
-                    chatState.errorMessage!.contains('Warning')
-                        ? Colors.orange[400]
-                        : Colors.red[400],
-                behavior: SnackBarBehavior.floating,
-                margin: const EdgeInsets.all(4),
-                duration: const Duration(seconds: 2),
-              ),
-            );
-            // Clear the error message after showing
-            chatState.setErrorMessage(null);
+        // Schedule state updates for after this frame completes
+        if (authState.currentUser?.flower != _localFlowerCount || chatState.errorMessage != null) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (!mounted) return;
+            _updateFlowerCount();
+            _handleErrorMessages();
           });
         }
 
