@@ -1,3 +1,4 @@
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../models/dataModels/user_model.dart';
@@ -29,9 +30,6 @@ class _SharingScreenState extends State<SharingScreen> {
   late SharingState _sharingState;
   bool _showMyPostsOnly = false;
   final ScrollController _scrollController = ScrollController();
-  int _loadedPostCount = 5;
-  static const int _loadMoreThreshold = 2;
-  bool _isLoadingMore = false;
   final Set<String> _expandedPosts = <String>{};
   static const int _maxLinesCollapsed = 3;
   final Set<String> _hiddenPostIds = <String>{};
@@ -49,36 +47,12 @@ class _SharingScreenState extends State<SharingScreen> {
     );
 
     _eventHandler.init();
-
-    _scrollController.addListener(_scrollListener);
   }
 
   @override
   void dispose() {
-    _scrollController.removeListener(_scrollListener);
     _scrollController.dispose();
     super.dispose();
-  }
-
-  void _scrollListener() {
-    if (!_isLoadingMore &&
-        _scrollController.position.extentAfter <
-            _loadMoreThreshold * MediaQuery.of(context).size.height / 6) {
-      _loadMorePosts();
-    }
-  }
-
-  Future<void> _loadMorePosts() async {
-    if (_sharingState.posts.length > _loadedPostCount) {
-      setState(() {
-        _isLoadingMore = true;
-        _loadedPostCount += 5;
-      });
-      await Future.delayed(const Duration(milliseconds: 200));
-      setState(() {
-        _isLoadingMore = false;
-      });
-    }
   }
 
   String getTimeAgo(DateTime postTime) {
@@ -191,7 +165,6 @@ class _SharingScreenState extends State<SharingScreen> {
         final displayedPosts =
             filteredPosts
                 .where((post) => !sharingState.hiddenPostIds.contains(post.id))
-                .take(_loadedPostCount)
                 .toList();
 
         return Stack(
@@ -202,54 +175,45 @@ class _SharingScreenState extends State<SharingScreen> {
                 children: [
                   _buildCreatePostAndToggleRow(),
                   Expanded(
-                    child:
-                        _showMyPostsOnly
-                            ? MyPostsList(
-                              posts: displayedPosts,
-                              userId: widget.user.userId,
-                              loadedPostCount: _loadedPostCount,
-                              isLoadingMore: _isLoadingMore,
-                              scrollController: _scrollController,
-                              expandedPosts: _expandedPosts,
-                              maxLinesCollapsed: _maxLinesCollapsed,
-                              onShowPostOptions:
-                                  (post) => _showPostOptions(context, post),
-                              onPlayMusic:
-                                  (post) =>
-                                      _eventHandler.playMusic(post.musicUrl!),
-                              getTimeAgo: getTimeAgo,
-                              onExpand: (postId) {
-                                setState(() {
-                                  _expandedPosts.add(postId);
-                                });
-                              },
-                              onCollapse: (postId) {
-                                setState(() {
-                                  _expandedPosts.remove(postId);
-                                });
-                              },
-                              onViewTripJournal: _showTripJournalDialog,
-                              onDeleteSelected: (selectedIds) async {
-                                // Optionally, show a confirmation dialog
-                                final confirm = await showConfirmDialog(
-                                  context,
-                                  'Delete Posts',
-                                  'Are you sure you want to delete ${selectedIds.length} post(s)?',
-                                );
-                                if (confirm) {
-                                  for (final id in selectedIds) {
-                                    _eventHandler.deletePost(id);
-                                  }
+                    child: _showMyPostsOnly
+                        ? MyPostsList(
+                            posts: displayedPosts,
+                            userId: widget.user.userId,
+                            scrollController: _scrollController,
+                            expandedPosts: _expandedPosts,
+                            maxLinesCollapsed: _maxLinesCollapsed,
+                            onShowPostOptions:
+                                (post) => _showPostOptions(context, post),
+                            onPlayMusic:
+                                (post) =>
+                                    _eventHandler.playMusic(post.musicUrl!),
+                            getTimeAgo: getTimeAgo,
+                            onExpand: (postId) {
+                              setState(() {
+                                _expandedPosts.add(postId);
+                              });
+                            },
+                            onCollapse: (postId) {
+                              setState(() {
+                                _expandedPosts.remove(postId);
+                              });
+                            },
+                            onViewTripJournal: _showTripJournalDialog,
+                            onDeleteSelected: (selectedIds) async {
+                              final confirm = await showConfirmDialog(
+                                context,
+                                'Delete Posts',
+                                'Are you sure you want to delete ${selectedIds.length} post(s)?',
+                              );
+                              if (confirm) {
+                                for (final id in selectedIds) {
+                                  _eventHandler.deletePost(id);
                                 }
-                              },
-                            )
-                            : _buildSharedContentList(displayedPosts),
+                              }
+                            },
+                          )
+                        : _buildSharedContentList(displayedPosts),
                   ),
-                  if (_isLoadingMore)
-                    const Padding(
-                      padding: EdgeInsets.all(8.0),
-                      child: Center(child: CircularProgressIndicator()),
-                    ),
                 ],
               ),
             ),
@@ -275,7 +239,6 @@ class _SharingScreenState extends State<SharingScreen> {
             backgroundImage: AssetImage('assets/default_pic.jpg'),
           ),
           const SizedBox(width: 10),
-          // Input field fills all available space up to the toggle button
           Expanded(
             child: GestureDetector(
               onTap: () async {
@@ -297,9 +260,7 @@ class _SharingScreenState extends State<SharingScreen> {
               ),
             ),
           ),
-          // Remove extra SizedBox and Spacer to minimize gap
           const SizedBox(width: 10),
-          // Single toggle button, right-aligned
           _buildSingleToggleButton(),
         ],
       ),
@@ -312,7 +273,6 @@ class _SharingScreenState extends State<SharingScreen> {
       onTap: () {
         setState(() {
           _showMyPostsOnly = !_showMyPostsOnly;
-          _loadedPostCount = 5;
           _scrollController.jumpTo(0);
           _expandedPosts.clear();
         });
@@ -357,118 +317,6 @@ class _SharingScreenState extends State<SharingScreen> {
     );
   }
 
-  Widget _buildAttractiveToggleButton({
-    required bool isActive,
-    required IconData icon,
-    required String label,
-    required VoidCallback onTap,
-  }) {
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 250),
-      curve: Curves.easeInOut,
-      decoration: BoxDecoration(
-        gradient:
-            isActive
-                ? const LinearGradient(
-                  colors: [Color(0xFF42A5F5), Color(0xFF1976D2)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                )
-                : null,
-        color: isActive ? null : Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(
-          color: isActive ? Colors.transparent : Colors.grey.shade300,
-          width: 1.5,
-        ),
-        boxShadow:
-            isActive
-                ? [
-                  BoxShadow(
-                    color: Colors.blue.withOpacity(0.18),
-                    blurRadius: 8,
-                    offset: const Offset(0, 3),
-                  ),
-                ]
-                : [],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(24),
-          onTap: onTap,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-            child: Row(
-              children: [
-                Icon(
-                  icon,
-                  color: isActive ? Colors.white : Colors.blueGrey,
-                  size: 20,
-                ),
-                const SizedBox(width: 6),
-                Text(
-                  label,
-                  style: TextStyle(
-                    color: isActive ? Colors.white : Colors.blueGrey,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 14,
-                    letterSpacing: 0.2,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildToggleButtons() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 6.0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          CustomButton(
-            text: "All Posts",
-            onPressed: () {
-              setState(() {
-                _showMyPostsOnly = false;
-                _loadedPostCount = 5;
-                _scrollController.jumpTo(0);
-                _expandedPosts.clear();
-              });
-            },
-            backgroundColor: !_showMyPostsOnly ? Colors.blue : Colors.grey,
-            horizontalPadding: 20,
-            verticalPadding: 10,
-            borderRadius: 20,
-            fontSize: 14,
-          ),
-          const SizedBox(width: 10),
-          CustomButton(
-            text: "My Posts",
-            onPressed: () {
-              setState(() {
-                _showMyPostsOnly = true;
-                _loadedPostCount = 5;
-                _scrollController.jumpTo(0);
-                _expandedPosts.clear();
-              });
-            },
-            backgroundColor: _showMyPostsOnly ? Colors.blue : Colors.grey,
-            horizontalPadding: 20,
-            verticalPadding: 10,
-            borderRadius: 20,
-            fontSize: 14,
-          ),
-        ],
-      ),
-    );
-  }
-
-  // Now uses UI components for "All Posts" view
   Widget _buildSharedContentList(List<PostModel> posts) {
     if (_sharingState.isLoading && posts.isEmpty) {
       return const Center(child: CircularProgressIndicator());
@@ -480,102 +328,87 @@ class _SharingScreenState extends State<SharingScreen> {
 
     return ListView.builder(
       controller: _scrollController,
-      itemCount:
-          posts.length + (_sharingState.posts.length > posts.length ? 1 : 0),
+      physics: const AlwaysScrollableScrollPhysics(),
+      itemCount: posts.length,
       itemBuilder: (context, index) {
-        if (index < posts.length) {
-          final post = posts[index];
-          final isTripJournal = post.postType == PostType.tripJournal;
+        final post = posts[index];
+        final isTripJournal = post.postType == PostType.tripJournal;
 
-          return PostCard(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    // PostHeader (contains the 3-dots button at the end)
-                    Expanded(
-                      child: PostHeader(
-                        userName:
-                            post.userId == widget.user.userId
-                                ? "You"
-                                : "Depression People",
-                        avatarAsset: 'assets/default_pic.jpg',
-                        timeAgo: getTimeAgo(post.timestamp),
-                        isPublic: post.isPublic,
-                        onOptions: () => _showPostOptions(context, post),
-                        isTripJournal: isTripJournal,
-                        onTripJournalTap:
-                            isTripJournal
-                                ? () => _showTripJournalDialog(context, post)
-                                : null,
-                      ),
+        return PostCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: PostHeader(
+                      userName:
+                          post.userId == widget.user.userId
+                              ? "You"
+                              : "Depression People",
+                      avatarAsset: 'assets/default_pic.jpg',
+                      timeAgo: getTimeAgo(post.timestamp),
+                      isPublic: post.isPublic,
+                      onOptions: () => _showPostOptions(context, post),
+                      isTripJournal: isTripJournal,
+                      onTripJournalTap:
+                          isTripJournal
+                              ? () => _showTripJournalDialog(context, post)
+                              : null,
                     ),
-                  ],
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              if (post.content.isNotEmpty)
+                PostContent(
+                  content: post.content,
+                  isExpanded: _expandedPosts.contains(post.id),
+                  maxLinesCollapsed: _maxLinesCollapsed,
+                  onExpand: () {
+                    setState(() {
+                      _expandedPosts.add(post.id!);
+                    });
+                  },
+                  onCollapse: () {
+                    setState(() {
+                      _expandedPosts.remove(post.id);
+                    });
+                  },
                 ),
-                const SizedBox(height: 8),
-                if (post.content.isNotEmpty)
-                  PostContent(
-                    content: post.content,
-                    isExpanded: _expandedPosts.contains(post.id),
-                    maxLinesCollapsed: _maxLinesCollapsed,
-                    onExpand: () {
-                      setState(() {
-                        _expandedPosts.add(post.id!);
-                      });
-                    },
-                    onCollapse: () {
-                      setState(() {
-                        _expandedPosts.remove(post.id);
-                      });
-                    },
-                  ),
-                if (post.musicUrl != null)
-                  PostMusicPreview(
-                    musicUrl: post.musicUrl,
-                    musicTitle: post.musicTitle,
-                    onPlay: () => _eventHandler.playMusic(post.musicUrl!),
-                  ),
-              ],
-            ),
-          );
-        } else if (_sharingState.posts.length > posts.length &&
-            !_sharingState.isLoading) {
-          return const Padding(
-            padding: EdgeInsets.all(8.0),
-            child: Center(child: CircularProgressIndicator()),
-          );
-        } else {
-          return Container();
-        }
+              if (post.musicUrl != null)
+                PostMusicPreview(
+                  musicUrl: post.musicUrl,
+                  musicTitle: post.musicTitle,
+                  onPlay: () => _eventHandler.playMusic(post.musicUrl!),
+                ),
+            ],
+          ),
+        );
       },
     );
   }
 
-  /// Dialog to show trip journal details
-
-  /// Dialog to show trip journal details (reads from post.tripJournals)
   void _showTripJournalDialog(BuildContext context, PostModel post) {
     final journals = post.tripJournals ?? [];
     showDialog(
       context: context,
       builder:
           (context) => AlertDialog(
-            title: const Text('Trip Journal Details'),
-            content:
-                journals.isEmpty
+                title: const Text('Trip Journal Details'),
+                content: journals.isEmpty
                     ? const Text('No trip journal entries.')
                     : SizedBox(
-                      width: double.maxFinite,
-                      child: TripJournalList(journals: journals),
-                    ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Close'),
+                        width: double.maxFinite,
+                        child: TripJournalBookCard(journals: journals),
+                      ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text('Close'),
+                  ),
+                ],
               ),
-            ],
-          ),
     );
   }
 }

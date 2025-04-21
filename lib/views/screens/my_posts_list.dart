@@ -9,8 +9,6 @@ import '../UIComponents/post_music_preview.dart';
 class MyPostsList extends StatefulWidget {
   final List<PostModel> posts;
   final String userId;
-  final int loadedPostCount;
-  final bool isLoadingMore;
   final ScrollController scrollController;
   final Set<String> expandedPosts;
   final int maxLinesCollapsed;
@@ -26,8 +24,6 @@ class MyPostsList extends StatefulWidget {
     Key? key,
     required this.posts,
     required this.userId,
-    required this.loadedPostCount,
-    required this.isLoadingMore,
     required this.scrollController,
     required this.expandedPosts,
     required this.maxLinesCollapsed,
@@ -129,100 +125,94 @@ class _MyPostsListState extends State<MyPostsList> {
             Expanded(
               child: ListView.builder(
                 controller: widget.scrollController,
-                itemCount: widget.posts.length + (widget.isLoadingMore ? 1 : 0),
+                physics: const AlwaysScrollableScrollPhysics(),
+                itemCount: widget.posts.length,
                 itemBuilder: (context, index) {
-                  if (index < widget.posts.length) {
-                    final post = widget.posts[index];
-                    final isTripJournal = post.postType == PostType.tripJournal;
-                    final isSelected = _selectedPostIds.contains(post.id);
+                  final post = widget.posts[index];
+                  final isTripJournal = post.postType == PostType.tripJournal;
+                  final isSelected = _selectedPostIds.contains(post.id);
 
-                    return AnimatedContainer(
-                      duration: const Duration(milliseconds: 200),
-                      margin: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        border: Border.all(
-                          color: Colors.transparent,
-                          width: 2.2,
-                        ), // Always transparent border, no outline
-                        borderRadius: BorderRadius.circular(16),
-                        boxShadow: isSelected
-                            ? [
-                                BoxShadow(
-                                  color: Colors.red.withOpacity(0.08),
-                                  blurRadius: 8,
-                                  offset: const Offset(0, 2),
-                                ),
-                              ]
-                            : [],
-                      ),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Padding(
-                            padding: const EdgeInsets.only(
-                              left: 8.0,
-                              top: 18.0,
-                              right: 4.0,
-                            ),
-                            child: _CustomRoundCheckbox(
-                              value: isSelected,
-                              onChanged: (val) => _toggleSelect(post.id!, val),
-                            ),
-                          ),
-                          Expanded(
-                            child: PostCard(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  PostHeader(
-                                    userName: "You",
-                                    avatarAsset: 'assets/default_pic.jpg',
-                                    timeAgo: widget.getTimeAgo(post.timestamp),
-                                    isPublic: post.isPublic,
-                                    onOptions: null, // <-- No 3-dots button
-                                    isTripJournal: isTripJournal,
-                                    onTripJournalTap: isTripJournal
-                                        ? () => widget.onViewTripJournal(
-                                              context,
-                                              post,
-                                            )
-                                        : null,
-                                  ),
-                                  const SizedBox(height: 8),
-                                  if (post.content.isNotEmpty)
-                                    PostContent(
-                                      content: post.content,
-                                      isExpanded: widget.expandedPosts
-                                          .contains(post.id),
-                                      maxLinesCollapsed:
-                                          widget.maxLinesCollapsed,
-                                      onExpand: () =>
-                                          widget.onExpand(post.id!),
-                                      onCollapse: () =>
-                                          widget.onCollapse(post.id!),
-                                    ),
-                                  if (post.musicUrl != null)
-                                    PostMusicPreview(
-                                      musicUrl: post.musicUrl,
-                                      musicTitle: post.musicTitle,
-                                      onPlay: () => widget.onPlayMusic(post),
-                                    ),
-                                ],
+                  return AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    margin: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      border: Border.all(
+                        color: Colors.transparent,
+                        width: 2.2,
+                      ), // Always transparent border, no outline
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: isSelected
+                          ? [
+                              BoxShadow(
+                                color: Colors.red.withOpacity(0.08),
+                                blurRadius: 8,
+                                offset: const Offset(0, 2),
                               ),
+                            ]
+                          : [],
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.only(
+                            left: 8.0,
+                            top: 18.0,
+                            right: 4.0,
+                          ),
+                          child: _CustomRoundCheckbox(
+                            value: isSelected,
+                            onChanged: (val) => _toggleSelect(post.id!, val),
+                          ),
+                        ),
+                        Expanded(
+                          child: PostCard(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                PostHeader(
+                                  userName: "You",
+                                  avatarAsset: 'assets/default_pic.jpg',
+                                  timeAgo: widget.getTimeAgo(post.timestamp),
+                                  isPublic: post.isPublic,
+                                  onOptions: null, // <-- No 3-dots button
+                                  isTripJournal: isTripJournal,
+                                  onTripJournalTap: isTripJournal
+                                      ? () => widget.onViewTripJournal(
+                                            context,
+                                            post,
+                                          )
+                                      : null,
+                                ),
+                                const SizedBox(height: 8),
+                                if (post.content.isNotEmpty)
+                                  PostContent(
+                                    content: post.content,
+                                    isExpanded: widget.expandedPosts
+                                        .contains(post.id),
+                                    maxLinesCollapsed:
+                                        widget.maxLinesCollapsed,
+                                    onExpand: () =>
+                                        widget.onExpand(post.id!),
+                                    onCollapse: () =>
+                                        widget.onCollapse(post.id!),
+                                  ),
+                                if (post.musicUrl != null)
+                                  PostMusicPreview(
+                                    musicUrl: post.musicUrl,
+                                    musicTitle: post.musicTitle,
+                                    onPlay: () => widget.onPlayMusic(post),
+                                  ),
+                              ],
                             ),
                           ),
-                        ],
-                      ),
-                    );
-                  } else {
-                    return const Padding(
-                      padding: EdgeInsets.all(8.0),
-                      child: Center(child: CircularProgressIndicator()),
-                    );
-                  }
+                        ),
+                      ],
+                    ),
+                  );
                 },
               ),
             ),
