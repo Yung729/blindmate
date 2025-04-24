@@ -1,3 +1,4 @@
+
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
@@ -90,6 +91,7 @@ class _TripJournalBookCardState extends State<TripJournalBookCard> {
                     final dateStr = date != null
                         ? '${date.day}/${date.month}/${date.year}'
                         : 'Unknown date';
+                    final description = journal['description'] ?? '';
                     final note = journal['note'] ?? '';
 
                     return Padding(
@@ -167,8 +169,30 @@ class _TripJournalBookCardState extends State<TripJournalBookCard> {
                                     ),
                                   ],
                                 ),
+                                // Description section
+                                if (description.isNotEmpty) ...[
+                                  const SizedBox(height: 14),
+                                  Row(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      const Icon(Icons.short_text, color: Colors.teal, size: 20),
+                                      const SizedBox(width: 10),
+                                      Expanded(
+                                        child: Text(
+                                          description,
+                                          style: const TextStyle(
+                                            fontSize: 16,
+                                            color: Colors.black87,
+                                            height: 1.4,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                                // Note section (legacy)
                                 if (note.isNotEmpty) ...[
-                                  const SizedBox(height: 18),
+                                  const SizedBox(height: 14),
                                   Row(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [

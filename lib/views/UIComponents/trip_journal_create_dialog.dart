@@ -1,12 +1,20 @@
 
 import 'package:flutter/material.dart';
+import '../../views/UIComponents/location_autocomplete.dart';
 
 class TripJournalEntry {
   TextEditingController locationController;
+  TextEditingController descriptionController;
   DateTime? date;
 
-  TripJournalEntry({String? initialLocation, DateTime? initialDate})
-      : locationController = TextEditingController(text: initialLocation ?? ''),
+  TripJournalEntry({
+    String? initialLocation,
+    String? initialDescription,
+    DateTime? initialDate,
+  })  : locationController = TextEditingController(text: initialLocation ?? ''),
+        descriptionController = TextEditingController(
+          text: initialDescription ?? '',
+        ),
         date = initialDate;
 }
 
@@ -51,17 +59,24 @@ class _TripJournalDialogState extends State<TripJournalDialog> {
   final _formKey = GlobalKey<FormState>();
   late List<TripJournalEntry> _entries;
 
+  static const int maxEntries = 5;
+  static const int maxDescriptionWords = 50;
+
   @override
   void initState() {
     super.initState();
-    _entries = (widget.initialEntries != null && widget.initialEntries!.isNotEmpty)
-        ? widget.initialEntries!
-            .map((e) => TripJournalEntry(
-                  initialLocation: e['location'] as String?,
-                  initialDate: e['date'] as DateTime?,
-                ))
-            .toList()
-        : [TripJournalEntry()];
+    _entries =
+        (widget.initialEntries != null && widget.initialEntries!.isNotEmpty)
+            ? widget.initialEntries!
+                .map(
+                  (e) => TripJournalEntry(
+                    initialLocation: e['location'] as String?,
+                    initialDescription: e['description'] as String?,
+                    initialDate: e['date'] as DateTime?,
+                  ),
+                )
+                .toList()
+            : [TripJournalEntry()];
   }
 
   void _pickDate(int index) async {
@@ -80,10 +95,13 @@ class _TripJournalDialogState extends State<TripJournalDialog> {
     if (_formKey.currentState!.validate() &&
         _entries.every((e) => e.date != null)) {
       final result = _entries
-          .map((e) => {
-                'location': e.locationController.text,
-                'date': e.date,
-              })
+          .map(
+            (e) => {
+              'location': e.locationController.text,
+              'description': e.descriptionController.text,
+              'date': e.date,
+            },
+          )
           .toList();
       widget.onJournalsAdded(result);
       Navigator.pop(context);
@@ -91,9 +109,11 @@ class _TripJournalDialogState extends State<TripJournalDialog> {
   }
 
   void _addEntry() {
-    setState(() {
-      _entries.add(TripJournalEntry());
-    });
+    if (_entries.length < maxEntries) {
+      setState(() {
+        _entries.add(TripJournalEntry());
+      });
+    }
   }
 
   void _removeEntry(int index) {
@@ -102,10 +122,20 @@ class _TripJournalDialogState extends State<TripJournalDialog> {
     });
   }
 
+  String? _descriptionValidator(String? value) {
+    if (value == null || value.trim().isEmpty) return null;
+    final wordCount = value.trim().split(RegExp(r'\s+')).length;
+    if (wordCount > maxDescriptionWords) {
+      return 'Description cannot exceed $maxDescriptionWords words (${wordCount} given)';
+    }
+    return null;
+  }
+
   @override
   void dispose() {
     for (var entry in _entries) {
       entry.locationController.dispose();
+      entry.descriptionController.dispose();
     }
     super.dispose();
   }
@@ -120,11 +150,7 @@ class _TripJournalDialogState extends State<TripJournalDialog> {
           topRight: Radius.circular(22),
         ),
         boxShadow: [
-          BoxShadow(
-            color: Colors.black12,
-            blurRadius: 16,
-            spreadRadius: 2,
-          ),
+          BoxShadow(color: Colors.black12, blurRadius: 16, spreadRadius: 2),
         ],
       ),
       child: SafeArea(
@@ -148,7 +174,10 @@ class _TripJournalDialogState extends State<TripJournalDialog> {
                 ),
                 // Header
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20.0,
+                    vertical: 6,
+                  ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -168,10 +197,11 @@ class _TripJournalDialogState extends State<TripJournalDialog> {
                   ),
                 ),
                 // Entries
-                Flexible(
+                SizedBox(
+                  height: 300, // Adjust this value as needed for your UI
                   child: ListView.separated(
                     shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
+                    physics: const AlwaysScrollableScrollPhysics(),
                     itemCount: _entries.length,
                     separatorBuilder: (_, __) => const SizedBox(height: 10),
                     itemBuilder: (context, index) {
@@ -199,25 +229,70 @@ class _TripJournalDialogState extends State<TripJournalDialog> {
                                     const Spacer(),
                                     if (_entries.length > 1)
                                       IconButton(
-                                        icon: const Icon(Icons.delete, color: Colors.red),
+                                        icon: const Icon(
+                                          Icons.delete,
+                                          color: Colors.red,
+                                        ),
                                         onPressed: () => _removeEntry(index),
                                       ),
                                   ],
                                 ),
-                                TextFormField(
+                                NominatimLocationAutocomplete(
                                   controller: entry.locationController,
-                                  decoration: InputDecoration(
-                                    hintText: "E.g. Mount Fuji",
-                                    prefixIcon: const Icon(Icons.location_on, color: Colors.green),
-                                    border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(14),
-                                      borderSide: BorderSide(color: Colors.grey[300]!),
-                                    ),
-                                    filled: true,
-                                    fillColor: Colors.grey[100],
-                                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                                  ),
-                                  validator: (v) => v == null || v.isEmpty ? 'Enter location' : null,
+                                  hintText: "Search location",
+                                ),
+                                const SizedBox(height: 8),
+                                // Description field with clear button
+                                StatefulBuilder(
+                                  builder: (context, setInnerState) {
+                                    entry.descriptionController
+                                        .removeListener(() {});
+                                    entry.descriptionController
+                                        .addListener(() {
+                                      setInnerState(() {});
+                                    });
+                                    return TextFormField(
+                                      controller: entry.descriptionController,
+                                      decoration: InputDecoration(
+                                        hintText: "Short description (optional)",
+                                        prefixIcon: const Icon(
+                                          Icons.notes,
+                                          color: Colors.blueGrey,
+                                        ),
+                                        border: OutlineInputBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(14),
+                                          borderSide: BorderSide(
+                                            color: Colors.grey[300]!,
+                                          ),
+                                        ),
+                                        filled: true,
+                                        fillColor: Colors.grey[100],
+                                        contentPadding:
+                                            const EdgeInsets.symmetric(
+                                          horizontal: 16,
+                                          vertical: 14,
+                                        ),
+                                        suffixIcon: entry
+                                                .descriptionController
+                                                .text
+                                                .isNotEmpty
+                                            ? IconButton(
+                                                icon: const Icon(Icons.clear,
+                                                    color: Colors.grey),
+                                                onPressed: () {
+                                                  entry.descriptionController
+                                                      .clear();
+                                                  setInnerState(() {});
+                                                },
+                                              )
+                                            : null,
+                                      ),
+                                      minLines: 4,
+                                      maxLines: 6,
+                                      validator: _descriptionValidator,
+                                    );
+                                  },
                                 ),
                                 const SizedBox(height: 8),
                                 Row(
@@ -229,13 +304,18 @@ class _TripJournalDialogState extends State<TripJournalDialog> {
                                             : '${entry.date!.day}/${entry.date!.month}/${entry.date!.year}',
                                         style: TextStyle(
                                           fontSize: 16,
-                                          color: entry.date == null ? Colors.grey : Colors.black,
+                                          color: entry.date == null
+                                              ? Colors.grey
+                                              : Colors.black,
                                         ),
                                       ),
                                     ),
                                     TextButton.icon(
                                       onPressed: () => _pickDate(index),
-                                      icon: const Icon(Icons.calendar_today, size: 18),
+                                      icon: const Icon(
+                                        Icons.calendar_today,
+                                        size: 18,
+                                      ),
                                       label: const Text('Pick Date'),
                                     ),
                                   ],
@@ -248,9 +328,13 @@ class _TripJournalDialogState extends State<TripJournalDialog> {
                     },
                   ),
                 ),
+
                 // Add More button
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20.0,
+                    vertical: 4,
+                  ),
                   child: Row(
                     children: [
                       Expanded(
@@ -263,7 +347,8 @@ class _TripJournalDialogState extends State<TripJournalDialog> {
                               borderRadius: BorderRadius.circular(14),
                             ),
                           ),
-                          onPressed: _addEntry,
+                          onPressed:
+                              _entries.length >= maxEntries ? null : _addEntry,
                         ),
                       ),
                     ],
@@ -275,10 +360,16 @@ class _TripJournalDialogState extends State<TripJournalDialog> {
                   child: SizedBox(
                     width: double.infinity,
                     child: ElevatedButton.icon(
-                      icon: const Icon(Icons.add_location_alt_rounded, color: Colors.white),
+                      icon: const Icon(
+                        Icons.add_location_alt_rounded,
+                        color: Colors.white,
+                      ),
                       label: const Text(
                         "Add to Journal",
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.green,
