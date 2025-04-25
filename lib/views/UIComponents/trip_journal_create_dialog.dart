@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../../views/UIComponents/location_autocomplete.dart';
 
 class TripJournalEntry {
   TextEditingController locationController;
@@ -10,11 +9,11 @@ class TripJournalEntry {
     String? initialLocation,
     String? initialDescription,
     DateTime? initialDate,
-  })  : locationController = TextEditingController(text: initialLocation ?? ''),
-        descriptionController = TextEditingController(
-          text: initialDescription ?? '',
-        ),
-        date = initialDate;
+  }) : locationController = TextEditingController(text: initialLocation ?? ''),
+       descriptionController = TextEditingController(
+         text: initialDescription ?? '',
+       ),
+       date = initialDate;
 }
 
 class TripJournalDialog extends StatefulWidget {
@@ -92,15 +91,16 @@ class _TripJournalDialogState extends State<TripJournalDialog> {
   void _handleAdd() {
     if (_formKey.currentState!.validate() &&
         _entries.every((e) => e.date != null)) {
-      final result = _entries
-          .map(
-            (e) => {
-              'location': e.locationController.text,
-              'description': e.descriptionController.text,
-              'date': e.date,
-            },
-          )
-          .toList();
+      final result =
+          _entries
+              .map(
+                (e) => {
+                  'location': e.locationController.text,
+                  'description': e.descriptionController.text,
+                  'date': e.date,
+                },
+              )
+              .toList();
       widget.onJournalsAdded(result);
       Navigator.pop(context);
     }
@@ -121,12 +121,12 @@ class _TripJournalDialogState extends State<TripJournalDialog> {
   }
 
   String? _descriptionValidator(String? value) {
-  if (value == null || value.trim().isEmpty) return null;
-  if (value.length > 10) {
-    return 'Description cannot exceed 10 characters (${value.length} given)';
+    if (value == null || value.trim().isEmpty) return null;
+    if (value.length > 50) {
+      return 'Description cannot exceed 50 characters (${value.length} given)';
+    }
+    return null;
   }
-  return null;
-}
 
   @override
   void dispose() {
@@ -235,9 +235,35 @@ class _TripJournalDialogState extends State<TripJournalDialog> {
                                         ),
                                     ],
                                   ),
-                                  NominatimLocationAutocomplete(
+                                  TextFormField(
                                     controller: entry.locationController,
-                                    hintText: "Search location",
+                                    decoration: InputDecoration(
+                                      hintText: "Enter location",
+                                      prefixIcon: const Icon(
+                                        Icons.location_on,
+                                        color: Colors.blueGrey,
+                                      ),
+                                      border: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(14),
+                                        borderSide: BorderSide(
+                                          color: Colors.grey[300]!,
+                                        ),
+                                      ),
+                                      filled: true,
+                                      fillColor: Colors.grey[100],
+                                      contentPadding:
+                                          const EdgeInsets.symmetric(
+                                            horizontal: 16,
+                                            vertical: 14,
+                                          ),
+                                    ),
+                                    validator: (value) {
+                                      if (value == null ||
+                                          value.trim().isEmpty) {
+                                        return 'Location is required';
+                                      }
+                                      return null;
+                                    },
                                   ),
                                   const SizedBox(height: 8),
                                   // Description field with clear button
@@ -245,21 +271,24 @@ class _TripJournalDialogState extends State<TripJournalDialog> {
                                     builder: (context, setInnerState) {
                                       entry.descriptionController
                                           .removeListener(() {});
-                                      entry.descriptionController
-                                          .addListener(() {
-                                        setInnerState(() {});
-                                      });
+                                      entry.descriptionController.addListener(
+                                        () {
+                                          setInnerState(() {});
+                                        },
+                                      );
                                       return TextFormField(
                                         controller: entry.descriptionController,
                                         decoration: InputDecoration(
-                                          hintText: "Short description (optional)",
+                                          hintText:
+                                              "Short description (optional)",
                                           prefixIcon: const Icon(
                                             Icons.notes,
                                             color: Colors.blueGrey,
                                           ),
                                           border: OutlineInputBorder(
-                                            borderRadius:
-                                                BorderRadius.circular(14),
+                                            borderRadius: BorderRadius.circular(
+                                              14,
+                                            ),
                                             borderSide: BorderSide(
                                               color: Colors.grey[300]!,
                                             ),
@@ -268,23 +297,27 @@ class _TripJournalDialogState extends State<TripJournalDialog> {
                                           fillColor: Colors.grey[100],
                                           contentPadding:
                                               const EdgeInsets.symmetric(
-                                            horizontal: 16,
-                                            vertical: 14,
-                                          ),
-                                          suffixIcon: entry
-                                                  .descriptionController
-                                                  .text
-                                                  .isNotEmpty
-                                              ? IconButton(
-                                                  icon: const Icon(Icons.clear,
-                                                      color: Colors.grey),
-                                                  onPressed: () {
-                                                    entry.descriptionController
-                                                        .clear();
-                                                    setInnerState(() {});
-                                                  },
-                                                )
-                                              : null,
+                                                horizontal: 16,
+                                                vertical: 14,
+                                              ),
+                                          suffixIcon:
+                                              entry
+                                                      .descriptionController
+                                                      .text
+                                                      .isNotEmpty
+                                                  ? IconButton(
+                                                    icon: const Icon(
+                                                      Icons.clear,
+                                                      color: Colors.grey,
+                                                    ),
+                                                    onPressed: () {
+                                                      entry
+                                                          .descriptionController
+                                                          .clear();
+                                                      setInnerState(() {});
+                                                    },
+                                                  )
+                                                  : null,
                                         ),
                                         minLines: 4,
                                         maxLines: 6,
@@ -303,9 +336,10 @@ class _TripJournalDialogState extends State<TripJournalDialog> {
                                               : '${entry.date!.day}/${entry.date!.month}/${entry.date!.year}',
                                           style: TextStyle(
                                             fontSize: 16,
-                                            color: entry.date == null
-                                                ? Colors.grey
-                                                : Colors.black,
+                                            color:
+                                                entry.date == null
+                                                    ? Colors.grey
+                                                    : Colors.black,
                                           ),
                                         ),
                                       ),
@@ -347,7 +381,9 @@ class _TripJournalDialogState extends State<TripJournalDialog> {
                               ),
                             ),
                             onPressed:
-                                _entries.length >= maxEntries ? null : _addEntry,
+                                _entries.length >= maxEntries
+                                    ? null
+                                    : _addEntry,
                           ),
                         ),
                       ],

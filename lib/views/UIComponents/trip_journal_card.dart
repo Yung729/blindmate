@@ -2,8 +2,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-/// A swipeable widget to display trip journal entries as cards.
-/// Each entry is shown as a page; swipe horizontally to flip pages.
 class TripJournalBookCard extends StatefulWidget {
   final List<Map<String, dynamic>> journals;
   final EdgeInsetsGeometry? padding;
@@ -41,7 +39,7 @@ class _TripJournalBookCardState extends State<TripJournalBookCard> {
       return const Center(
         child: Text(
           'No trip journal entries.',
-          style: TextStyle(color: Colors.grey),
+          style: TextStyle(color: Colors.grey, fontSize: 18),
         ),
       );
     }
@@ -52,7 +50,7 @@ class _TripJournalBookCardState extends State<TripJournalBookCard> {
         mainAxisSize: MainAxisSize.min,
         children: [
           AspectRatio(
-            aspectRatio: 3 / 1.5, // Shorter card
+            aspectRatio: 3 / 2.0,
             child: Stack(
               children: [
                 PageView.builder(
@@ -79,145 +77,203 @@ class _TripJournalBookCardState extends State<TripJournalBookCard> {
 
                     return Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                      child: Material(
-                        elevation: 5,
-                        borderRadius: BorderRadius.circular(18),
-                        color: Colors.brown[50],
-                        child: Container(
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(18),
-                            gradient: LinearGradient(
-                              colors: [Colors.brown[50]!, Colors.brown[100]!],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                            ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.brown.withOpacity(0.06),
-                                blurRadius: 8,
-                                offset: const Offset(0, 3),
+                      child: AnimatedScale(
+                        scale: _currentPage == index ? 1.0 : 0.97,
+                        duration: const Duration(milliseconds: 300),
+                        child: Material(
+                          elevation: 8,
+                          borderRadius: BorderRadius.circular(22),
+                          color: Colors.transparent,
+                          child: Container(
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(22),
+                              gradient: LinearGradient(
+                                colors: [
+                                  Colors.blue.shade100,
+                                  Colors.cyan.shade50,
+                                  Colors.teal.shade100,
+                                ],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
                               ),
-                            ],
-                          ),
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.blue.withOpacity(0.10),
+                                  blurRadius: 16,
+                                  offset: const Offset(0, 8),
+                                ),
+                              ],
+                            ),
+                            child: Stack(
                               children: [
-                                // Day X label at the top
+                                // Decorative background image or pattern (optional)
+                                Positioned(
+                                  right: -30,
+                                  top: -30,
+                                  child: Icon(Icons.beach_access,
+                                      size: 100,
+                                      color: Colors.blue.withOpacity(0.07)),
+                                ),
                                 Padding(
-                                  padding: const EdgeInsets.only(bottom: 6.0),
-                                  child: Text(
-                                    'Day ${index + 1}',
-                                    style: TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.brown[400],
-                                      letterSpacing: 0.5,
-                                    ),
-                                  ),
-                                ),
-                                // Book "page" top decoration
-                                Row(
-                                  children: [
-                                    Container(
-                                      width: 24,
-                                      height: 6,
-                                      decoration: BoxDecoration(
-                                        color: Colors.brown[200],
-                                        borderRadius: BorderRadius.circular(3),
-                                      ),
-                                    ),
-                                    const Spacer(),
-                                    Icon(Icons.book, color: Colors.brown[300], size: 18),
-                                  ],
-                                ),
-                                const SizedBox(height: 10),
-                                Row(
-                                  children: [
-                                    const Icon(Icons.location_on, color: Colors.green, size: 18),
-                                    const SizedBox(width: 6),
-                                    Expanded(
-                                      child: Text(
-                                        location,
-                                        style: const TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 15,
-                                          color: Colors.green,
-                                          letterSpacing: 0.2,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 6),
-                                Row(
-                                  children: [
-                                    const Icon(Icons.date_range, color: Colors.blueGrey, size: 16),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      dateStr,
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.w500,
-                                        fontSize: 13,
-                                        color: Colors.blueGrey,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                // Description section
-                                if (description.isNotEmpty) ...[
-                                  const SizedBox(height: 8),
-                                  Row(
+                                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+                                  child: Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
-                                      const Icon(Icons.short_text, color: Colors.teal, size: 16),
-                                      const SizedBox(width: 7),
-                                      Expanded(
-                                        child: Text(
-                                          description,
-                                          style: const TextStyle(
-                                            fontSize: 13,
-                                            color: Colors.black87,
-                                            height: 1.3,
+                                      // Day Ribbon
+                                      Align(
+                                        alignment: Alignment.topRight,
+                                        child: Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                                          decoration: BoxDecoration(
+                                            color: Colors.teal[400],
+                                            borderRadius: BorderRadius.circular(12),
+                                            boxShadow: [
+                                              BoxShadow(
+                                                color: Colors.teal.withOpacity(0.15),
+                                                blurRadius: 6,
+                                                offset: const Offset(0, 2),
+                                              ),
+                                            ],
+                                          ),
+                                          child: Text(
+                                            'Day ${index + 1}',
+                                            style: const TextStyle(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.bold,
+                                              color: Colors.white,
+                                              letterSpacing: 0.5,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(height: 10),
+                                      // Location
+                                      Row(
+                                        children: [
+                                          CircleAvatar(
+                                            backgroundColor: Colors.blue[100],
+                                            radius: 16,
+                                            child: const Icon(Icons.location_on, color: Colors.blueAccent, size: 18),
+                                          ),
+                                          const SizedBox(width: 10),
+                                          Expanded(
+                                            child: Text(
+                                              location,
+                                              style: const TextStyle(
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 17,
+                                                color: Colors.blueAccent,
+                                                letterSpacing: 0.2,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 8),
+                                      // Date
+                                      Row(
+                                        children: [
+                                          CircleAvatar(
+                                            backgroundColor: Colors.teal[100],
+                                            radius: 14,
+                                            child: const Icon(Icons.calendar_month, color: Colors.teal, size: 16),
+                                          ),
+                                          const SizedBox(width: 8),
+                                          Text(
+                                            dateStr,
+                                            style: const TextStyle(
+                                              fontWeight: FontWeight.w600,
+                                              fontSize: 14,
+                                              color: Colors.teal,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 12),
+                                      // Divider
+                                      Divider(
+                                        color: Colors.teal[100],
+                                        thickness: 1,
+                                        endIndent: 40,
+                                      ),
+                                      // Description
+                                      if (description.isNotEmpty) ...[
+                                        const SizedBox(height: 8),
+                                        Row(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Container(
+                                              decoration: BoxDecoration(
+                                                color: Colors.indigo[50],
+                                                shape: BoxShape.circle,
+                                              ),
+                                              padding: const EdgeInsets.all(6),
+                                              child: const Icon(Icons.short_text, color: Colors.indigo, size: 18),
+                                            ),
+                                            const SizedBox(width: 10),
+                                            Expanded(
+                                              child: Text(
+                                                description,
+                                                style: const TextStyle(
+                                                  fontSize: 15,
+                                                  color: Colors.black87,
+                                                  height: 1.4,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ],
+                                      // Note
+                                      if (note.isNotEmpty) ...[
+                                        const SizedBox(height: 10),
+                                        Row(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Container(
+                                              decoration: BoxDecoration(
+                                                color: Colors.lightBlue[50],
+                                                shape: BoxShape.circle,
+                                              ),
+                                              padding: const EdgeInsets.all(6),
+                                              child: const Icon(Icons.notes, color: Colors.lightBlue, size: 18),
+                                            ),
+                                            const SizedBox(width: 10),
+                                            Expanded(
+                                              child: Text(
+                                                note,
+                                                style: const TextStyle(
+                                                  fontStyle: FontStyle.italic,
+                                                  fontSize: 14,
+                                                  color: Colors.black54,
+                                                  height: 1.3,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ],
+                                      const Spacer(),
+                                      // Page indicator
+                                      Align(
+                                        alignment: Alignment.bottomRight,
+                                        child: Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                          decoration: BoxDecoration(
+                                            color: Colors.teal[50],
+                                            borderRadius: BorderRadius.circular(8),
+                                          ),
+                                          child: Text(
+                                            'Page ${index + 1} of ${journals.length}',
+                                            style: TextStyle(
+                                              color: Colors.teal[400],
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w600,
+                                            ),
                                           ),
                                         ),
                                       ),
                                     ],
-                                  ),
-                                ],
-                                // Note section (legacy)
-                                if (note.isNotEmpty) ...[
-                                  const SizedBox(height: 8),
-                                  Row(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      const Icon(Icons.notes, color: Colors.orange, size: 16),
-                                      const SizedBox(width: 7),
-                                      Expanded(
-                                        child: Text(
-                                          note,
-                                          style: const TextStyle(
-                                            fontStyle: FontStyle.italic,
-                                            fontSize: 13,
-                                            color: Colors.black87,
-                                            height: 1.3,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                                const SizedBox(height: 8),
-                                Align(
-                                  alignment: Alignment.bottomRight,
-                                  child: Text(
-                                    'Page ${index + 1} of ${journals.length}',
-                                    style: TextStyle(
-                                      color: Colors.brown[300],
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w500,
-                                    ),
                                   ),
                                 ),
                               ],
@@ -228,24 +284,33 @@ class _TripJournalBookCardState extends State<TripJournalBookCard> {
                     );
                   },
                 ),
-                // Page indicator (dots)
+                // Animated Dots Indicator
                 Positioned(
-                  bottom: 8,
+                  bottom: 12,
                   left: 0,
                   right: 0,
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: List.generate(journals.length, (i) {
                       return AnimatedContainer(
-                        duration: const Duration(milliseconds: 250),
-                        margin: const EdgeInsets.symmetric(horizontal: 3),
-                        width: _currentPage == i ? 14 : 6,
-                        height: 6,
+                        duration: const Duration(milliseconds: 300),
+                        margin: const EdgeInsets.symmetric(horizontal: 4),
+                        width: _currentPage == i ? 18 : 8,
+                        height: 8,
                         decoration: BoxDecoration(
                           color: _currentPage == i
-                              ? Colors.brown[400]
-                              : Colors.brown[200],
-                          borderRadius: BorderRadius.circular(3),
+                              ? Colors.teal[400]
+                              : Colors.cyan[200],
+                          borderRadius: BorderRadius.circular(4),
+                          boxShadow: _currentPage == i
+                              ? [
+                                  BoxShadow(
+                                    color: Colors.teal.withOpacity(0.18),
+                                    blurRadius: 6,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ]
+                              : [],
                         ),
                       );
                     }),

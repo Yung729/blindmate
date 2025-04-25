@@ -59,18 +59,6 @@ class PostHeader extends StatelessWidget {
                     size: 12,
                     color: Colors.grey,
                   ),
-                  if (isTripJournal)
-                    Padding(
-                      padding: const EdgeInsets.only(left: 8.0),
-                      child: InkWell(
-                        onTap: onTripJournalTap,
-                        child: const Icon(
-                          Icons.location_on,
-                          color: Colors.green,
-                          size: 20,
-                        ),
-                      ),
-                    ),
                 ],
               ),
             ],
