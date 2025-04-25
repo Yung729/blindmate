@@ -283,6 +283,7 @@ class RewardGrid extends StatelessWidget {
                       'Are you sure you want to redeem "${reward.rewardTitle}" for ${reward.fragmentCost} crystals?',
                     ),
                     actions: [
+<<<<<<< Updated upstream
                       TextButton(
                         onPressed: () => Navigator.of(context).pop(true),
                         child: const Text('Yes'),
@@ -295,6 +296,26 @@ class RewardGrid extends StatelessWidget {
                         ),
                       ),
                     ],
+=======
+                                        TextButton(
+                                          onPressed:
+                                              () => Navigator.of(
+                                                context,
+                                              ).pop(true),
+                                          child: const Text('Yes'),
+                                        ),
+                                        TextButton(
+                                          onPressed:
+                                              () => Navigator.of(
+                                                context,
+                                              ).pop(false),
+                                          child: const Text(
+                                            'Cancel',
+                                            style: TextStyle(color: Colors.red),
+                                          ),
+                                        ),
+                                      ],
+>>>>>>> Stashed changes
                   ),
             );
 
