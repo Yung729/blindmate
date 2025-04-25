@@ -178,7 +178,7 @@ class LevelProgressionService {
           .clamp(0.0, 1.0);
 
       // Define a small base increment for the flower button
-      const double flowerBaseIncrement = 0.02; // Smaller than survey increment
+      const double flowerBaseIncrement = 0.015; // Smaller than survey increment
 
       // Apply difficulty factor based on level, same as in updateUserLevel
       double difficultyFactor = 1 / (1 + log(levelValue));
