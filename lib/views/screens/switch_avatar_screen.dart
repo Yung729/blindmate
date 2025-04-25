@@ -116,17 +116,49 @@ class _SwitchAvatarScreenState extends State<SwitchAvatarScreen> {
                           final reward = uniqueRewards[index];
                           return GestureDetector(
                             onTap: () async {
-                              await FirebaseFirestore.instance
-                                  .collection('users')
-                                  .doc(widget.user!.userId)
-                                  .update({'avatarImg': reward.imageUrl});
+                              final confirm = await showDialog<bool>(
+                                context: context,
+                                builder:
+                                    (context) => AlertDialog(
+                                      title: const Text('Switch Avatar'),
+                                      content: const Text(
+                                        'Are you sure you want to use this avatar?',
+                                      ),
+                                      actions: [
+                                        TextButton(
+                                          onPressed:
+                                              () => Navigator.of(
+                                                context,
+                                              ).pop(true),
+                                          child: const Text('Yes'),
+                                        ),
+                                        TextButton(
+                                          onPressed:
+                                              () => Navigator.of(
+                                                context,
+                                              ).pop(false),
+                                          child: const Text(
+                                            'Cancel',
+                                            style: TextStyle(color: Colors.red),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                              );
 
-                              setState(() {
-                                widget.user!.avatarImg = reward.imageUrl ?? '';
-                              });
+                              if (confirm == true) {
+                                await FirebaseFirestore.instance
+                                    .collection('users')
+                                    .doc(widget.user!.userId)
+                                    .update({'avatarImg': reward.imageUrl});
 
-                              // Navigator.pop(context, widget.user);
+                                setState(() {
+                                  widget.user!.avatarImg =
+                                      reward.imageUrl ?? '';
+                                });
+                              }
                             },
+
                             child: NetworkImageBox(
                               imageUrl: reward.imageUrl,
                               title: reward.rewardTitle,

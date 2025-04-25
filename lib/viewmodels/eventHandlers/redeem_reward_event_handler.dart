@@ -19,6 +19,7 @@ class RedeemRewardEventHandler {
   ) async {
     try {
       if (user.fragmentNumber >= rewardCost) {
+        print("User has enough fragments. Proceeding with redemption...");
         final updatedFragmentNumber = await rewardService.redeemReward(
         user.userId,
         rewardCost,
@@ -26,12 +27,14 @@ class RedeemRewardEventHandler {
       );
       user.fragmentNumber = updatedFragmentNumber;
       if (onSuccess != null) onSuccess(updatedFragmentNumber);
+      print("Reward redeemed successfully! Updated fragment number: $updatedFragmentNumber");
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Reward redeemed successfully!')),
+          const SnackBar(content: Text('Reward redeemed successfully!')),
         );
       } else {
+        print("Not enough fragments to redeem reward.");
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Not enough fragments!')),
+          const SnackBar(content: Text('Not enough fragments!')),
         );
       }
     } catch (e) {

@@ -294,10 +294,11 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       context,
     );
 
-    if (updatedCount > 0) {
+    if (updatedCount >= 0) { // Changed from > 0 to >= 0 to include when last flower is sent
       setState(() {
         _localFlowerCount = updatedCount;
       });
+      // Show animation even when the last flower is sent (when updatedCount becomes 0)
       _chatState.setShowFlowerAnimation(true);
       Future.delayed(const Duration(seconds: 2), () {
         if (mounted) {

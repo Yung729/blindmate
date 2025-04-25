@@ -1,16 +1,17 @@
+import 'package:blindmate/models/dataModels/mission_model.dart';
 import 'package:flutter/material.dart';
 
 class MissionListState with ChangeNotifier {
   // List of available missions (limited to 3)
-  List<String> _missionList = [];
+  List<MissionModel> _missionList = [];
   // Currently selected mission
   String? _currentMission;
   
-  List<String> get missionList => _missionList;
+  List<MissionModel> get missionList => _missionList;
   String? get currentMission => _currentMission;
 
   // Set the mission list (only take 3)
-  void setMissionList(List<String> missions) {
+  void setMissionList(List<MissionModel> missions) {
     _missionList = missions.take(3).toList();
     notifyListeners();
   }
