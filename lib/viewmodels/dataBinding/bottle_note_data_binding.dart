@@ -12,7 +12,7 @@ class BottleNoteDataBinding {
   final GeminiModerationService _moderationService = GeminiModerationService();
   final BottleNoteState bottleNoteState;
   String? selectedSticker;
-  Pool _pool = Pool();
+  final Pool _pool = Pool();
 
   BottleNoteDataBinding({required this.bottleNoteState});
 

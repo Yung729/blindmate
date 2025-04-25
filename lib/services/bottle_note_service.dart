@@ -30,7 +30,7 @@ class BottleNoteService {
       if (note.expirationTime.isBefore(DateTime.now())) {
         await _notesRef.doc(note.noteId).update({'status': 'INACTIVE'});
       } else {
-        notes.add(note); 
+        notes.add(note);
       }
     }
 
@@ -57,8 +57,9 @@ class BottleNoteService {
     final querySnapshot =
         await _notesRef
             .where('senderId', isEqualTo: userId)
-            .where('status', isEqualTo: 'ACTIVE')
+            .orderBy('timestamp', descending: true)
             .get();
+
     return querySnapshot.docs
         .map((doc) => BottleNote.fromJson(doc.data()))
         .toList();
