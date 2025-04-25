@@ -1,3 +1,4 @@
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 enum PostType { normal, tripJournal }
@@ -16,6 +17,9 @@ class PostModel {
   // Only postType remains for distinguishing post types
   final PostType postType;
 
+  /// Optional: The author's avatar URL, to be set after fetching posts
+  String? authorAvatar;
+
   PostModel({
     this.id,
     required this.userId,
@@ -27,6 +31,7 @@ class PostModel {
     required this.visibility,
     this.postType = PostType.normal,
     this.tripJournals,
+    this.authorAvatar, // <-- Add to constructor
   });
 
   // Getter to check if the post is public
@@ -49,6 +54,7 @@ class PostModel {
       'visibility': visibility,
       'postType': postType == PostType.tripJournal ? 'tripJournal' : 'normal',
       'tripJournals': tripJournals,
+      // Do NOT include authorAvatar in Firestore, it's for UI only
     };
   }
 
@@ -89,6 +95,7 @@ class PostModel {
       visibility: map['visibility'] ?? 'public',
       postType: type,
       tripJournals: tripJournals,
+      // authorAvatar is not set here; set it after fetching avatars
     );
   }
 
@@ -101,6 +108,7 @@ class PostModel {
       'musicTitle': musicTitle,
       'postType': postType == PostType.tripJournal ? 'tripJournal' : 'normal',
       'tripJournals': tripJournals,
+      // Do NOT include authorAvatar in Firestore
     };
   }
 }

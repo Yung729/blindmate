@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import '../../models/dataModels/post_model.dart';
 import '../UIComponents/post_card.dart';
@@ -9,6 +8,7 @@ import '../UIComponents/post_music_preview.dart';
 class MyPostsList extends StatefulWidget {
   final List<PostModel> posts;
   final String userId;
+  final String? avatarUrl;
   final ScrollController scrollController;
   final Set<String> expandedPosts;
   final int maxLinesCollapsed;
@@ -24,6 +24,7 @@ class MyPostsList extends StatefulWidget {
     Key? key,
     required this.posts,
     required this.userId,
+    required this.avatarUrl,
     required this.scrollController,
     required this.expandedPosts,
     required this.maxLinesCollapsed,
@@ -144,15 +145,16 @@ class _MyPostsListState extends State<MyPostsList> {
                         width: 2.2,
                       ), // Always transparent border, no outline
                       borderRadius: BorderRadius.circular(16),
-                      boxShadow: isSelected
-                          ? [
-                              BoxShadow(
-                                color: Colors.red.withOpacity(0.08),
-                                blurRadius: 8,
-                                offset: const Offset(0, 2),
-                              ),
-                            ]
-                          : [],
+                      boxShadow:
+                          isSelected
+                              ? [
+                                BoxShadow(
+                                  color: Colors.red.withOpacity(0.08),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ]
+                              : [],
                     ),
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -175,30 +177,32 @@ class _MyPostsListState extends State<MyPostsList> {
                               children: [
                                 PostHeader(
                                   userName: "You",
-                                  avatarAsset: 'assets/default_pic.jpg',
+                                  avatarUrl:
+                                      widget
+                                          .avatarUrl,
                                   timeAgo: widget.getTimeAgo(post.timestamp),
                                   isPublic: post.isPublic,
                                   onOptions: null, // <-- No 3-dots button
                                   isTripJournal: isTripJournal,
-                                  onTripJournalTap: isTripJournal
-                                      ? () => widget.onViewTripJournal(
+                                  onTripJournalTap:
+                                      isTripJournal
+                                          ? () => widget.onViewTripJournal(
                                             context,
                                             post,
                                           )
-                                      : null,
+                                          : null,
                                 ),
                                 const SizedBox(height: 8),
                                 if (post.content.isNotEmpty)
                                   PostContent(
                                     content: post.content,
-                                    isExpanded: widget.expandedPosts
-                                        .contains(post.id),
-                                    maxLinesCollapsed:
-                                        widget.maxLinesCollapsed,
-                                    onExpand: () =>
-                                        widget.onExpand(post.id!),
-                                    onCollapse: () =>
-                                        widget.onCollapse(post.id!),
+                                    isExpanded: widget.expandedPosts.contains(
+                                      post.id,
+                                    ),
+                                    maxLinesCollapsed: widget.maxLinesCollapsed,
+                                    onExpand: () => widget.onExpand(post.id!),
+                                    onCollapse:
+                                        () => widget.onCollapse(post.id!),
                                   ),
                                 if (post.musicUrl != null)
                                   PostMusicPreview(
@@ -286,21 +290,23 @@ class _CustomRoundCheckbox extends StatelessWidget {
             width: 2.2,
           ),
           borderRadius: BorderRadius.circular(13),
-          boxShadow: value
-              ? [
-                  BoxShadow(
-                    color: Colors.red.withOpacity(0.15),
-                    blurRadius: 6,
-                    offset: const Offset(0, 2),
-                  ),
-                ]
-              : [],
+          boxShadow:
+              value
+                  ? [
+                    BoxShadow(
+                      color: Colors.red.withOpacity(0.15),
+                      blurRadius: 6,
+                      offset: const Offset(0, 2),
+                    ),
+                  ]
+                  : [],
         ),
-        child: value
-            ? const Center(
-                child: Icon(Icons.check, color: Colors.white, size: 18),
-              )
-            : null,
+        child:
+            value
+                ? const Center(
+                  child: Icon(Icons.check, color: Colors.white, size: 18),
+                )
+                : null,
       ),
     );
   }

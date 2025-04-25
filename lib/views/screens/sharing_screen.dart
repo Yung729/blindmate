@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../models/dataModels/user_model.dart';
@@ -175,44 +174,43 @@ class _SharingScreenState extends State<SharingScreen> {
                 children: [
                   _buildCreatePostAndToggleRow(),
                   Expanded(
-                    child: _showMyPostsOnly
-                        ? MyPostsList(
-                            posts: displayedPosts,
-                            userId: widget.user.userId,
-                            scrollController: _scrollController,
-                            expandedPosts: _expandedPosts,
-                            maxLinesCollapsed: _maxLinesCollapsed,
-                            onShowPostOptions:
-                                (post) => _showPostOptions(context, post),
-                            onPlayMusic:
-                                (post) =>
-                                    _eventHandler.playMusic(post.musicUrl!),
-                            getTimeAgo: getTimeAgo,
-                            onExpand: (postId) {
-                              setState(() {
-                                _expandedPosts.add(postId);
-                              });
-                            },
-                            onCollapse: (postId) {
-                              setState(() {
-                                _expandedPosts.remove(postId);
-                              });
-                            },
-                            onViewTripJournal: _showTripJournalDialog,
-                            onDeleteSelected: (selectedIds) async {
-                              final confirm = await showConfirmDialog(
-                                context,
-                                'Delete Posts',
-                                'Are you sure you want to delete ${selectedIds.length} post(s)?',
-                              );
-                              if (confirm) {
-                                for (final id in selectedIds) {
-                                  _eventHandler.deletePost(id);
-                                }
-                              }
-                            },
-                          )
-                        : _buildSharedContentList(displayedPosts),
+                    child:
+                        _showMyPostsOnly
+                            ? MyPostsList(
+  posts: displayedPosts,
+  userId: widget.user.userId,
+  avatarUrl: widget.user.avatarImg, // <-- Add this line!
+  scrollController: _scrollController,
+  expandedPosts: _expandedPosts,
+  maxLinesCollapsed: _maxLinesCollapsed,
+  onShowPostOptions: (post) => _showPostOptions(context, post),
+  onPlayMusic: (post) => _eventHandler.playMusic(post.musicUrl!),
+  getTimeAgo: getTimeAgo,
+  onExpand: (postId) {
+    setState(() {
+      _expandedPosts.add(postId);
+    });
+  },
+  onCollapse: (postId) {
+    setState(() {
+      _expandedPosts.remove(postId);
+    });
+  },
+  onViewTripJournal: _showTripJournalDialog,
+  onDeleteSelected: (selectedIds) async {
+    final confirm = await showConfirmDialog(
+      context,
+      'Delete Posts',
+      'Are you sure you want to delete ${selectedIds.length} post(s)?',
+    );
+    if (confirm) {
+      for (final id in selectedIds) {
+        _eventHandler.deletePost(id);
+      }
+    }
+  },
+)
+                            : _buildSharedContentList(displayedPosts),
                   ),
                 ],
               ),
@@ -235,8 +233,13 @@ class _SharingScreenState extends State<SharingScreen> {
       padding: const EdgeInsets.all(10.0),
       child: Row(
         children: [
-          const CircleAvatar(
-            backgroundImage: AssetImage('assets/default_pic.jpg'),
+          CircleAvatar(
+            backgroundImage:
+                (widget.user.avatarImg != null &&
+                        widget.user.avatarImg!.isNotEmpty)
+                    ? NetworkImage(widget.user.avatarImg!)
+                    : const AssetImage('assets/default_pic.jpg')
+                        as ImageProvider,
           ),
           const SizedBox(width: 10),
           Expanded(
@@ -317,84 +320,84 @@ class _SharingScreenState extends State<SharingScreen> {
     );
   }
 
-  
-Widget _buildSharedContentList(List<PostModel> posts) {
-  if (_sharingState.isLoading && posts.isEmpty) {
-    return const Center(child: CircularProgressIndicator());
-  }
+  Widget _buildSharedContentList(List<PostModel> posts) {
+    if (_sharingState.isLoading && posts.isEmpty) {
+      return const Center(child: CircularProgressIndicator());
+    }
 
-  if (posts.isEmpty && !_sharingState.isLoading) {
-    return const Center(child: Text("No posts available."));
-  }
+    if (posts.isEmpty && !_sharingState.isLoading) {
+      return const Center(child: Text("No posts available."));
+    }
 
-  return ListView.builder(
-    controller: _scrollController,
-    physics: const AlwaysScrollableScrollPhysics(),
-    itemCount: posts.length,
-    itemBuilder: (context, index) {
-      final post = posts[index];
-      final isTripJournal = post.postType == PostType.tripJournal;
+    return ListView.builder(
+      controller: _scrollController,
+      physics: const AlwaysScrollableScrollPhysics(),
+      itemCount: posts.length,
+      itemBuilder: (context, index) {
+        final post = posts[index];
+        final isTripJournal = post.postType == PostType.tripJournal;
 
-      return PostCard(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: PostHeader(
-                    userName:
-                        post.userId == widget.user.userId
-                            ? "You"
-                            : "Depression People",
-                    avatarAsset: 'assets/default_pic.jpg',
-                    timeAgo: getTimeAgo(post.timestamp),
-                    isPublic: post.isPublic,
-                    onOptions: () => _showPostOptions(context, post),
-                    isTripJournal: isTripJournal,
-                    onTripJournalTap:
-                        isTripJournal
-                            ? () => _showTripJournalDialog(context, post)
-                            : null,
+        final avatarUrl = post.authorAvatar;
+
+        return PostCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: PostHeader(
+                      userName:
+                          post.userId == widget.user.userId
+                              ? "You"
+                              : "Depression People",
+                      avatarUrl: avatarUrl,
+                      timeAgo: getTimeAgo(post.timestamp),
+                      isPublic: post.isPublic,
+                      onOptions: () => _showPostOptions(context, post),
+                      isTripJournal: isTripJournal,
+                      onTripJournalTap:
+                          isTripJournal
+                              ? () => _showTripJournalDialog(context, post)
+                              : null,
+                    ),
                   ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              if (post.content.isNotEmpty)
+                PostContent(
+                  content: post.content,
+                  isExpanded: _expandedPosts.contains(post.id),
+                  maxLinesCollapsed: _maxLinesCollapsed,
+                  onExpand: () {
+                    setState(() {
+                      _expandedPosts.add(post.id!);
+                    });
+                  },
+                  onCollapse: () {
+                    setState(() {
+                      _expandedPosts.remove(post.id);
+                    });
+                  },
                 ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            if (post.content.isNotEmpty)
-              PostContent(
-                content: post.content,
-                isExpanded: _expandedPosts.contains(post.id),
-                maxLinesCollapsed: _maxLinesCollapsed,
-                onExpand: () {
-                  setState(() {
-                    _expandedPosts.add(post.id!);
-                  });
-                },
-                onCollapse: () {
-                  setState(() {
-                    _expandedPosts.remove(post.id);
-                  });
-                },
-              ),
-            if (post.musicUrl != null)
-              PostMusicPreview(
-                musicUrl: post.musicUrl,
-                musicTitle: post.musicTitle,
-                onPlay: () => _eventHandler.playMusic(post.musicUrl!),
-              ),
-            if (isTripJournal && (post.tripJournals?.isNotEmpty ?? false))
-              Padding(
-                padding: const EdgeInsets.only(top: 8.0),
-                child: TripJournalBookCard(journals: post.tripJournals!),
-              ),
-          ],
-        ),
-      );
-    },
-  );
-}
-
+              if (post.musicUrl != null)
+                PostMusicPreview(
+                  musicUrl: post.musicUrl,
+                  musicTitle: post.musicTitle,
+                  onPlay: () => _eventHandler.playMusic(post.musicUrl!),
+                ),
+              if (isTripJournal && (post.tripJournals?.isNotEmpty ?? false))
+                Padding(
+                  padding: const EdgeInsets.only(top: 8.0),
+                  child: TripJournalBookCard(journals: post.tripJournals!),
+                ),
+            ],
+          ),
+        );
+      },
+    );
+  }
 
   void _showTripJournalDialog(BuildContext context, PostModel post) {
     final journals = post.tripJournals ?? [];
@@ -403,12 +406,13 @@ Widget _buildSharedContentList(List<PostModel> posts) {
       builder:
           (context) => AlertDialog(
                 title: const Text('Trip Journal Details'),
-                content: journals.isEmpty
-                    ? const Text('No trip journal entries.')
-                    : SizedBox(
-                        width: double.maxFinite,
-                        child: TripJournalBookCard(journals: journals),
-                      ),
+                content:
+                    journals.isEmpty
+                        ? const Text('No trip journal entries.')
+                        : SizedBox(
+                          width: double.maxFinite,
+                          child: TripJournalBookCard(journals: journals),
+                        ),
                 actions: [
                   TextButton(
                     onPressed: () => Navigator.pop(context),

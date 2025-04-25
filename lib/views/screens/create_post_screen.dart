@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../models/dataModels/user_model.dart';
@@ -59,7 +58,9 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
     if (_tripJournals.isNotEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text("You cannot add music when a trip journal is attached."),
+          content: const Text(
+            "You cannot add music when a trip journal is attached.",
+          ),
           backgroundColor: Colors.orange,
         ),
       );
@@ -75,11 +76,16 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
   }
 
   Future<void> _openTripJournalDialog() async {
-    final createPostState = Provider.of<CreatePostState>(context, listen: false);
+    final createPostState = Provider.of<CreatePostState>(
+      context,
+      listen: false,
+    );
     if (createPostState.selectedMusicUrl != null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text("You cannot add a trip journal when music is attached."),
+          content: const Text(
+            "You cannot add a trip journal when music is attached.",
+          ),
           backgroundColor: Colors.orange,
         ),
       );
@@ -98,13 +104,18 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
 
   Future<void> _handleSharePost(BuildContext context) async {
     final postContent = _textController.text;
-    final createPostState = Provider.of<CreatePostState>(context, listen: false);
+    final createPostState = Provider.of<CreatePostState>(
+      context,
+      listen: false,
+    );
 
     // Prevent both music and trip journal
     if (createPostState.selectedMusicUrl != null && _tripJournals.isNotEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text("You cannot attach both music and trip journal to a post."),
+          content: const Text(
+            "You cannot attach both music and trip journal to a post.",
+          ),
           backgroundColor: Colors.red,
         ),
       );
@@ -224,28 +235,29 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
         actions: [
           Padding(
             padding: const EdgeInsets.only(right: 16.0),
-            child: _isPosting
-                ? Container(
-                    width: 40,
-                    height: 40,
-                    padding: const EdgeInsets.all(8),
-                    child: UIComponents.loadingIndicator(
-                      width: 24,
-                      height: 24,
-                    ),
-                  )
-                : ElevatedButton(
-                    onPressed: () => _handleSharePost(context),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blue,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(20),
+            child:
+                _isPosting
+                    ? Container(
+                      width: 40,
+                      height: 40,
+                      padding: const EdgeInsets.all(8),
+                      child: UIComponents.loadingIndicator(
+                        width: 24,
+                        height: 24,
                       ),
-                      elevation: 0,
+                    )
+                    : ElevatedButton(
+                      onPressed: () => _handleSharePost(context),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.blue,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        elevation: 0,
+                      ),
+                      child: const Text("Post"),
                     ),
-                    child: const Text("Post"),
-                  ),
           ),
         ],
       ),
@@ -270,11 +282,15 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                             width: 2,
                           ),
                         ),
-                        child: const CircleAvatar(
+                        child: CircleAvatar(
                           radius: 24,
-                          backgroundImage: AssetImage(
-                            'assets/default_profile.png',
-                          ),
+                          backgroundImage:
+                              (widget.user.avatarImg.isNotEmpty)
+                                  ? NetworkImage(widget.user.avatarImg)
+                                  : const AssetImage(
+                                        'assets/default_profile.png',
+                                      )
+                                      as ImageProvider,
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -332,7 +348,8 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                       controller: _textController,
                       maxLines: null,
                       minLines: 5,
-                      onChanged: (value) => _eventHandler.updatePostContent(value),
+                      onChanged:
+                          (value) => _eventHandler.updatePostContent(value),
                       decoration: const InputDecoration(
                         hintText: "What's on your mind?",
                         border: InputBorder.none,
@@ -371,7 +388,8 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  createPostState.selectedMusicTitle ?? "Selected song",
+                                  createPostState.selectedMusicTitle ??
+                                      "Selected song",
                                   style: const TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.w500,
@@ -404,45 +422,49 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                     Padding(
                       padding: const EdgeInsets.only(top: 16.0),
                       child: Column(
-                        children: _tripJournals.map((journal) {
-                          final location = journal['location'] as String?;
-                          final date = journal['date'] as DateTime?;
-                          return Container(
-                            margin: const EdgeInsets.only(bottom: 8),
-                            padding: const EdgeInsets.all(14),
-                            decoration: BoxDecoration(
-                              color: Colors.green.withOpacity(0.05),
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(
-                                color: Colors.green.withOpacity(0.2),
-                                width: 1,
-                              ),
-                            ),
-                            child: Row(
-                              children: [
-                                const Icon(Icons.location_on, color: Colors.green),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: Text(
-                                    '$location (${date != null ? '${date.day}/${date.month}/${date.year}' : ''})',
-                                    style: const TextStyle(
-                                      fontSize: 15,
-                                      color: Colors.green,
-                                    ),
+                        children:
+                            _tripJournals.map((journal) {
+                              final location = journal['location'] as String?;
+                              final date = journal['date'] as DateTime?;
+                              return Container(
+                                margin: const EdgeInsets.only(bottom: 8),
+                                padding: const EdgeInsets.all(14),
+                                decoration: BoxDecoration(
+                                  color: Colors.green.withOpacity(0.05),
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: Colors.green.withOpacity(0.2),
+                                    width: 1,
                                   ),
                                 ),
-                                IconButton(
-                                  icon: const Icon(Icons.close, size: 18),
-                                  onPressed: () {
-                                    setState(() {
-                                      _tripJournals.remove(journal);
-                                    });
-                                  },
+                                child: Row(
+                                  children: [
+                                    const Icon(
+                                      Icons.location_on,
+                                      color: Colors.green,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text(
+                                        '$location (${date != null ? '${date.day}/${date.month}/${date.year}' : ''})',
+                                        style: const TextStyle(
+                                          fontSize: 15,
+                                          color: Colors.green,
+                                        ),
+                                      ),
+                                    ),
+                                    IconButton(
+                                      icon: const Icon(Icons.close, size: 18),
+                                      onPressed: () {
+                                        setState(() {
+                                          _tripJournals.remove(journal);
+                                        });
+                                      },
+                                    ),
+                                  ],
                                 ),
-                              ],
-                            ),
-                          );
-                        }).toList(),
+                              );
+                            }).toList(),
                       ),
                     ),
 
@@ -469,19 +491,25 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
           child: Consumer<CreatePostState>(
             builder: (context, createPostState, child) {
               final musicDisabled = _tripJournals.isNotEmpty;
-              final tripJournalDisabled = createPostState.selectedMusicUrl != null;
+              final tripJournalDisabled =
+                  createPostState.selectedMusicUrl != null;
               return Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   InkWell(
-                    onTap: musicDisabled ? () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: const Text("You cannot add music when a trip journal is attached."),
-                          backgroundColor: Colors.orange,
-                        ),
-                      );
-                    } : _openMusicSearch,
+                    onTap:
+                        musicDisabled
+                            ? () {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: const Text(
+                                    "You cannot add music when a trip journal is attached.",
+                                  ),
+                                  backgroundColor: Colors.orange,
+                                ),
+                              );
+                            }
+                            : _openMusicSearch,
                     borderRadius: BorderRadius.circular(12),
                     child: Opacity(
                       opacity: musicDisabled ? 0.5 : 1.0,
@@ -516,14 +544,19 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                   ),
                   const SizedBox(height: 8),
                   InkWell(
-                    onTap: tripJournalDisabled ? () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: const Text("You cannot add a trip journal when music is attached."),
-                          backgroundColor: Colors.orange,
-                        ),
-                      );
-                    } : _openTripJournalDialog,
+                    onTap:
+                        tripJournalDisabled
+                            ? () {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: const Text(
+                                    "You cannot add a trip journal when music is attached.",
+                                  ),
+                                  backgroundColor: Colors.orange,
+                                ),
+                              );
+                            }
+                            : _openTripJournalDialog,
                     borderRadius: BorderRadius.circular(12),
                     child: Opacity(
                       opacity: tripJournalDisabled ? 0.5 : 1.0,

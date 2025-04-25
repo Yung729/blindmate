@@ -117,4 +117,35 @@ class PostService {
       'hiddenPosts': FieldValue.arrayRemove([postId])
     }, SetOptions(merge: true));
   }
+
+  /// Fetch avatarImg for a single userId
+  Future<String?> fetchUserAvatar(String userId) async {
+    final doc = await _firestore.collection('users').doc(userId).get();
+    if (doc.exists && doc.data() != null) {
+      return doc.data()!['avatarImg'] as String?;
+    }
+    return null;
+  }
+
+/// Fetch avatarImg for a list of userIds (returns a map userId -> avatarImg)
+  Future<Map<String, String>> fetchAvatarsForUserIds(List<String> userIds) async {
+    if (userIds.isEmpty) return {};
+    // Firestore 'whereIn' supports up to 10 items per query, so batch if needed
+    final Map<String, String> result = {};
+    final batches = <List<String>>[];
+    for (var i = 0; i < userIds.length; i += 10) {
+      batches.add(userIds.sublist(i, i + 10 > userIds.length ? userIds.length : i + 10));
+    }
+    for (final batch in batches) {
+      final snapshot = await _firestore
+          .collection('users')
+          .where(FieldPath.documentId, whereIn: batch)
+          .get();
+      for (final doc in snapshot.docs) {
+        final data = doc.data();
+        result[doc.id] = data['avatarImg'] ?? '';
+      }
+    }
+    return result;
+  }
 }

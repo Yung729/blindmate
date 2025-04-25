@@ -59,7 +59,6 @@ class _TripJournalDialogState extends State<TripJournalDialog> {
   late List<TripJournalEntry> _entries;
 
   static const int maxEntries = 5;
-  static const int maxDescriptionWords = 50;
 
   @override
   void initState() {
@@ -122,13 +121,12 @@ class _TripJournalDialogState extends State<TripJournalDialog> {
   }
 
   String? _descriptionValidator(String? value) {
-    if (value == null || value.trim().isEmpty) return null;
-    final wordCount = value.trim().split(RegExp(r'\s+')).length;
-    if (wordCount > maxDescriptionWords) {
-      return 'Description cannot exceed $maxDescriptionWords words (${wordCount} given)';
-    }
-    return null;
+  if (value == null || value.trim().isEmpty) return null;
+  if (value.length > 10) {
+    return 'Description cannot exceed 10 characters (${value.length} given)';
   }
+  return null;
+}
 
   @override
   void dispose() {
@@ -220,7 +218,7 @@ class _TripJournalDialogState extends State<TripJournalDialog> {
                                   Row(
                                     children: [
                                       Text(
-                                        "Trip ${index + 1}",
+                                        "Day ${index + 1}",
                                         style: const TextStyle(
                                           fontWeight: FontWeight.bold,
                                           fontSize: 16,
@@ -290,6 +288,7 @@ class _TripJournalDialogState extends State<TripJournalDialog> {
                                         ),
                                         minLines: 4,
                                         maxLines: 6,
+                                        maxLength: 50,
                                         validator: _descriptionValidator,
                                       );
                                     },

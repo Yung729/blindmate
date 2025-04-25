@@ -4,30 +4,39 @@ import '../UIComponents/post_privacy_indicator.dart';
 
 class PostHeader extends StatelessWidget {
   final String userName;
-  final String avatarAsset;
+  final String? avatarUrl; // Now nullable, can be null or empty
   final String timeAgo;
   final bool isPublic;
-  final VoidCallback? onOptions; // Now nullable
+  final VoidCallback? onOptions;
   final bool isTripJournal;
   final VoidCallback? onTripJournalTap;
+  final String defaultAsset;
 
   const PostHeader({
     super.key,
     required this.userName,
-    required this.avatarAsset,
+    this.avatarUrl,
     required this.timeAgo,
     required this.isPublic,
-    this.onOptions, // Now optional
+    this.onOptions,
     this.isTripJournal = false,
     this.onTripJournalTap,
+    this.defaultAsset = 'assets/default_pic.jpg',
   });
 
   @override
   Widget build(BuildContext context) {
+    ImageProvider avatarProvider;
+    if (avatarUrl != null && avatarUrl!.isNotEmpty) {
+      avatarProvider = NetworkImage(avatarUrl!);
+    } else {
+      avatarProvider = AssetImage(defaultAsset);
+    }
+
     return Row(
       children: [
         CircleAvatar(
-          backgroundImage: AssetImage(avatarAsset),
+          backgroundImage: avatarProvider,
         ),
         const SizedBox(width: 8),
         Expanded(
@@ -67,7 +76,6 @@ class PostHeader extends StatelessWidget {
             ],
           ),
         ),
-        // Only show the options button if onOptions is not null
         if (onOptions != null)
           IconButton(
             icon: const Icon(Icons.more_vert),

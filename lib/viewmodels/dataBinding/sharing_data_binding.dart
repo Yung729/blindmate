@@ -1,3 +1,4 @@
+
 import '../../services/post_service.dart';
 import '../state/sharing_state.dart';
 
@@ -21,7 +22,26 @@ class SharingDataBinding {
     if (sharingState.currentUser != null) {
       _postService
           .getPosts(sharingState.currentUser!.userId)
-          .listen((posts) {
+          .listen((posts) async {
+        // 1. Collect unique userIds from posts
+        final userIds = posts.map((p) => p.userId).toSet().toList();
+
+        // 2. Fetch avatars for all userIds
+        final avatarMap = await _postService.fetchAvatarsForUserIds(userIds);
+
+        // 3. Attach avatar to each post (assumes PostModel has authorAvatar field)
+        for (final post in posts) {
+          // If you have authorAvatar in PostModel, set it here:
+          // post.authorAvatar = avatarMap[post.userId];
+          // If not, you can use avatarMap in your UI instead.
+          if (post is dynamic) {
+            // Only set if the field exists
+            try {
+              post.authorAvatar = avatarMap[post.userId];
+            } catch (_) {}
+          }
+        }
+
         sharingState.setPosts(posts);
         sharingState.setLoading(false);
       });
