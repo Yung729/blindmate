@@ -29,12 +29,12 @@ class RedeemRewardEventHandler {
       if (onSuccess != null) onSuccess(updatedFragmentNumber);
       print("Reward redeemed successfully! Updated fragment number: $updatedFragmentNumber");
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Reward redeemed successfully!')),
+          const SnackBar(content: Text('Reward redeemed successfully!')),
         );
       } else {
         print("Not enough fragments to redeem reward.");
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Not enough fragments!')),
+          const SnackBar(content: Text('Not enough fragments!')),
         );
       }
     } catch (e) {

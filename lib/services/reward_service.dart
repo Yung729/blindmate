@@ -4,11 +4,13 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter/material.dart';
 import '../viewmodels/state/auth_state.dart';
+import '../services/level_progression_service.dart';
 
 class RewardService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final Map<String, DateTime> _lastFlowerSentTime = {}; // Track last sent time per user
   static const Duration _flowerCooldown = Duration(seconds: 3); // Cooldown period
+  final LevelProgressionService _levelService = LevelProgressionService();
 
   // Fetch the available rewards from the Firestore collection
   Future<List<RewardModel>> getAvailableRewards() async {
@@ -78,6 +80,7 @@ class RewardService {
   String userId,
   int fragmentCost,
   String rewardId,
+  [BuildContext? context]
 ) async {
   try {
     // Fetch reward info to check type
@@ -96,6 +99,19 @@ class RewardService {
       await userRef.update({
         'flower': FieldValue.increment(1),
       });
+      
+      // Get the updated flower count to update the AuthState
+      final updatedUserDoc = await userRef.get();
+      final updatedFlowerCount = updatedUserDoc.data()?['flower'] ?? 0;
+      
+      // Update AuthState if context is provided
+      if (context != null) {
+        final authState = Provider.of<AuthState>(context, listen: false);
+        if (authState.currentUser != null) {
+          authState.currentUser!.flower = updatedFlowerCount;
+          authState.notifyListeners();
+        }
+      }
     } else {
       // 🔻 Otherwise, update redeemed reward list
       final userReward = await fetchUserRewards(userId);
@@ -142,6 +158,26 @@ class RewardService {
         authState.currentUser!.flower = currentFlower - 1;
         authState.notifyListeners();
       }
+      
+      // Get the recipient's user ID (the chat partner)
+      final chatDoc = await _firestore.collection('chats').doc(chatRoomId).get();
+      final chatData = chatDoc.data();
+      if (chatData != null && chatData.containsKey('users')) {
+        final List<String> users = List<String>.from(chatData['users'] ?? []);
+        // Find the other user (not the sender)
+        final String? recipientId = users.firstWhere(
+          (id) => id != userId,
+          orElse: () => '',
+        );
+        
+          try {
+            await _levelService.incrementProgressionWithFlower(recipientId!);
+            print('Updated level progression for user $recipientId');
+          } catch (e) {
+            print('Error updating level progression: $e');
+          }
+        
+      }
 
       // Send flower animation event to chat room
       await _firestore.collection('chats').doc(chatRoomId).collection('events').add({
@@ -149,6 +185,8 @@ class RewardService {
         'senderId': userId,
         'timestamp': FieldValue.serverTimestamp(),
       });
+      
+
 
       // Update cooldown tracker
       _lastFlowerSentTime[userId] = now;
