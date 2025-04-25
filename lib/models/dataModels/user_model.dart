@@ -8,7 +8,7 @@ class UserModel {
   final bool online;
   final String status;
   final DateTime? lastActive;
-  final String emotionStatus; 
+  final String emotionStatus;
   final double progressionValue;
   int fragmentNumber;
   String currentMission;
@@ -24,7 +24,7 @@ class UserModel {
     required this.levelValue,
     required this.online,
     required this.status,
-    this.lastActive, 
+    this.lastActive,
     required this.emotionStatus,
     required this.progressionValue,
     required this.fragmentNumber,
@@ -38,27 +38,30 @@ class UserModel {
   // 🔹 Convert Firestore Document to UserModel
   factory UserModel.fromMap(Map<String, dynamic> data, String documentId) {
     return UserModel(
-      userId: documentId, 
+      userId: documentId,
       name: data['name'] ?? 'Unknown User',
-      email: data['email'] ?? 'No Email', 
+      email: data['email'] ?? 'No Email',
       levelValue: (data['levelValue'] as int? ?? 1).clamp(1, 9999),
       online: data['online'] ?? false,
       status: data['status'] ?? 'available',
-      lastActive: data['lastActive'] != null
-          ? (data['lastActive'] as Timestamp).toDate()
-          : null,
+      lastActive:
+          data['lastActive'] != null
+              ? (data['lastActive'] as Timestamp).toDate()
+              : null,
       emotionStatus: data['emotionStatus'] ?? 'neutral',
       progressionValue: (data['progressionValue'] as num? ?? 0.0)
           .toDouble()
           .clamp(0.0, 1.0),
-      fragmentNumber: data['fragmentNumber'] ?? 0,
+      fragmentNumber: (data['fragmentNumber'] as num? ?? 0).toInt(),
       currentMission: data['currentMission'] ?? '',
       avatarImg: data['avatarImg'] ?? '',
       flower: data['flower'] ?? 0,
-      surveyDate: data['surveyDate'] != null
-          ? (data['surveyDate'] as Timestamp).toDate()
-          : DateTime.now(),
-      hiddenPosts: (data['hiddenPosts'] as List<dynamic>?)?.cast<String>() ?? [],
+      surveyDate:
+          data['surveyDate'] != null
+              ? (data['surveyDate'] as Timestamp).toDate()
+              : DateTime.now(),
+      hiddenPosts:
+          (data['hiddenPosts'] as List<dynamic>?)?.cast<String>() ?? [],
     );
   }
 
@@ -69,9 +72,10 @@ class UserModel {
       'email': email,
       'online': online,
       'status': status,
-       'lastActive': lastActive != null
-          ? Timestamp.fromDate(lastActive!)
-          : FieldValue.serverTimestamp(),
+      'lastActive':
+          lastActive != null
+              ? Timestamp.fromDate(lastActive!)
+              : FieldValue.serverTimestamp(),
       'emotionStatus': emotionStatus,
       'fragmentNumber': fragmentNumber,
       'currentMission': currentMission,
