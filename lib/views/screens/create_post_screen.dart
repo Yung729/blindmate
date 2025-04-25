@@ -1,3 +1,4 @@
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../models/dataModels/user_model.dart';
@@ -55,6 +56,15 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
   }
 
   void _openMusicSearch() {
+    if (_tripJournals.isNotEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text("You cannot add music when a trip journal is attached."),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
     MusicSearchDialog.show(
       context,
       onMusicSelected: (url, title) {
@@ -65,6 +75,16 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
   }
 
   Future<void> _openTripJournalDialog() async {
+    final createPostState = Provider.of<CreatePostState>(context, listen: false);
+    if (createPostState.selectedMusicUrl != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text("You cannot add a trip journal when music is attached."),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
     await TripJournalDialog.show(
       context,
       initialEntries: _tripJournals,
@@ -78,6 +98,18 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
 
   Future<void> _handleSharePost(BuildContext context) async {
     final postContent = _textController.text;
+    final createPostState = Provider.of<CreatePostState>(context, listen: false);
+
+    // Prevent both music and trip journal
+    if (createPostState.selectedMusicUrl != null && _tripJournals.isNotEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text("You cannot attach both music and trip journal to a post."),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
 
     if (!UIValidation.isPostContentValid(postContent)) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -131,10 +163,6 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
     // Pass the list of trip journals to your event handler (update your handler if needed)
     await _eventHandler.sharePost(tripJournals: _tripJournals);
 
-    final createPostState = Provider.of<CreatePostState>(
-      context,
-      listen: false,
-    );
     createPostState.reset();
     _textController.clear();
     setState(() {
@@ -363,6 +391,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                           IconButton(
                             onPressed: () {
                               _eventHandler.selectMusic(null, null);
+                              setState(() {});
                             },
                             icon: const Icon(Icons.close, color: Colors.grey),
                           ),
@@ -437,73 +466,99 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
               ),
             ],
           ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              InkWell(
-                onTap: _openMusicSearch,
-                borderRadius: BorderRadius.circular(12),
-                child: Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade50,
+          child: Consumer<CreatePostState>(
+            builder: (context, createPostState, child) {
+              final musicDisabled = _tripJournals.isNotEmpty;
+              final tripJournalDisabled = createPostState.selectedMusicUrl != null;
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  InkWell(
+                    onTap: musicDisabled ? () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: const Text("You cannot add music when a trip journal is attached."),
+                          backgroundColor: Colors.orange,
+                        ),
+                      );
+                    } : _openMusicSearch,
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.grey.shade200),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(
-                        Icons.music_note,
-                        color: Colors.blue,
-                        size: 20,
-                      ),
-                      const SizedBox(width: 8),
-                      const Text(
-                        "Add Music",
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w500,
+                    child: Opacity(
+                      opacity: musicDisabled ? 0.5 : 1.0,
+                      child: Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade50,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.grey.shade200),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(
+                              Icons.music_note,
+                              color: Colors.blue,
+                              size: 20,
+                            ),
+                            const SizedBox(width: 8),
+                            const Text(
+                              "Add Music",
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                    ],
+                    ),
                   ),
-                ),
-              ),
-              const SizedBox(height: 8),
-              InkWell(
-                onTap: _openTripJournalDialog,
-                borderRadius: BorderRadius.circular(12),
-                child: Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade50,
+                  const SizedBox(height: 8),
+                  InkWell(
+                    onTap: tripJournalDisabled ? () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: const Text("You cannot add a trip journal when music is attached."),
+                          backgroundColor: Colors.orange,
+                        ),
+                      );
+                    } : _openTripJournalDialog,
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.grey.shade200),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(
-                        Icons.location_on,
-                        color: Colors.green,
-                        size: 20,
-                      ),
-                      const SizedBox(width: 8),
-                      const Text(
-                        "Trip Journal",
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w500,
+                    child: Opacity(
+                      opacity: tripJournalDisabled ? 0.5 : 1.0,
+                      child: Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade50,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.grey.shade200),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(
+                              Icons.location_on,
+                              color: Colors.green,
+                              size: 20,
+                            ),
+                            const SizedBox(width: 8),
+                            const Text(
+                              "Trip Journal",
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                    ],
+                    ),
                   ),
-                ),
-              ),
-            ],
+                ],
+              );
+            },
           ),
         ),
       ),

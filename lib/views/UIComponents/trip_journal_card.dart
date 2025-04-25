@@ -2,7 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-/// A book-like, swipeable widget to display trip journal entries.
+/// A swipeable widget to display trip journal entries as cards.
 /// Each entry is shown as a page; swipe horizontally to flip pages.
 class TripJournalBookCard extends StatefulWidget {
   final List<Map<String, dynamic>> journals;
@@ -51,25 +51,8 @@ class _TripJournalBookCardState extends State<TripJournalBookCard> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Book "spine" shadow
-          Container(
-            height: 8,
-            margin: const EdgeInsets.symmetric(horizontal: 40),
-            decoration: BoxDecoration(
-              color: Colors.brown[200],
-              borderRadius: BorderRadius.circular(4),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.brown.withOpacity(0.25),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 8),
           AspectRatio(
-            aspectRatio: 4/5,
+            aspectRatio: 3 / 1.5, // Shorter card
             child: Stack(
               children: [
                 PageView.builder(
@@ -95,14 +78,14 @@ class _TripJournalBookCardState extends State<TripJournalBookCard> {
                     final note = journal['note'] ?? '';
 
                     return Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                       child: Material(
-                        elevation: 8,
-                        borderRadius: BorderRadius.circular(24),
+                        elevation: 5,
+                        borderRadius: BorderRadius.circular(18),
                         color: Colors.brown[50],
                         child: Container(
                           decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(24),
+                            borderRadius: BorderRadius.circular(18),
                             gradient: LinearGradient(
                               colors: [Colors.brown[50]!, Colors.brown[100]!],
                               begin: Alignment.topLeft,
@@ -110,43 +93,56 @@ class _TripJournalBookCardState extends State<TripJournalBookCard> {
                             ),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.brown.withOpacity(0.08),
-                                blurRadius: 12,
-                                offset: const Offset(0, 4),
+                                color: Colors.brown.withOpacity(0.06),
+                                blurRadius: 8,
+                                offset: const Offset(0, 3),
                               ),
                             ],
                           ),
                           child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
+                                // Day X label at the top
+                                Padding(
+                                  padding: const EdgeInsets.only(bottom: 6.0),
+                                  child: Text(
+                                    'Day ${index + 1}',
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.brown[400],
+                                      letterSpacing: 0.5,
+                                    ),
+                                  ),
+                                ),
                                 // Book "page" top decoration
                                 Row(
                                   children: [
                                     Container(
-                                      width: 32,
-                                      height: 8,
+                                      width: 24,
+                                      height: 6,
                                       decoration: BoxDecoration(
                                         color: Colors.brown[200],
-                                        borderRadius: BorderRadius.circular(4),
+                                        borderRadius: BorderRadius.circular(3),
                                       ),
                                     ),
                                     const Spacer(),
-                                    Icon(Icons.book, color: Colors.brown[300], size: 22),
+                                    Icon(Icons.book, color: Colors.brown[300], size: 18),
                                   ],
                                 ),
-                                const SizedBox(height: 18),
+                                const SizedBox(height: 10),
                                 Row(
                                   children: [
-                                    const Icon(Icons.location_on, color: Colors.green, size: 22),
-                                    const SizedBox(width: 8),
+                                    const Icon(Icons.location_on, color: Colors.green, size: 18),
+                                    const SizedBox(width: 6),
                                     Expanded(
                                       child: Text(
                                         location,
                                         style: const TextStyle(
                                           fontWeight: FontWeight.bold,
-                                          fontSize: 20,
+                                          fontSize: 15,
                                           color: Colors.green,
                                           letterSpacing: 0.2,
                                         ),
@@ -154,16 +150,16 @@ class _TripJournalBookCardState extends State<TripJournalBookCard> {
                                     ),
                                   ],
                                 ),
-                                const SizedBox(height: 10),
+                                const SizedBox(height: 6),
                                 Row(
                                   children: [
-                                    const Icon(Icons.date_range, color: Colors.blueGrey, size: 20),
-                                    const SizedBox(width: 6),
+                                    const Icon(Icons.date_range, color: Colors.blueGrey, size: 16),
+                                    const SizedBox(width: 4),
                                     Text(
                                       dateStr,
                                       style: const TextStyle(
                                         fontWeight: FontWeight.w500,
-                                        fontSize: 16,
+                                        fontSize: 13,
                                         color: Colors.blueGrey,
                                       ),
                                     ),
@@ -171,19 +167,19 @@ class _TripJournalBookCardState extends State<TripJournalBookCard> {
                                 ),
                                 // Description section
                                 if (description.isNotEmpty) ...[
-                                  const SizedBox(height: 14),
+                                  const SizedBox(height: 8),
                                   Row(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
-                                      const Icon(Icons.short_text, color: Colors.teal, size: 20),
-                                      const SizedBox(width: 10),
+                                      const Icon(Icons.short_text, color: Colors.teal, size: 16),
+                                      const SizedBox(width: 7),
                                       Expanded(
                                         child: Text(
                                           description,
                                           style: const TextStyle(
-                                            fontSize: 16,
+                                            fontSize: 13,
                                             color: Colors.black87,
-                                            height: 1.4,
+                                            height: 1.3,
                                           ),
                                         ),
                                       ),
@@ -192,34 +188,34 @@ class _TripJournalBookCardState extends State<TripJournalBookCard> {
                                 ],
                                 // Note section (legacy)
                                 if (note.isNotEmpty) ...[
-                                  const SizedBox(height: 14),
+                                  const SizedBox(height: 8),
                                   Row(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
-                                      const Icon(Icons.notes, color: Colors.orange, size: 20),
-                                      const SizedBox(width: 10),
+                                      const Icon(Icons.notes, color: Colors.orange, size: 16),
+                                      const SizedBox(width: 7),
                                       Expanded(
                                         child: Text(
                                           note,
                                           style: const TextStyle(
                                             fontStyle: FontStyle.italic,
-                                            fontSize: 16,
+                                            fontSize: 13,
                                             color: Colors.black87,
-                                            height: 1.4,
+                                            height: 1.3,
                                           ),
                                         ),
                                       ),
                                     ],
                                   ),
                                 ],
-                                const Spacer(),
+                                const SizedBox(height: 8),
                                 Align(
                                   alignment: Alignment.bottomRight,
                                   child: Text(
                                     'Page ${index + 1} of ${journals.length}',
                                     style: TextStyle(
                                       color: Colors.brown[300],
-                                      fontSize: 13,
+                                      fontSize: 11,
                                       fontWeight: FontWeight.w500,
                                     ),
                                   ),
@@ -234,7 +230,7 @@ class _TripJournalBookCardState extends State<TripJournalBookCard> {
                 ),
                 // Page indicator (dots)
                 Positioned(
-                  bottom: 12,
+                  bottom: 8,
                   left: 0,
                   right: 0,
                   child: Row(
@@ -242,14 +238,14 @@ class _TripJournalBookCardState extends State<TripJournalBookCard> {
                     children: List.generate(journals.length, (i) {
                       return AnimatedContainer(
                         duration: const Duration(milliseconds: 250),
-                        margin: const EdgeInsets.symmetric(horizontal: 4),
-                        width: _currentPage == i ? 18 : 8,
-                        height: 8,
+                        margin: const EdgeInsets.symmetric(horizontal: 3),
+                        width: _currentPage == i ? 14 : 6,
+                        height: 6,
                         decoration: BoxDecoration(
                           color: _currentPage == i
                               ? Colors.brown[400]
                               : Colors.brown[200],
-                          borderRadius: BorderRadius.circular(4),
+                          borderRadius: BorderRadius.circular(3),
                         ),
                       );
                     }),

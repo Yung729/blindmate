@@ -317,77 +317,84 @@ class _SharingScreenState extends State<SharingScreen> {
     );
   }
 
-  Widget _buildSharedContentList(List<PostModel> posts) {
-    if (_sharingState.isLoading && posts.isEmpty) {
-      return const Center(child: CircularProgressIndicator());
-    }
-
-    if (posts.isEmpty && !_sharingState.isLoading) {
-      return const Center(child: Text("No posts available."));
-    }
-
-    return ListView.builder(
-      controller: _scrollController,
-      physics: const AlwaysScrollableScrollPhysics(),
-      itemCount: posts.length,
-      itemBuilder: (context, index) {
-        final post = posts[index];
-        final isTripJournal = post.postType == PostType.tripJournal;
-
-        return PostCard(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: PostHeader(
-                      userName:
-                          post.userId == widget.user.userId
-                              ? "You"
-                              : "Depression People",
-                      avatarAsset: 'assets/default_pic.jpg',
-                      timeAgo: getTimeAgo(post.timestamp),
-                      isPublic: post.isPublic,
-                      onOptions: () => _showPostOptions(context, post),
-                      isTripJournal: isTripJournal,
-                      onTripJournalTap:
-                          isTripJournal
-                              ? () => _showTripJournalDialog(context, post)
-                              : null,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              if (post.content.isNotEmpty)
-                PostContent(
-                  content: post.content,
-                  isExpanded: _expandedPosts.contains(post.id),
-                  maxLinesCollapsed: _maxLinesCollapsed,
-                  onExpand: () {
-                    setState(() {
-                      _expandedPosts.add(post.id!);
-                    });
-                  },
-                  onCollapse: () {
-                    setState(() {
-                      _expandedPosts.remove(post.id);
-                    });
-                  },
-                ),
-              if (post.musicUrl != null)
-                PostMusicPreview(
-                  musicUrl: post.musicUrl,
-                  musicTitle: post.musicTitle,
-                  onPlay: () => _eventHandler.playMusic(post.musicUrl!),
-                ),
-            ],
-          ),
-        );
-      },
-    );
+  
+Widget _buildSharedContentList(List<PostModel> posts) {
+  if (_sharingState.isLoading && posts.isEmpty) {
+    return const Center(child: CircularProgressIndicator());
   }
+
+  if (posts.isEmpty && !_sharingState.isLoading) {
+    return const Center(child: Text("No posts available."));
+  }
+
+  return ListView.builder(
+    controller: _scrollController,
+    physics: const AlwaysScrollableScrollPhysics(),
+    itemCount: posts.length,
+    itemBuilder: (context, index) {
+      final post = posts[index];
+      final isTripJournal = post.postType == PostType.tripJournal;
+
+      return PostCard(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: PostHeader(
+                    userName:
+                        post.userId == widget.user.userId
+                            ? "You"
+                            : "Depression People",
+                    avatarAsset: 'assets/default_pic.jpg',
+                    timeAgo: getTimeAgo(post.timestamp),
+                    isPublic: post.isPublic,
+                    onOptions: () => _showPostOptions(context, post),
+                    isTripJournal: isTripJournal,
+                    onTripJournalTap:
+                        isTripJournal
+                            ? () => _showTripJournalDialog(context, post)
+                            : null,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            if (post.content.isNotEmpty)
+              PostContent(
+                content: post.content,
+                isExpanded: _expandedPosts.contains(post.id),
+                maxLinesCollapsed: _maxLinesCollapsed,
+                onExpand: () {
+                  setState(() {
+                    _expandedPosts.add(post.id!);
+                  });
+                },
+                onCollapse: () {
+                  setState(() {
+                    _expandedPosts.remove(post.id);
+                  });
+                },
+              ),
+            if (post.musicUrl != null)
+              PostMusicPreview(
+                musicUrl: post.musicUrl,
+                musicTitle: post.musicTitle,
+                onPlay: () => _eventHandler.playMusic(post.musicUrl!),
+              ),
+            if (isTripJournal && (post.tripJournals?.isNotEmpty ?? false))
+              Padding(
+                padding: const EdgeInsets.only(top: 8.0),
+                child: TripJournalBookCard(journals: post.tripJournals!),
+              ),
+          ],
+        ),
+      );
+    },
+  );
+}
+
 
   void _showTripJournalDialog(BuildContext context, PostModel post) {
     final journals = post.tripJournals ?? [];
