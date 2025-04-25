@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import '../../views/UIComponents/location_autocomplete.dart';
 
@@ -157,234 +156,236 @@ class _TripJournalDialogState extends State<TripJournalDialog> {
         top: false,
         child: Padding(
           padding: const EdgeInsets.only(bottom: 16),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Handle indicator
-                Container(
-                  width: 44,
-                  height: 5,
-                  margin: const EdgeInsets.only(top: 14, bottom: 10),
-                  decoration: BoxDecoration(
-                    color: Colors.grey[300],
-                    borderRadius: BorderRadius.circular(3),
+          child: SingleChildScrollView(
+            // This allows the content to scroll when the keyboard is up
+            child: Form(
+              key: _formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Handle indicator
+                  Container(
+                    width: 44,
+                    height: 5,
+                    margin: const EdgeInsets.only(top: 14, bottom: 10),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[300],
+                      borderRadius: BorderRadius.circular(3),
+                    ),
                   ),
-                ),
-                // Header
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 20.0,
-                    vertical: 6,
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        "Trip Journal",
-                        style: TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 0.2,
-                        ),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.close, size: 26),
-                        onPressed: () => Navigator.pop(context),
-                      ),
-                    ],
-                  ),
-                ),
-                // Entries
-                SizedBox(
-                  height: 300, // Adjust this value as needed for your UI
-                  child: ListView.separated(
-                    shrinkWrap: true,
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    itemCount: _entries.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 10),
-                    itemBuilder: (context, index) {
-                      final entry = _entries[index];
-                      return Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                        child: Card(
-                          elevation: 1,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14),
-                          ),
-                          child: Padding(
-                            padding: const EdgeInsets.all(12.0),
-                            child: Column(
-                              children: [
-                                Row(
-                                  children: [
-                                    Text(
-                                      "Trip ${index + 1}",
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 16,
-                                      ),
-                                    ),
-                                    const Spacer(),
-                                    if (_entries.length > 1)
-                                      IconButton(
-                                        icon: const Icon(
-                                          Icons.delete,
-                                          color: Colors.red,
-                                        ),
-                                        onPressed: () => _removeEntry(index),
-                                      ),
-                                  ],
-                                ),
-                                NominatimLocationAutocomplete(
-                                  controller: entry.locationController,
-                                  hintText: "Search location",
-                                ),
-                                const SizedBox(height: 8),
-                                // Description field with clear button
-                                StatefulBuilder(
-                                  builder: (context, setInnerState) {
-                                    entry.descriptionController
-                                        .removeListener(() {});
-                                    entry.descriptionController
-                                        .addListener(() {
-                                      setInnerState(() {});
-                                    });
-                                    return TextFormField(
-                                      controller: entry.descriptionController,
-                                      decoration: InputDecoration(
-                                        hintText: "Short description (optional)",
-                                        prefixIcon: const Icon(
-                                          Icons.notes,
-                                          color: Colors.blueGrey,
-                                        ),
-                                        border: OutlineInputBorder(
-                                          borderRadius:
-                                              BorderRadius.circular(14),
-                                          borderSide: BorderSide(
-                                            color: Colors.grey[300]!,
-                                          ),
-                                        ),
-                                        filled: true,
-                                        fillColor: Colors.grey[100],
-                                        contentPadding:
-                                            const EdgeInsets.symmetric(
-                                          horizontal: 16,
-                                          vertical: 14,
-                                        ),
-                                        suffixIcon: entry
-                                                .descriptionController
-                                                .text
-                                                .isNotEmpty
-                                            ? IconButton(
-                                                icon: const Icon(Icons.clear,
-                                                    color: Colors.grey),
-                                                onPressed: () {
-                                                  entry.descriptionController
-                                                      .clear();
-                                                  setInnerState(() {});
-                                                },
-                                              )
-                                            : null,
-                                      ),
-                                      minLines: 4,
-                                      maxLines: 6,
-                                      validator: _descriptionValidator,
-                                    );
-                                  },
-                                ),
-                                const SizedBox(height: 8),
-                                Row(
-                                  children: [
-                                    Expanded(
-                                      child: Text(
-                                        entry.date == null
-                                            ? 'Select Date'
-                                            : '${entry.date!.day}/${entry.date!.month}/${entry.date!.year}',
-                                        style: TextStyle(
-                                          fontSize: 16,
-                                          color: entry.date == null
-                                              ? Colors.grey
-                                              : Colors.black,
-                                        ),
-                                      ),
-                                    ),
-                                    TextButton.icon(
-                                      onPressed: () => _pickDate(index),
-                                      icon: const Icon(
-                                        Icons.calendar_today,
-                                        size: 18,
-                                      ),
-                                      label: const Text('Pick Date'),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
+                  // Header
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20.0,
+                      vertical: 6,
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          "Trip Journal",
+                          style: TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 0.2,
                           ),
                         ),
-                      );
-                    },
+                        IconButton(
+                          icon: const Icon(Icons.close, size: 26),
+                          onPressed: () => Navigator.pop(context),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-
-                // Add More button
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 20.0,
-                    vertical: 4,
-                  ),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          icon: const Icon(Icons.add, color: Colors.green),
-                          label: const Text("Add More"),
-                          style: OutlinedButton.styleFrom(
-                            side: const BorderSide(color: Colors.green),
+                  // Entries
+                  Flexible(
+                    child: ListView.separated(
+                      shrinkWrap: true,
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      itemCount: _entries.length,
+                      separatorBuilder: (_, __) => const SizedBox(height: 10),
+                      itemBuilder: (context, index) {
+                        final entry = _entries[index];
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                          child: Card(
+                            elevation: 1,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(14),
                             ),
+                            child: Padding(
+                              padding: const EdgeInsets.all(12.0),
+                              child: Column(
+                                children: [
+                                  Row(
+                                    children: [
+                                      Text(
+                                        "Trip ${index + 1}",
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 16,
+                                        ),
+                                      ),
+                                      const Spacer(),
+                                      if (_entries.length > 1)
+                                        IconButton(
+                                          icon: const Icon(
+                                            Icons.delete,
+                                            color: Colors.red,
+                                          ),
+                                          onPressed: () => _removeEntry(index),
+                                        ),
+                                    ],
+                                  ),
+                                  NominatimLocationAutocomplete(
+                                    controller: entry.locationController,
+                                    hintText: "Search location",
+                                  ),
+                                  const SizedBox(height: 8),
+                                  // Description field with clear button
+                                  StatefulBuilder(
+                                    builder: (context, setInnerState) {
+                                      entry.descriptionController
+                                          .removeListener(() {});
+                                      entry.descriptionController
+                                          .addListener(() {
+                                        setInnerState(() {});
+                                      });
+                                      return TextFormField(
+                                        controller: entry.descriptionController,
+                                        decoration: InputDecoration(
+                                          hintText: "Short description (optional)",
+                                          prefixIcon: const Icon(
+                                            Icons.notes,
+                                            color: Colors.blueGrey,
+                                          ),
+                                          border: OutlineInputBorder(
+                                            borderRadius:
+                                                BorderRadius.circular(14),
+                                            borderSide: BorderSide(
+                                              color: Colors.grey[300]!,
+                                            ),
+                                          ),
+                                          filled: true,
+                                          fillColor: Colors.grey[100],
+                                          contentPadding:
+                                              const EdgeInsets.symmetric(
+                                            horizontal: 16,
+                                            vertical: 14,
+                                          ),
+                                          suffixIcon: entry
+                                                  .descriptionController
+                                                  .text
+                                                  .isNotEmpty
+                                              ? IconButton(
+                                                  icon: const Icon(Icons.clear,
+                                                      color: Colors.grey),
+                                                  onPressed: () {
+                                                    entry.descriptionController
+                                                        .clear();
+                                                    setInnerState(() {});
+                                                  },
+                                                )
+                                              : null,
+                                        ),
+                                        minLines: 4,
+                                        maxLines: 6,
+                                        validator: _descriptionValidator,
+                                      );
+                                    },
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: Text(
+                                          entry.date == null
+                                              ? 'Select Date'
+                                              : '${entry.date!.day}/${entry.date!.month}/${entry.date!.year}',
+                                          style: TextStyle(
+                                            fontSize: 16,
+                                            color: entry.date == null
+                                                ? Colors.grey
+                                                : Colors.black,
+                                          ),
+                                        ),
+                                      ),
+                                      TextButton.icon(
+                                        onPressed: () => _pickDate(index),
+                                        icon: const Icon(
+                                          Icons.calendar_today,
+                                          size: 18,
+                                        ),
+                                        label: const Text('Pick Date'),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
                           ),
-                          onPressed:
-                              _entries.length >= maxEntries ? null : _addEntry,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                // Add to Journal button
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                  child: SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      icon: const Icon(
-                        Icons.add_location_alt_rounded,
-                        color: Colors.white,
-                      ),
-                      label: const Text(
-                        "Add to Journal",
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.green,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        elevation: 2,
-                      ),
-                      onPressed: _handleAdd,
+                        );
+                      },
                     ),
                   ),
-                ),
-                const SizedBox(height: 18),
-              ],
+
+                  // Add More button
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20.0,
+                      vertical: 4,
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            icon: const Icon(Icons.add, color: Colors.green),
+                            label: const Text("Add More"),
+                            style: OutlinedButton.styleFrom(
+                              side: const BorderSide(color: Colors.green),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                            ),
+                            onPressed:
+                                _entries.length >= maxEntries ? null : _addEntry,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  // Add to Journal button
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                    child: SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        icon: const Icon(
+                          Icons.add_location_alt_rounded,
+                          color: Colors.white,
+                        ),
+                        label: const Text(
+                          "Add to Journal",
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.green,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          elevation: 2,
+                        ),
+                        onPressed: _handleAdd,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+                ],
+              ),
             ),
           ),
         ),
