@@ -1,9 +1,11 @@
 import 'dart:async';
 import 'package:blindmate/services/reward_service.dart';
+import 'package:blindmate/views/UIComponents/music_overlay_manager.dart';
 import 'package:blindmate/viewmodels/dataBinding/matching_data_binding.dart';
 import 'package:blindmate/viewmodels/eventHandlers/matching_event_handler.dart';
 import 'package:blindmate/viewmodels/state/matching_state.dart';
 import 'package:blindmate/views/UIComponents/custom_dialog.dart';
+import 'package:blindmate/views/UIComponents/music_search_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../viewmodels/state/chat_state.dart';
@@ -85,6 +87,11 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       } else if (_chatState.reportedUser) {
         _showChatSummary().then((_) {
           _chatState.markSummaryShown();
+          // Stop music playback when chat ends
+          if (_chatState.isMusicPlaying) {
+            _chatState.setMusicPlaying(false);
+            MusicOverlayManager().closeMusic();
+          }
           _chatHandler.handleExit().then((_) {
             Navigator.popUntil(context, (route) => route.isFirst);
           });
@@ -93,6 +100,11 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
         if (!_chatState.isBanned) {
           _showChatSummary().then((_) {
             _chatState.markSummaryShown();
+            // Stop music playback when partner leaves
+            if (_chatState.isMusicPlaying) {
+              _chatState.setMusicPlaying(false);
+              MusicOverlayManager().closeMusic();
+            }
             _chatHandler.handleExit().then((_) {
               Navigator.popUntil(context, (route) => route.isFirst);
             });
@@ -131,6 +143,13 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     _chatHandler.dispose();
     _messageController.dispose();
     _flowerEventSubscription?.cancel();
+    
+    // Set music as stopped in the ChatState and close any active player
+    if (_chatState.isMusicPlaying) {
+      _chatState.setMusicPlaying(false);
+      MusicOverlayManager().closeMusic();
+    }
+    
     super.dispose();
   }
 
@@ -140,6 +159,11 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
             state == AppLifecycleState.detached) &&
         _chatState.isChatOpen &&
         !_chatState.hasSummaryShown) {
+      // Stop music playback when app goes to background
+      if (_chatState.isMusicPlaying) {
+        _chatState.setMusicPlaying(false);
+        MusicOverlayManager().closeMusic();
+      }
       _chatHandler.handleExit();
     }
   }
@@ -161,6 +185,11 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       }
       await _showChatSummary();
       _chatState.markSummaryShown();
+      // Stop music playback when reporting user
+      if (_chatState.isMusicPlaying) {
+        _chatState.setMusicPlaying(false);
+        MusicOverlayManager().closeMusic();
+      }
       await _chatHandler.handleExit();
       Navigator.popUntil(context, (route) => route.isFirst);
     }
@@ -489,7 +518,19 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                               );
                             },
                             onShareMusic: () {
-                              // Add your music sharing logic here
+                              MusicSearchDialog.show(
+                                context,
+                                onMusicSelected: (url, title) {
+                                  _chatHandler.sendMessage(
+                                    context,
+                                    musicUrl: url,
+                                    musicTitle: title,
+                                  );
+                                  setState(() {
+                                    _isDrawerVisible = false;
+                                  });
+                                },
+                              );
                             },
                             onTripJournal: () {
                               // Add your trip journal logic here
@@ -523,10 +564,16 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   }
 
   Widget _buildChatBubble(message, bool isMe) {
+    if (message.musicUrl != null || message.musicTitle != null) {
+      print("🎵 Building chat bubble with musicUrl: ${message.musicUrl}, musicTitle: ${message.musicTitle}");
+    }
+    
     return ChatBubble(
       isMe: isMe,
       text: message.text,
       stickerUrl: message.stickerUrl,
+      musicUrl: message.musicUrl,
+      musicTitle: message.musicTitle,
     );
   }
 

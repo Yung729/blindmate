@@ -19,8 +19,18 @@ class ChatState extends ChangeNotifier {
   bool isBanned = false;
   bool _reportedUser = false;
   bool _showFlowerAnimation = false;
+  bool _isMusicPlaying = false;
 
   bool get reportedUser => _reportedUser;
+  
+  bool get isMusicPlaying => _isMusicPlaying;
+  
+  void setMusicPlaying(bool isPlaying) {
+    if (_isMusicPlaying != isPlaying) {
+      _isMusicPlaying = isPlaying;
+      notifyListeners();
+    }
+  }
 
   void setReportedUser(bool reported) {
     if (_reportedUser != reported) {

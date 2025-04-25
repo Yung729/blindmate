@@ -38,7 +38,9 @@ class ChatService {
         if (data['type'] == 'message' && data['chatRoomId'] == chatRoomId) {
           print("✅ New Message Received!");
 
-          MessageModel msg = MessageModel.fromMap(data);
+          // Use fromWebSocket instead of fromMap for WebSocket messages
+          MessageModel msg = MessageModel.fromWebSocket(data);
+          
           _messages.insert(0, msg);
           _messageStreamController.add(List.from(_messages));
         }
@@ -62,15 +64,28 @@ class ChatService {
     String chatRoomId,
     MessageModel message,
   ) async {
-    final messageData = jsonEncode({
+    // Create a map with all message fields, ensuring null values are properly handled
+    final Map<String, dynamic> messageMap = {
       "type": "message",
-      "chatRoomId": chatRoomId, // ✅ Ensure chatRoomId is included
+      "chatRoomId": chatRoomId,
       "senderId": message.senderId,
-      "text": message.text,
-      "stickerUrl": message.stickerUrl,
       "timestamp": DateTime.now().toIso8601String(),
       "moderationStatus": message.moderationStatus,
-    });
+    };
+    
+    // Only add non-null fields to avoid issues with null values
+    if (message.text != null) messageMap["text"] = message.text;
+    if (message.stickerUrl != null) messageMap["stickerUrl"] = message.stickerUrl;
+    if (message.musicUrl != null && message.musicUrl!.isNotEmpty) {
+      messageMap["musicUrl"] = message.musicUrl;
+      print("🎵 Added musicUrl to WebSocket message: ${message.musicUrl}");
+    }
+    if (message.musicTitle != null && message.musicTitle!.isNotEmpty) {
+      messageMap["musicTitle"] = message.musicTitle;
+      print("🎵 Added musicTitle to WebSocket message: ${message.musicTitle}");
+    }
+    
+    final messageData = jsonEncode(messageMap);
     _channel?.sink.add(messageData);
     print("🚀 Sent WebSocket Message: $messageData");
 

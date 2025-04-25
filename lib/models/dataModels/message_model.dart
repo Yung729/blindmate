@@ -4,6 +4,8 @@ class MessageModel {
   final String senderId;
   final String? text;
   final String? stickerUrl;
+  final String? musicUrl;
+  final String? musicTitle;
   final DateTime timestamp;
   final String? moderationStatus;
 
@@ -11,6 +13,8 @@ class MessageModel {
     required this.senderId,
     this.text,
     this.stickerUrl,
+    this.musicUrl,
+    this.musicTitle,
     required this.timestamp,
     this.moderationStatus,
   });
@@ -21,10 +25,12 @@ class MessageModel {
       senderId: data['senderId'] ?? 'Unknown',
       text: data['text'],
       stickerUrl: data['stickerUrl'],
+      musicUrl: data['musicUrl'],
+      musicTitle: data['musicTitle'],
       timestamp: (data['timestamp'] is Timestamp)
           ? (data['timestamp'] as Timestamp).toDate()
           : DateTime.now(),
-          moderationStatus: data['moderationStatus'] ?? 'SAFE',
+      moderationStatus: data['moderationStatus'] ?? 'SAFE',
     );
   }
 
@@ -34,6 +40,8 @@ class MessageModel {
       senderId: data['senderId'] ?? 'Unknown',
       text: data['text'],
       stickerUrl: data['stickerUrl'],
+      musicUrl: data['musicUrl'],
+      musicTitle: data['musicTitle'],
       timestamp: DateTime.tryParse(data['timestamp'] ?? '') ?? DateTime.now(),
       moderationStatus: data['moderationStatus'] ?? 'SAFE',
     );
@@ -45,6 +53,8 @@ class MessageModel {
       'senderId': senderId,
       if (text != null) 'text': text,
       if (stickerUrl != null) 'stickerUrl': stickerUrl,
+      if (musicUrl != null) 'musicUrl': musicUrl,
+      if (musicTitle != null) 'musicTitle': musicTitle,
       'timestamp': FieldValue.serverTimestamp(), 
       if (moderationStatus != null) 'moderationStatus': moderationStatus,
     };
@@ -57,6 +67,8 @@ class MessageModel {
       'senderId': senderId,
       'text': text,
       'stickerUrl': stickerUrl,
+      'musicUrl': musicUrl,
+      'musicTitle': musicTitle,
       'timestamp': timestamp.toIso8601String(), 
       if (moderationStatus != null) 'moderationStatus': moderationStatus,
     };

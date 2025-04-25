@@ -78,6 +78,8 @@ class ChatDataBinding {
         senderId: message.senderId,
         text: message.text,
         stickerUrl: message.stickerUrl,
+        musicUrl: message.musicUrl,
+        musicTitle: message.musicTitle,
         timestamp: message.timestamp,
         moderationStatus: moderationResult, // Add moderation status
       );
@@ -111,12 +113,14 @@ class ChatDataBinding {
         default:
           throw Exception("Message moderation failed");
       }
-    } else {
-      // For stickers, mark as SAFE by default
+    } else if (message.musicUrl != null || message.stickerUrl != null) {
+      // For stickers or music, mark as SAFE by default
       final safeMessage = MessageModel(
         senderId: message.senderId,
         text: message.text,
         stickerUrl: message.stickerUrl,
+        musicUrl: message.musicUrl,
+        musicTitle: message.musicTitle,
         timestamp: message.timestamp,
         moderationStatus: 'SAFE',
       );

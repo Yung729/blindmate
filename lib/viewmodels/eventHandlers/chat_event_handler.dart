@@ -51,9 +51,13 @@ class ChatEventHandler {
     BuildContext context, {
     String? text,
     String? stickerUrl,
+    String? musicUrl,
+    String? musicTitle,
   }) async {
     if ((text == null || !MessageValidator.isValid(text)) &&
-        (stickerUrl == null || stickerUrl.isEmpty)) {
+        (stickerUrl == null || stickerUrl.isEmpty) &&
+        (musicUrl == null || musicUrl.isEmpty)) {
+      print("❌ Invalid message, no content to send");
       return;
     }
 
@@ -61,6 +65,8 @@ class ChatEventHandler {
       senderId: currentUserId,
       text: text?.trim(),
       stickerUrl: stickerUrl,
+      musicUrl: musicUrl,
+      musicTitle: musicTitle,
       timestamp: DateTime.now(),
     );
 
