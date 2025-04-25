@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'chat_screen.dart';  // Adjust the path based on your project structure
+import 'dart:async'; // Import for Timer
 
 class MiniGameScreen extends StatefulWidget {
   final String chatRoomId;
@@ -33,6 +35,14 @@ class _MiniGameScreenState extends State<MiniGameScreen> {
   bool _winnerDialogShown = false;
   bool _isGameEnded = false;
   int _remainingAttempts = 2;
+  
+  late Timer _inactivityTimer;
+  late Timer _gameOverTimer; // Timer for game over if inactivity continues
+  static const int _inactivityThreshold = 10; // Inactivity threshold in seconds
+  static const int _gameOverThreshold = 5; // Time until game ends after inactivity warning
+  bool _isInactiveWarningShown = false; // Flag to check if warning has been shown
+  bool _isGameOver = false; // Flag to track if the game is over
+
 
   @override
   void initState() {
@@ -65,6 +75,9 @@ class _MiniGameScreenState extends State<MiniGameScreen> {
       setState(() {
         _isInitialized = true;
       });
+
+       _startInactivityTimer(); // Start the inactivity timer when the game is initialized
+       //_startGameOverTimer(); // Start the timer for game over after inactivity warning
     });
 
     _firestore.collection('games').doc(widget.chatRoomId).snapshots().listen((snapshot) {
@@ -79,26 +92,76 @@ class _MiniGameScreenState extends State<MiniGameScreen> {
   }
 });
 
-//     _firestore.collection('games').doc(widget.chatRoomId).snapshots().listen((snapshot) {
-//   final data = snapshot.data();
-//   if (data != null && data['winner'] != null && !_guessCorrect) {
-//     final String winnerId = data['winner'];
-//     if (winnerId == widget.currentUserId) {
-//       // Already shown locally after correct guess
-//       return;
-//     }
-//     _showWinnerDialog(winnerId);
-//   }
-// });_firestore.collection('games').doc(widget.chatRoomId).snapshots().listen((snapshot) {
-//   final data = snapshot.data();
-//   if (data != null && data['winner'] != null && !_winnerDialogShown) {
-//     final String winnerId = data['winner'];
-
-//     _winnerDialogShown = true; // 🔐 Prevent repeat dialogs
-//     _showWinnerDialog(winnerId);
-//   }
-// });
   }
+
+  @override
+  void dispose() {
+    _inactivityTimer.cancel(); // Cancel the timer when the screen is disposed
+    _gameOverTimer.cancel(); // <-- Add this
+    super.dispose();
+  }
+
+  void _startInactivityTimer() {
+    _inactivityTimer = Timer.periodic(Duration(seconds: _inactivityThreshold), (timer) {
+      // Show a popup if the user has been inactive
+      _showInactivityWarning();
+    });
+  }
+
+  // 3. Timer to end the game after inactivity persists
+void _startGameOverTimer() {
+  _gameOverTimer = Timer(Duration(seconds: _gameOverThreshold), () {
+    if (_isInactiveWarningShown && !_isGameOver) {
+      // If inactivity persists after the warning, end the game
+      _endGame();
+    }
+  });
+}
+
+  void _resetInactivityTimer() {
+  _inactivityTimer.cancel();
+  _startInactivityTimer();
+
+  // Cancel game over timer if warning was shown and user is active now
+  if (_isInactiveWarningShown) {
+    _gameOverTimer.cancel();       // Cancel the game over timer
+    _isInactiveWarningShown = false; // Clear the flag so warning can show again later
+  }
+}
+
+  void _showInactivityWarning() {
+    
+
+     if (!_isGameEnded && !_isInactiveWarningShown) {
+      setState(() {
+        _isInactiveWarningShown = true; // Mark that the warning has been shown
+      });
+
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => AlertDialog(
+          title: Text("⏰ Inactivity Warning"),
+          content: Text("It seems like you've been inactive for a while. Please make a move."),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                _resetInactivityTimer(); // Reset the timer after clicking "OK"
+                setState(() {
+                  _isInactiveWarningShown = false; // Reset the flag when the user acknowledges
+                });
+              },
+              child: const Text("OK"),
+            ),
+          ],
+        ),
+      );
+
+      _startGameOverTimer();
+    }
+  }
+
 
   Future<void> _updateGameData() async {
     final docRef = _firestore.collection('games').doc(widget.chatRoomId);
@@ -127,20 +190,42 @@ class _MiniGameScreenState extends State<MiniGameScreen> {
       'roles': roles,
       'scores': scores,
     }, SetOptions(merge: true));
-    // final Map<String, String> roles = {
-    //   widget.currentUserId: _isDrawer ? 'drawer' : 'guesser',
-    //   widget.opponentId: _isDrawer ? 'guesser' : 'drawer',
-    // };
-
-    // await _firestore.collection('games').doc(widget.chatRoomId).set({
-    //   'points': points.map((e) {
-    //     if (e == null) return {'dx': null, 'dy': null};
-    //     return {'dx': e.dx, 'dy': e.dy};
-    //   }).toList(),
-    //   'word': _currentWord,
-    //   'roles': roles,
-    // }, SetOptions(merge: true));
   }
+
+  // 4. Method to end the game after inactivity
+void _endGame() {
+  setState(() {
+    _isGameOver = true;
+  });
+
+  // Show game over dialog
+  showDialog(
+    context: context,
+    barrierDismissible: false,
+    builder: (context) => AlertDialog(
+      title: Text("Game Over"),
+      content: Text("You have been inactive for too long. The game has ended."),
+      actions: [
+        TextButton(
+          onPressed: () {
+            Navigator.of(context).pop();
+            // Reset the game or navigate to chat screen
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (context) => ChatScreen(
+                  chatRoomId: widget.chatRoomId,
+                  currentUserId: widget.currentUserId,
+                ),
+              ),
+            );
+          },
+          child: const Text("OK"),
+        ),
+      ],
+    ),
+  );
+}
 
   void _listenToGameState() {
     _firestore.collection('games').doc(widget.chatRoomId).snapshots().listen((
@@ -191,6 +276,7 @@ class _MiniGameScreenState extends State<MiniGameScreen> {
                 return Offset(pt['dx'], pt['dy']);
               }).toList();
         });
+          _resetInactivityTimer(); // Reset inactivity timer when new drawing data is received
       }
     });
   }
@@ -229,7 +315,7 @@ class _MiniGameScreenState extends State<MiniGameScreen> {
         'scores': scores,
       });
 
-      if (currentScore >= 3) {
+      if (currentScore >= 1) {
         _firestore.collection('games').doc(widget.chatRoomId).update({
           'scores': scores,
           'winner': widget.currentUserId,
@@ -264,7 +350,6 @@ class _MiniGameScreenState extends State<MiniGameScreen> {
 
   String winnerName = "Someone";
 
-  // 🔍 Try to get the winner's name from Firestore
   try {
     final snapshot = await _firestore.collection('users').doc(winnerId).get();
     if (snapshot.exists) {
@@ -292,15 +377,63 @@ class _MiniGameScreenState extends State<MiniGameScreen> {
       actions: [
         TextButton(
           onPressed: () {
-            Navigator.of(context).pop(); // close dialog
-            Navigator.of(context).popUntil((route) => route.isFirst);
-            //Navigator.of(context).pop(); // leave game screen
+            Navigator.of(context).pop(); // Close the dialog
+
+            // Reset game state for the new round
+            _resetGameState();
+
+            // Use Navigator.pushReplacement to replace the current screen (MiniGameScreen) with ChatScreen
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (context) => ChatScreen(
+                  chatRoomId: widget.chatRoomId,
+                  currentUserId: widget.currentUserId,
+                ),
+              ),
+            );
           },
-          child: Text("OK"),
+          child: const Text("OK"),
         ),
       ],
     ),
   );
+}
+
+void _resetGameState() {
+  // Randomly assign roles
+  final roles = _assignRolesRandomly();
+
+  setState(() {
+    points.clear();
+    _guessCorrect = false;
+    _remainingAttempts = 2;
+    _isGameEnded = false;
+    _winnerDialogShown = false;
+    _currentWord = _getRandomWord();  // Assign a new word for the next round
+  });
+
+  // Reset the Firestore document with new roles
+  _firestore.collection('games').doc(widget.chatRoomId).update({
+    'points': [],
+    'word': _currentWord,
+    'scores': {
+      widget.currentUserId: 0,
+      widget.opponentId: 0,
+    },
+    'roles': roles,  // Update roles
+    'winner': null,
+  });
+}
+
+Map<String, String> _assignRolesRandomly() {
+  // Randomly assign the drawer and guesser roles
+  final roles = [widget.currentUserId, widget.opponentId]..shuffle();
+
+  return {
+    roles[0]: 'drawer',
+    roles[1]: 'guesser',
+  };
 }
 
   void _swapRoles() {
@@ -323,6 +456,7 @@ class _MiniGameScreenState extends State<MiniGameScreen> {
     'points': [],
   });
 }
+
 
   void _sendPointsToFirestore() async {
     final List<Map<String, dynamic>> pointMap =
@@ -403,6 +537,7 @@ class _MiniGameScreenState extends State<MiniGameScreen> {
                               points.add(localPosition);
                             });
                             _updateGameData();
+                             _resetInactivityTimer(); // Reset inactivity timer when drawing
                           }
                         }
                         : null,
