@@ -159,4 +159,60 @@ class LevelProgressionService {
       rethrow;
     }
   }
+
+  // New method for flower button progression
+  Future<void> incrementProgressionWithFlower(String userId) async {
+    try {
+      final userRef = _firestore.collection('users').doc(userId);
+      DocumentSnapshot userDoc = await userRef.get();
+
+      if (!userDoc.exists) {
+        throw Exception('User not found in Firestore');
+      }
+
+      final data = userDoc.data() as Map<String, dynamic>;
+
+      int levelValue = (data['levelValue'] as int? ?? 1).clamp(1, 9999);
+      double progressionValue = (data['progressionValue'] as num? ?? 0.0)
+          .toDouble()
+          .clamp(0.0, 1.0);
+
+      // Define a small base increment for the flower button
+      const double flowerBaseIncrement = 0.02; // Smaller than survey increment
+
+      // Apply difficulty factor based on level, same as in updateUserLevel
+      double difficultyFactor = 1 / (1 + log(levelValue));
+      double increment = flowerBaseIncrement * difficultyFactor;
+
+      // Increase progressionValue
+      progressionValue += increment;
+      print('Flower button pressed: Incrementing progression by ${increment.toStringAsFixed(4)}');
+
+      // Handle level-up logic
+      while (progressionValue >= 1.0 && levelValue < 9999) {
+        levelValue += 1;
+        progressionValue -= 1.0;
+        print('Level up! New level: $levelValue');
+      }
+
+      // Cap level and progression
+      if (levelValue >= 9999) {
+        levelValue = 9999;
+        progressionValue = 0.0;
+      }
+
+      // Save back to Firestore
+      await userRef.update({
+        'levelValue': levelValue,
+        'progressionValue': progressionValue.clamp(0.0, 1.0),
+      });
+
+      print(
+        'Flower update for $userId → levelValue: $levelValue | progressionValue: ${progressionValue.toStringAsFixed(2)}',
+      );
+    } catch (e) {
+      print('Error in incrementProgressionWithFlower: $e');
+      rethrow;
+    }
+  }
 }
