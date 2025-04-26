@@ -7,6 +7,7 @@ import '../../viewmodels/eventHandlers/bottle_note_event_handler.dart';
 import '../../viewmodels/state/bottle_note_state.dart';
 import '../UIComponents/custom_button.dart';
 import '../UIComponents/custom_snackbar.dart';
+import '../UIComponents/custom_dialog.dart';
 import 'bottle_note_home_screen.dart';
 
 class ShowBottleNoteScreen extends StatefulWidget {
@@ -110,62 +111,45 @@ class _ShowBottleNoteScreenState extends State<ShowBottleNoteScreen> {
   }
 
   void _showReplyDialog() {
-    showDialog(
+    showCustomDialog(
       context: context,
-      barrierDismissible: true,
-      builder: (BuildContext context) {
-        return GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTap: () {
-            Navigator.of(context).pop(); // Dismiss when tapping outside
-          },
-          child: Dialog(
-            backgroundColor: Colors.transparent,
-            child: Center(
-              child: GestureDetector(
-                onTap: () {}, // Prevent tap inside dialog from dismissing it
-                child: Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: const Color.fromRGBO(200, 243, 255, 1),
-                    borderRadius: BorderRadius.circular(25),
-                  ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const SizedBox(height: 12),
-                      Container(
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(15),
-                        ),
-                        padding: const EdgeInsets.symmetric(horizontal: 12),
-                        child: TextField(
-                          controller: _replyController,
-                          maxLines: 3,
-                          decoration: const InputDecoration(
-                            border: InputBorder.none,
-                            hintText: "Write something to reply",
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                      CustomButton(
-                        text: 'Reply Bottle Note',
-                        onPressed: () {
-                          final replyText = _replyController.text.trim();
-                          if (replyText.isNotEmpty) {
-                            _replyToNote();
-                          }
-                        },
-                      ),
-                    ],
-                  ),
-                ),
+      title: "Reply to Bottle Note",
+      backgroundColor: const Color.fromRGBO(200, 243, 255, 1),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const SizedBox(height: 12),
+          Container(
+            decoration: BoxDecoration(borderRadius: BorderRadius.circular(15)),
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: TextField(
+              controller: _replyController,
+              maxLines: 3,
+              decoration: const InputDecoration(
+                border: InputBorder.none,
+                hintText: "Write something to reply",
               ),
             ),
           ),
-        );
-      },
+          const SizedBox(height: 10),
+          CustomButton(
+            text: 'Reply Bottle Note',
+            onPressed: () {
+              final replyText = _replyController.text.trim();
+              if (replyText.isNotEmpty) {
+                _replyToNote();
+              }
+            },
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text("Cancel"),
+        ),
+      ],
+      barrierDismissible: true,
     );
   }
 

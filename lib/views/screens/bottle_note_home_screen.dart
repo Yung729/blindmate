@@ -4,10 +4,13 @@ import 'package:blindmate/views/screens/my_bottle_note_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:blindmate/views/UIComponents/custom_button.dart';
 import 'package:blindmate/views/UIComponents/custom_snackbar.dart';
+import 'package:flutter/services.dart';
 import '../../viewmodels/uiValidation/bottle_note_validator.dart';
 import '../../viewmodels/eventHandlers/bottle_note_event_handler.dart';
 import '../../viewmodels/state/bottle_note_state.dart';
 import 'package:provider/provider.dart';
+
+const int maxContentLength = 200; // Define the max length as a constant
 
 class BottleNoteHomeScreen extends StatefulWidget {
   const BottleNoteHomeScreen({super.key});
@@ -72,6 +75,7 @@ class _BottleNoteHomeScreenState extends State<BottleNoteHomeScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       body: Stack(
         fit: StackFit.expand,
         children: [
@@ -126,11 +130,33 @@ class _BottleNoteHomeScreenState extends State<BottleNoteHomeScreen>
                         TextField(
                           controller: _contentController,
                           maxLines: 4,
+                          maxLength: maxContentLength,
+                          maxLengthEnforcement: MaxLengthEnforcement.enforced,
                           style: const TextStyle(fontWeight: FontWeight.bold),
-                          decoration: const InputDecoration(
+                          decoration: InputDecoration(
                             hintText: 'Write something about you...',
                             border: InputBorder.none,
+                            errorText:
+                                _contentController.text.length >
+                                        maxContentLength
+                                    ? 'Maximum character limit exceeded'
+                                    : null, // Show error if maxLength is exceeded
                           ),
+                          onChanged: (value) {
+                            if (value.length > maxContentLength) {
+                              FocusScope.of(
+                                context,
+                              ).unfocus(); // Dismiss the keyboard
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text(
+                                    'Maximum character limit exceeded!',
+                                  ),
+                                  duration: Duration(seconds: 2),
+                                ),
+                              );
+                            }
+                          },
                         ),
                         const SizedBox(height: 10),
                       ],
