@@ -8,6 +8,7 @@ class PostModel {
   final String userId;
   final String userName;
   final String content;
+  final String? url;
   final String? musicUrl;
   final String? musicTitle;
   final DateTime timestamp;
@@ -25,6 +26,7 @@ class PostModel {
     required this.userId,
     required this.userName,
     required this.content,
+    this.url, // Added to constructor
     this.musicUrl,
     this.musicTitle,
     required this.timestamp,
@@ -48,6 +50,7 @@ class PostModel {
       'userId': userId,
       'userName': userName,
       'content': content,
+      'url': url,
       'musicUrl': musicUrl,
       'musicTitle': musicTitle,
       'timestamp': FieldValue.serverTimestamp(),
@@ -89,6 +92,7 @@ class PostModel {
       userId: map['userId'] ?? '',
       userName: map['userName'] ?? '',
       content: map['content'] ?? '',
+      url: map['url'], 
       musicUrl: map['musicUrl'],
       musicTitle: map['musicTitle'],
       timestamp: timestamp,
@@ -104,6 +108,7 @@ class PostModel {
     return {
       'visibility': visibility,
       'content': content,
+      'url': url, 
       'musicUrl': musicUrl,
       'musicTitle': musicTitle,
       'postType': postType == PostType.tripJournal ? 'tripJournal' : 'normal',

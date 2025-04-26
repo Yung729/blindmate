@@ -1,14 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../models/dataModels/user_model.dart';
-import '../../services/gemini_moderation_service.dart';
 import '../../viewmodels/dataBinding/create_post_data_binding.dart';
 import '../../viewmodels/eventHandlers/create_post_event_handler.dart';
 import '../../viewmodels/state/create_post_state.dart';
 import '../../viewmodels/uiValidation/post_validator.dart';
 import '../UIComponents/loading_indicator.dart';
+import '../UIComponents/url_input_dialog.dart';
 import '../UIComponents/music_search_dialog.dart';
 import '../UIComponents/trip_journal_create_dialog.dart';
+import '../UIComponents/fetch_url_thumbail.dart';
 
 class CreatePostScreen extends StatefulWidget {
   final UserModel user;
@@ -23,8 +24,9 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
   late TextEditingController _textController;
   late CreatePostEventHandler _eventHandler;
   final ScrollController _scrollController = ScrollController();
-  final GeminiModerationService _moderationService = GeminiModerationService();
   bool _isPosting = false;
+  Map<String, String>? _cachedMetadata; // Cache for fetched metadata
+  bool _isMetadataFetched = false;
 
   // Trip Journal state (multi-entry)
   List<Map<String, dynamic>> _tripJournals = [];
@@ -145,21 +147,80 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
       _isPosting = true;
     });
 
-    final moderationResult = await _moderationService.checkContentLevel(
-      postContent,
-    );
+    try {
+      // Use the event handler to check content moderation
+      final moderationResult = await _eventHandler.checkContentModeration(
+        postContent,
+      );
 
-    setState(() {
-      _isPosting = false;
-    });
+      setState(() {
+        _isPosting = false;
+      });
 
-    if (moderationResult == 'UNSAFE') {
+      if (moderationResult == 'UNSAFE') {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text(
+                "Your post content has been flagged as inappropriate and cannot be shared.",
+              ),
+              backgroundColor: Colors.red,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+          );
+        }
+        return;
+      }
+
+      // Pass the list of trip journals to your event handler (update your handler if needed)
+      await _eventHandler.sharePost(tripJournals: _tripJournals);
+
+      createPostState.reset();
+      _textController.clear();
+      setState(() {
+        _tripJournals = [];
+      });
+
+      if (context.mounted) {
+        Navigator.pop(context);
+        if (moderationResult == 'WARNING') {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text(
+                "Your post has been shared but contains potentially sensitive content.",
+              ),
+              backgroundColor: Colors.orange,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text("Post shared successfully!"),
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      setState(() {
+        _isPosting = false;
+      });
+
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Text(
-              "Your post content has been flagged as inappropriate and cannot be shared.",
-            ),
+            content: Text("Error: ${e.toString()}"),
             backgroundColor: Colors.red,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
@@ -168,46 +229,14 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
           ),
         );
       }
-      return;
     }
+  }
 
-    // Pass the list of trip journals to your event handler (update your handler if needed)
-    await _eventHandler.sharePost(tripJournals: _tripJournals);
-
-    createPostState.reset();
-    _textController.clear();
+  void _onUrlChanged(String url) {
     setState(() {
-      _tripJournals = [];
+      _cachedMetadata = null; // Clear cached metadata
+      _isMetadataFetched = false; // Reset the flag
     });
-
-    if (context.mounted) {
-      Navigator.pop(context);
-      if (moderationResult == 'WARNING') {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text(
-              "Your post has been shared but contains potentially sensitive content.",
-            ),
-            backgroundColor: Colors.orange,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
-            ),
-          ),
-        );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text("Post shared successfully!"),
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
-            ),
-            backgroundColor: Colors.green,
-          ),
-        );
-      }
-    }
   }
 
   void _togglePostVisibility() {
@@ -360,6 +389,94 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                   ),
                   const SizedBox(height: 20),
 
+                  // Selected URL display
+                  if (createPostState.selectedLinkUrl != null)
+                    FutureBuilder<Map<String, String>?>(
+                      future:
+                          _isMetadataFetched
+                              ? Future.value(
+                                _cachedMetadata,
+                              ) // Use cached metadata
+                              : fetchUrlMetadata(
+                                createPostState.selectedLinkUrl!,
+                              ), // Fetch metadata
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState ==
+                            ConnectionState.waiting) {
+                          return const Center(
+                            child: CircularProgressIndicator(),
+                          );
+                        }
+                        if (!snapshot.hasData || snapshot.data == null) {
+                          return const SizedBox.shrink();
+                        }
+
+                        // Cache the metadata and set the flag
+                        if (!_isMetadataFetched) {
+                          _cachedMetadata = snapshot.data!;
+                          _isMetadataFetched = true;
+                        }
+
+                        final metadata = _cachedMetadata!;
+                        final thumbnailUrl = metadata['image'];
+                        final title = metadata['title'];
+
+                        return Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Colors.blue.withOpacity(0.05),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: Colors.blue.withOpacity(0.2),
+                              width: 1,
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              if (thumbnailUrl != null)
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(8),
+                                  child: Image.network(
+                                    thumbnailUrl,
+                                    height: 40,
+                                    width: 40,
+                                    fit: BoxFit.cover,
+                                  ),
+                                ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text(
+                                  title ?? createPostState.selectedLinkUrl!,
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                              IconButton(
+                                onPressed: () {
+                                  Provider.of<CreatePostState>(
+                                    context,
+                                    listen: false,
+                                  ).clearLink();
+                                  setState(() {
+                                    _cachedMetadata =
+                                        null; // Clear cached metadata
+                                    _isMetadataFetched =
+                                        false; // Reset the flag
+                                  });
+                                },
+                                icon: const Icon(
+                                  Icons.close,
+                                  color: Colors.grey,
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+                  const SizedBox(height: 20),
                   // Selected music display
                   if (createPostState.selectedMusicUrl != null)
                     Container(
@@ -490,12 +607,54 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
           ),
           child: Consumer<CreatePostState>(
             builder: (context, createPostState, child) {
-              final musicDisabled = _tripJournals.isNotEmpty;
+              final urlAdded = createPostState.selectedLinkUrl != null;
+              final musicDisabled = urlAdded || _tripJournals.isNotEmpty;
               final tripJournalDisabled =
-                  createPostState.selectedMusicUrl != null;
+                  urlAdded || createPostState.selectedMusicUrl != null;
               return Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
+                  InkWell(
+                    onTap: () {
+                      UrlInputDialog.show(
+                        context,
+                        onUrlAdded: (url, thumbnail) {
+                          Provider.of<CreatePostState>(
+                            context,
+                            listen: false,
+                          ).setLink(url, thumbnail);
+                          _onUrlChanged(url);
+                          setState(() {});
+                        },
+                      );
+                    },
+                    borderRadius: BorderRadius.circular(12),
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade50,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.grey.shade200),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.link, color: Colors.blue, size: 20),
+                          const SizedBox(width: 8),
+                          const Text(
+                            "Add URL",
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+
                   InkWell(
                     onTap:
                         musicDisabled

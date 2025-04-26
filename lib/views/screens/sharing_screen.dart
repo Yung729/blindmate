@@ -14,6 +14,7 @@ import '../UIComponents/post_music_preview.dart';
 import 'my_posts_list.dart';
 import '../UIComponents/custom_dialog.dart';
 import '../UIComponents/trip_journal_card.dart';
+import '../UIComponents/post_url_preview.dart';
 
 class SharingScreen extends StatefulWidget {
   final UserModel user;
@@ -177,39 +178,43 @@ class _SharingScreenState extends State<SharingScreen> {
                     child:
                         _showMyPostsOnly
                             ? MyPostsList(
-  posts: displayedPosts,
-  userId: widget.user.userId,
-  avatarUrl: widget.user.avatarImg, // <-- Add this line!
-  scrollController: _scrollController,
-  expandedPosts: _expandedPosts,
-  maxLinesCollapsed: _maxLinesCollapsed,
-  onShowPostOptions: (post) => _showPostOptions(context, post),
-  onPlayMusic: (post) => _eventHandler.playMusic(post.musicUrl!),
-  getTimeAgo: getTimeAgo,
-  onExpand: (postId) {
-    setState(() {
-      _expandedPosts.add(postId);
-    });
-  },
-  onCollapse: (postId) {
-    setState(() {
-      _expandedPosts.remove(postId);
-    });
-  },
-  onViewTripJournal: _showTripJournalDialog,
-  onDeleteSelected: (selectedIds) async {
-    final confirm = await showConfirmDialog(
-      context,
-      'Delete Posts',
-      'Are you sure you want to delete ${selectedIds.length} post(s)?',
-    );
-    if (confirm) {
-      for (final id in selectedIds) {
-        _eventHandler.deletePost(id);
-      }
-    }
-  },
-)
+                              posts: displayedPosts,
+                              userId: widget.user.userId,
+                              avatarUrl:
+                                  widget.user.avatarImg, // <-- Add this line!
+                              scrollController: _scrollController,
+                              expandedPosts: _expandedPosts,
+                              maxLinesCollapsed: _maxLinesCollapsed,
+                              onShowPostOptions:
+                                  (post) => _showPostOptions(context, post),
+                              onPlayMusic:
+                                  (post) =>
+                                      _eventHandler.playMusic(post.musicUrl!),
+                              getTimeAgo: getTimeAgo,
+                              onExpand: (postId) {
+                                setState(() {
+                                  _expandedPosts.add(postId);
+                                });
+                              },
+                              onCollapse: (postId) {
+                                setState(() {
+                                  _expandedPosts.remove(postId);
+                                });
+                              },
+                              onViewTripJournal: _showTripJournalDialog,
+                              onDeleteSelected: (selectedIds) async {
+                                final confirm = await showConfirmDialog(
+                                  context,
+                                  'Delete Posts',
+                                  'Are you sure you want to delete ${selectedIds.length} post(s)?',
+                                );
+                                if (confirm) {
+                                  for (final id in selectedIds) {
+                                    _eventHandler.deletePost(id);
+                                  }
+                                }
+                              },
+                            )
                             : _buildSharedContentList(displayedPosts),
                   ),
                 ],
@@ -381,6 +386,8 @@ class _SharingScreenState extends State<SharingScreen> {
                     });
                   },
                 ),
+              if (post.url != null)
+              PostUrlPreview(linkUrl: post.url!),
               if (post.musicUrl != null)
                 PostMusicPreview(
                   musicUrl: post.musicUrl,
@@ -405,21 +412,21 @@ class _SharingScreenState extends State<SharingScreen> {
       context: context,
       builder:
           (context) => AlertDialog(
-                title: const Text('Trip Journal Details'),
-                content:
-                    journals.isEmpty
-                        ? const Text('No trip journal entries.')
-                        : SizedBox(
-                          width: double.maxFinite,
-                          child: TripJournalBookCard(journals: journals),
-                        ),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: const Text('Close'),
-                  ),
-                ],
+            title: const Text('Trip Journal Details'),
+            content:
+                journals.isEmpty
+                    ? const Text('No trip journal entries.')
+                    : SizedBox(
+                      width: double.maxFinite,
+                      child: TripJournalBookCard(journals: journals),
+                    ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Close'),
               ),
+            ],
+          ),
     );
   }
 }

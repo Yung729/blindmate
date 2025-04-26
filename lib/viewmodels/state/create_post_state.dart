@@ -4,13 +4,13 @@ class CreatePostState extends ChangeNotifier {
   bool isPublic = true;
   bool isLoading = false;
   List<Map<String, String>> musicResults = [];
+  String? selectedLinkUrl;
   String? selectedMusicUrl;
   String? selectedMusicTitle;
   String postContent = '';
   String? _tripLocation;
   DateTime? _tripDate;
   List<Map<String, dynamic>> _tripJournals = [];
-
 
   void setIsPublic(bool value) {
     isPublic = value;
@@ -19,6 +19,16 @@ class CreatePostState extends ChangeNotifier {
 
   void setIsLoading(bool value) {
     isLoading = value;
+    notifyListeners();
+  }
+
+  void setLink(String url, String? thumbnail) {
+    selectedLinkUrl = url;
+    notifyListeners();
+  }
+
+  void clearLink() {
+    selectedLinkUrl = null;
     notifyListeners();
   }
 
@@ -56,6 +66,7 @@ class CreatePostState extends ChangeNotifier {
     musicResults = [];
     selectedMusicUrl = null;
     selectedMusicTitle = null;
+    selectedLinkUrl = null; 
     postContent = '';
     notifyListeners();
   }

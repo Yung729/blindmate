@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -16,6 +15,10 @@ class CreatePostEventHandler {
     required this.dataBinding,
     required this.user,
   });
+
+  Future<String> checkContentModeration(String content) async {
+    return await dataBinding.checkContentModeration(content);
+  }
 
   Future<void> handleMusicSearch(String query) async {
     await dataBinding.searchYouTubeMusic(query);
@@ -38,13 +41,14 @@ class CreatePostEventHandler {
   }
 
   /// Updated: Accepts a list of trip journals and passes it to dataBinding.createPost
-  Future<void> sharePost({
-    List<Map<String, dynamic>>? tripJournals,
-  }) async {
+  Future<void> sharePost({List<Map<String, dynamic>>? tripJournals}) async {
     await dataBinding.createPost(
       user,
       tripJournals: tripJournals,
+      url: createPostState.selectedLinkUrl,
     );
+
+    createPostState.reset();
   }
 
   void shareMusic() {
