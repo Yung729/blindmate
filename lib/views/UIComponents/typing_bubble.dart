@@ -8,7 +8,7 @@ class TypingBubble extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
-        color: Colors.grey[300],
+        color: Colors.transparent,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
@@ -32,10 +32,12 @@ class TypingBubble extends StatelessWidget {
       builder: (context, value, child) {
         return Opacity(
           opacity: value,
-          child: child,
+          child: const CircleAvatar(
+            radius: 4,
+            backgroundColor: Colors.white70,
+          ),
         );
       },
-      child: const CircleAvatar(radius: 4, backgroundColor: Colors.black),
     );
   }
 }
