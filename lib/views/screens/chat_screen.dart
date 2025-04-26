@@ -428,10 +428,7 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                         padding: EdgeInsets.only(
                           bottom:
                               _isDrawerVisible
-                                  ? MediaQuery.of(context).size.height *
-                                      (_showStickers
-                                          ? 0.30
-                                          : 0.21)
+                                  ? _calculateDrawerHeight(context, _showStickers)
                                   : 0,
                         ),
                         child: ListView.builder(
@@ -471,9 +468,7 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                         _buildMessageInput(),
                         AnimatedContainer(
                           duration: const Duration(milliseconds: 300),
-                          height:
-                              MediaQuery.of(context).size.height *
-                              (_showStickers ? 0.30 : 0.21),
+                          height: _calculateDrawerHeight(context, _showStickers),
                           decoration: const BoxDecoration(
                             color: Colors.white,
                             borderRadius: BorderRadius.only(
@@ -576,6 +571,36 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       musicUrl: message.musicUrl,
       musicTitle: message.musicTitle,
     );
+  }
+
+  // Calculate drawer height dynamically based on screen size and device type
+  double _calculateDrawerHeight(BuildContext context, bool showStickers) {
+    final screenHeight = MediaQuery.of(context).size.height;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isTablet = screenWidth > 600; // Basic tablet detection
+    
+    // Base height percentages adjusted for different screen sizes
+    double stickerPercentage = 0.30;
+    double normalPercentage = 0.21;
+    
+    // Adjust for smaller phones
+    if (screenHeight < 700) {
+      stickerPercentage = 0.28;
+      normalPercentage = 0.19;
+    }
+    // Adjust for larger phones
+    else if (screenHeight > 800) {
+      stickerPercentage = 0.32;
+      normalPercentage = 0.23;
+    }
+    // Adjust for tablets
+    if (isTablet) {
+      stickerPercentage = 0.25;
+      normalPercentage = 0.18;
+    }
+    
+    // Apply the appropriate percentage based on whether stickers are shown
+    return screenHeight * (showStickers ? stickerPercentage : normalPercentage);
   }
 
   Widget _buildMessageInput() {

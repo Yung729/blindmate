@@ -25,47 +25,65 @@ class ChatBubble extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Check if this is a music message
     bool isMusicMessage = musicUrl != null && musicUrl!.isNotEmpty;
-    
+    final screenWidth = MediaQuery.of(context).size.width;
+    final bubbleMaxWidth = screenWidth * 0.7;
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+      padding: EdgeInsets.symmetric(
+        vertical: screenWidth * 0.01 + 2,
+        horizontal: screenWidth * 0.02 + 6,
+      ),
       child: Row(
         mainAxisAlignment: isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Avatar on the left for other user's messages
           if (!isMe)
             const CircleAvatar(
               radius: 20,
               backgroundImage: AssetImage('assets/default_pic.jpg'),
             ),
-          const SizedBox(width: 8),
-          
-          // Content - either text/sticker bubble or music
+          SizedBox(width: screenWidth * 0.02 + 4),
           Flexible(
-            child: isMusicMessage 
-              ? _buildMusicContent(context) // Show music content
-              : Container( // Show regular bubble with text/sticker
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: isMe ? Colors.blueAccent : Colors.grey[300],
-                    borderRadius: BorderRadius.circular(12),
-                    boxShadow: const [
-                      BoxShadow(
-                        color: Colors.black12,
-                        blurRadius: 4,
-                        offset: Offset(2, 2),
+            child: isMusicMessage
+                ? _buildMusicContent(context)
+                : Container(
+                    constraints: BoxConstraints(
+                      maxWidth: bubbleMaxWidth,
+                    ),
+                    padding: EdgeInsets.symmetric(
+                      vertical: screenWidth * 0.025 + 6,
+                      horizontal: screenWidth * 0.04 + 8,
+                    ),
+                    decoration: BoxDecoration(
+                      gradient: isMe
+                          ? const LinearGradient(
+                              colors: [Color(0xFF6DD5FA), Color(0xFF2980B9)],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            )
+                          : const LinearGradient(
+                              colors: [Color(0xFFF8FFAE), Color(0xFF43C6AC)],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                      borderRadius: BorderRadius.only(
+                        topLeft: Radius.circular(isMe ? 16 : 4),
+                        topRight: Radius.circular(isMe ? 4 : 16),
+                        bottomLeft: const Radius.circular(16),
+                        bottomRight: const Radius.circular(16),
                       ),
-                    ],
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.08),
+                          blurRadius: 8,
+                          offset: const Offset(2, 4),
+                        ),
+                      ],
+                    ),
+                    child: _buildContent(),
                   ),
-                  child: _buildContent(),
-                ),
           ),
-          
-          const SizedBox(width: 8),
-          
-          // Avatar on the right for user's messages
+          SizedBox(width: screenWidth * 0.02 + 4),
           if (isMe)
             const CircleAvatar(
               radius: 20,
