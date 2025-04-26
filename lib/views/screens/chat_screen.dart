@@ -364,6 +364,26 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     }
   }
 
+  double _calculateDrawerHeight(BuildContext context, bool showStickers) {
+    final screenHeight = MediaQuery.of(context).size.height;
+    final bottomPadding = MediaQuery.of(context).padding.bottom;
+    final isKeyboardVisible = MediaQuery.of(context).viewInsets.bottom > 0;
+
+    // Base heights for different states
+    double baseHeight = screenHeight * 0.37; // 40% of screen height for stickers
+    double minHeight = screenHeight * 0.13; // 25% for normal drawer
+
+    // Adjust for keyboard and bottom padding
+    if (isKeyboardVisible) {
+      baseHeight = screenHeight * 0.37;
+      minHeight = screenHeight * 0.35;
+    }
+
+    // Add bottom padding for safe area
+    final adjustedHeight = showStickers ? baseHeight : minHeight;
+    return adjustedHeight + bottomPadding;
+  }
+
   @override
   Widget build(BuildContext context) {
     // Listen for changes but don't update state during build
@@ -462,89 +482,96 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                     bottom: 0,
                     left: 0,
                     right: 0,
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        _buildMessageInput(),
-                        AnimatedContainer(
-                          duration: const Duration(milliseconds: 300),
-                          height: _calculateDrawerHeight(context, _showStickers),
-                          decoration: const BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.only(
-                              topLeft: Radius.circular(20),
-                              topRight: Radius.circular(20),
-                            ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black26,
-                                blurRadius: 10,
-                                offset: Offset(0, -2),
+                    child: SafeArea(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          _buildMessageInput(),
+                          AnimatedContainer(
+                            duration: const Duration(milliseconds: 300),
+                            height: _calculateDrawerHeight(context, _showStickers),
+                            decoration: const BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.only(
+                                topLeft: Radius.circular(20),
+                                topRight: Radius.circular(20),
                               ),
-                            ],
-                          ),
-                          child: BottomDrawer(
-                            onFlowerSelected: (_) async {
-                              await _sendFlower();
-                              setState(() {
-                                _isDrawerVisible = false;
-                              });
-                            },
-                            onStickerSelected: (sticker) {
-                              _chatHandler.sendMessage(
-                                context,
-                                stickerUrl: sticker,
-                              );
-                              setState(() {
-                                _isDrawerVisible = false;
-                                _showStickers = false;
-                              });
-                            },
-                            onPlayMiniGame: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => MiniGameScreen(
-                                    chatRoomId: widget.chatRoomId,
-                                    currentUserId: widget.currentUserId,
-                                    opponentId: _chatState.otherUserId ?? '',
-                                    isDrawer: true,
-                                  ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black26,
+                                  blurRadius: 10,
+                                  offset: Offset(0, -2),
                                 ),
-                              );
-                            },
-                            onShareMusic: () {
-                              MusicSearchDialog.show(
-                                context,
-                                onMusicSelected: (url, title) {
-                                  _chatHandler.sendMessage(
-                                    context,
-                                    musicUrl: url,
-                                    musicTitle: title,
-                                  );
-                                  setState(() {
-                                    _isDrawerVisible = false;
-                                  });
-                                },
-                              );
-                            },
-                            onTripJournal: () {
-                              // Add your trip journal logic here
-                            },
-                            onStickerSearch: (query) {
-                              _chatHandler.searchStickers(query);
-                            },
-                            stickerList: _chatState.stickerList,
-                            showStickers: _showStickers,
-                            toggleStickers: (bool value) {
-                              setState(() {
-                                _showStickers = value;
-                              });
-                            },
-                            flowerCount: _localFlowerCount,
+                              ],
+                            ),
+                            child: SingleChildScrollView(
+                              child: SizedBox(
+                                height: _calculateDrawerHeight(context, _showStickers),
+                                child: BottomDrawer(
+                                  onFlowerSelected: (_) async {
+                                    await _sendFlower();
+                                    setState(() {
+                                      _isDrawerVisible = false;
+                                    });
+                                  },
+                                  onStickerSelected: (sticker) {
+                                    _chatHandler.sendMessage(
+                                      context,
+                                      stickerUrl: sticker,
+                                    );
+                                    setState(() {
+                                      _isDrawerVisible = false;
+                                      _showStickers = false;
+                                    });
+                                  },
+                                  onPlayMiniGame: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => MiniGameScreen(
+                                          chatRoomId: widget.chatRoomId,
+                                          currentUserId: widget.currentUserId,
+                                          opponentId: _chatState.otherUserId ?? '',
+                                          isDrawer: true,
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                  onShareMusic: () {
+                                    MusicSearchDialog.show(
+                                      context,
+                                      onMusicSelected: (url, title) {
+                                        _chatHandler.sendMessage(
+                                          context,
+                                          musicUrl: url,
+                                          musicTitle: title,
+                                        );
+                                        setState(() {
+                                          _isDrawerVisible = false;
+                                        });
+                                      },
+                                    );
+                                  },
+                                  onTripJournal: () {
+                                    // Add your trip journal logic here
+                                  },
+                                  onStickerSearch: (query) {
+                                    _chatHandler.searchStickers(query);
+                                  },
+                                  stickerList: _chatState.stickerList,
+                                  showStickers: _showStickers,
+                                  toggleStickers: (bool value) {
+                                    setState(() {
+                                      _showStickers = value;
+                                    });
+                                  },
+                                  flowerCount: _localFlowerCount,
+                                ),
+                              ),
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
               ],
@@ -571,36 +598,6 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       musicUrl: message.musicUrl,
       musicTitle: message.musicTitle,
     );
-  }
-
-  // Calculate drawer height dynamically based on screen size and device type
-  double _calculateDrawerHeight(BuildContext context, bool showStickers) {
-    final screenHeight = MediaQuery.of(context).size.height;
-    final screenWidth = MediaQuery.of(context).size.width;
-    final isTablet = screenWidth > 600; // Basic tablet detection
-    
-    // Base height percentages adjusted for different screen sizes
-    double stickerPercentage = 0.30;
-    double normalPercentage = 0.21;
-    
-    // Adjust for smaller phones
-    if (screenHeight < 700) {
-      stickerPercentage = 0.28;
-      normalPercentage = 0.19;
-    }
-    // Adjust for larger phones
-    else if (screenHeight > 800) {
-      stickerPercentage = 0.32;
-      normalPercentage = 0.23;
-    }
-    // Adjust for tablets
-    if (isTablet) {
-      stickerPercentage = 0.25;
-      normalPercentage = 0.18;
-    }
-    
-    // Apply the appropriate percentage based on whether stickers are shown
-    return screenHeight * (showStickers ? stickerPercentage : normalPercentage);
   }
 
   Widget _buildMessageInput() {

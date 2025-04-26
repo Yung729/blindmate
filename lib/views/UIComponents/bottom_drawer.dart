@@ -77,43 +77,37 @@ class _BottomDrawerState extends State<BottomDrawer> {
             if (!widget.showStickers) ...[
               SizedBox(
                 width: screenWidth,
-                child: SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Row(
-                      children: [
-                        _buildDrawerButton(
-                          icon: Icons.local_florist,
-                          label: "Flower",
-                          onTap: () => widget.onFlowerSelected(null),
-                        ),
-                        const SizedBox(width: 12),
-                        _buildDrawerButton(
-                          icon: Icons.music_note,
-                          label: "Music",
-                          onTap: widget.onShareMusic,
-                        ),
-                        const SizedBox(width: 12),
-                        _buildDrawerButton(
-                          icon: Icons.travel_explore,
-                          label: "Journal",
-                          onTap: widget.onTripJournal,
-                        ),
-                        const SizedBox(width: 12),
-                        _buildDrawerButton(
-                          icon: Icons.videogame_asset,
-                          label: "Game",
-                          onTap: widget.onPlayMiniGame,
-                        ),
-                        const SizedBox(width: 12),
-                        _buildDrawerButton(
-                          icon: Icons.sticky_note_2,
-                          label: "Sticker",
-                          onTap: () => widget.toggleStickers(true),
-                        ),
-                      ],
-                    ),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      _buildDrawerButton(
+                        icon: Icons.local_florist,
+                        label: "Flower",
+                        onTap: () => widget.onFlowerSelected(null),
+                      ),
+                      _buildDrawerButton(
+                        icon: Icons.music_note,
+                        label: "Music",
+                        onTap: widget.onShareMusic,
+                      ),
+                      _buildDrawerButton(
+                        icon: Icons.travel_explore,
+                        label: "Journal",
+                        onTap: widget.onTripJournal,
+                      ),
+                      _buildDrawerButton(
+                        icon: Icons.videogame_asset,
+                        label: "Game",
+                        onTap: widget.onPlayMiniGame,
+                      ),
+                      _buildDrawerButton(
+                        icon: Icons.sticky_note_2,
+                        label: "Sticker",
+                        onTap: () => widget.toggleStickers(true),
+                      ),
+                    ],
                   ),
                 ),
               ),
@@ -284,32 +278,28 @@ class _BottomDrawerState extends State<BottomDrawer> {
           ),
         ),
         const SizedBox(height: 4),
-        Expanded(
-          child: SingleChildScrollView(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: GridView.builder(
-                scrollDirection: Axis.horizontal,
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  crossAxisSpacing: 8,
-                  mainAxisSpacing: 8,
-                  childAspectRatio: 1,
-                ),
-                itemCount: widget.stickerList.length,
-                itemBuilder: (context, index) {
-                  return GestureDetector(
-                    onTap:
-                        () => widget.onStickerSelected(widget.stickerList[index]),
-                    child: Image.network(
-                      widget.stickerList[index],
-                      height: 60,
-                      width: 60,
-                    ),
-                  );
-                },
-              ),
+        Container(
+          height: gridHeight,
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: GridView.builder(
+            physics: const AlwaysScrollableScrollPhysics(),
+            scrollDirection: Axis.vertical,
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 4,
+              crossAxisSpacing: 8,
+              mainAxisSpacing: 8,
+              childAspectRatio: 1,
             ),
+            itemCount: widget.stickerList.length,
+            itemBuilder: (context, index) {
+              return GestureDetector(
+                onTap: () => widget.onStickerSelected(widget.stickerList[index]),
+                child: Image.network(
+                  widget.stickerList[index],
+                  fit: BoxFit.cover,
+                ),
+              );
+            },
           ),
         ),
       ],
