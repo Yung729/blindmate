@@ -35,7 +35,9 @@ class _MiniGameScreenState extends State<MiniGameScreen> {
   bool _winnerDialogShown = false;
   bool _isGameEnded = false;
   int _remainingAttempts = 2;
-  
+
+
+  StreamSubscription<DocumentSnapshot>? _drawingSubscription;
   late Timer _inactivityTimer;
   late Timer _gameOverTimer; // Timer for game over if inactivity continues
   static const int _inactivityThreshold = 10; // Inactivity threshold in seconds
@@ -97,7 +99,9 @@ class _MiniGameScreenState extends State<MiniGameScreen> {
   @override
   void dispose() {
     _inactivityTimer.cancel(); // Cancel the timer when the screen is disposed
-    _gameOverTimer.cancel(); // <-- Add this
+    //_gameOverTimer.cancel(); // <-- Add this
+    if (_gameOverTimer.isActive) _gameOverTimer.cancel(); // Safer check
+    _drawingSubscription?.cancel();
     super.dispose();
   }
 
@@ -263,7 +267,9 @@ void _endGame() {
   }
 
   void _listenToDrawing() {
-    _firestore.collection('games').doc(widget.chatRoomId).snapshots().listen((
+    _drawingSubscription?.cancel(); // Cancel previous one if any
+
+    _drawingSubscription = _firestore.collection('games').doc(widget.chatRoomId).snapshots().listen((
       snapshot,
     ) {
       if (snapshot.exists) {
@@ -442,6 +448,7 @@ Map<String, String> _assignRolesRandomly() {
     _currentWord = _getRandomWord();
     _guessCorrect = false;
     _remainingAttempts = 2; // ⬅️ Reset on new round
+    _drawingSubscription?.cancel(); // Cancel previous one if any
     points.clear();
   });
 
