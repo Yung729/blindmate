@@ -11,10 +11,10 @@ class BottomDrawer extends StatefulWidget {
 
   final List<String> stickerList;
 
-  final bool showStickers; // Add this parameter
+  final bool showStickers; 
   final Function(bool) toggleStickers;
   final Function(String) onStickerSearch;
-  final int flowerCount; // Add this parameter
+  final int flowerCount; 
 
   const BottomDrawer({
     super.key,
@@ -27,7 +27,7 @@ class BottomDrawer extends StatefulWidget {
     required this.showStickers,
     required this.toggleStickers,
     required this.onStickerSearch,
-    required this.flowerCount, // Add this parameter
+    required this.flowerCount, 
   });
 
   @override
@@ -55,7 +55,7 @@ class _BottomDrawerState extends State<BottomDrawer> {
       constraints: BoxConstraints(maxHeight: maxHeight),
       child: Container(
         width: screenWidth,
-        padding: const EdgeInsets.only(top: 16),
+        padding: const EdgeInsets.only(top: 12),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: const BorderRadius.only(
@@ -80,7 +80,7 @@ class _BottomDrawerState extends State<BottomDrawer> {
                 child: SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
                     child: Row(
                       children: [
                         _buildDrawerButton(
@@ -88,25 +88,25 @@ class _BottomDrawerState extends State<BottomDrawer> {
                           label: "Flower",
                           onTap: () => widget.onFlowerSelected(null),
                         ),
-                        const SizedBox(width: 16),
+                        const SizedBox(width: 12),
                         _buildDrawerButton(
                           icon: Icons.music_note,
                           label: "Music",
                           onTap: widget.onShareMusic,
                         ),
-                        const SizedBox(width: 16),
+                        const SizedBox(width: 12),
                         _buildDrawerButton(
                           icon: Icons.travel_explore,
                           label: "Journal",
                           onTap: widget.onTripJournal,
                         ),
-                        const SizedBox(width: 16),
+                        const SizedBox(width: 12),
                         _buildDrawerButton(
                           icon: Icons.videogame_asset,
                           label: "Game",
                           onTap: widget.onPlayMiniGame,
                         ),
-                        const SizedBox(width: 16),
+                        const SizedBox(width: 12),
                         _buildDrawerButton(
                           icon: Icons.sticky_note_2,
                           label: "Sticker",
@@ -142,9 +142,9 @@ class _BottomDrawerState extends State<BottomDrawer> {
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              width: 50, // Fixed width for icon container
-              height: 50, // Fixed height for icon container
-              padding: const EdgeInsets.all(12),
+              width: 46, // Fixed width for icon container
+              height: 46, // Fixed height for icon container
+              padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
                 color: isFlower && !hasFlowers 
                   ? Colors.grey[100] 
@@ -163,7 +163,7 @@ class _BottomDrawerState extends State<BottomDrawer> {
                 children: [
                   Icon(
                     icon,
-                    size: 24,
+                    size: 22,
                     color: isFlower && !hasFlowers 
                       ? Colors.grey[400] 
                       : const Color(0xFF2C2C2E),
@@ -203,7 +203,7 @@ class _BottomDrawerState extends State<BottomDrawer> {
                 ],
               ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 4),
             Text(
               label,
               style: TextStyle(
@@ -229,12 +229,12 @@ class _BottomDrawerState extends State<BottomDrawer> {
       children: [
         Container(
           color: Colors.white,
-          padding: const EdgeInsets.symmetric(horizontal: 20),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           child: Row(
             children: [
               Expanded(
                 child: Container(
-                  height: 40,
+                  height: 36,
                   child: TextField(
                     controller: _searchController,
                     decoration: InputDecoration(
@@ -283,11 +283,11 @@ class _BottomDrawerState extends State<BottomDrawer> {
             ],
           ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 4),
         Expanded(
           child: SingleChildScrollView(
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
+              padding: const EdgeInsets.symmetric(horizontal: 16),
               child: GridView.builder(
                 scrollDirection: Axis.horizontal,
                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(

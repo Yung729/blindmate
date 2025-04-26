@@ -30,8 +30,8 @@ class ChatBubble extends StatelessWidget {
     final bubbleMaxWidth = screenWidth * 0.7;
     return Padding(
       padding: EdgeInsets.symmetric(
-        vertical: screenWidth * 0.01 + 2,
-        horizontal: screenWidth * 0.02 + 6,
+        vertical: screenWidth * 0.008 + 1,
+        horizontal: screenWidth * 0.015 + 4,
       ),
       child: Row(
         mainAxisAlignment: isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
@@ -51,8 +51,8 @@ class ChatBubble extends StatelessWidget {
                       maxWidth: bubbleMaxWidth,
                     ),
                     padding: EdgeInsets.symmetric(
-                      vertical: screenWidth * 0.025 + 6,
-                      horizontal: screenWidth * 0.04 + 8,
+                      vertical: screenWidth * 0.015 + 4,
+                      horizontal: screenWidth * 0.03 + 6,
                     ),
                     decoration: BoxDecoration(
                       gradient: isMe
