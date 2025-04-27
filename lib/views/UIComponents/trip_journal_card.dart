@@ -46,7 +46,7 @@ class _TripJournalBookCardState extends State<TripJournalBookCard> {
         mainAxisSize: MainAxisSize.min,
         children: [
           AspectRatio(
-            aspectRatio: 3 / 2.0,
+            aspectRatio: 3 / 4.0,
             child: SizedBox(
               height: MediaQuery.of(context).size.height * 0.4,
               child: Stack(
@@ -128,37 +128,60 @@ class _TripJournalBookCardState extends State<TripJournalBookCard> {
                                       crossAxisAlignment:
                                           CrossAxisAlignment.start,
                                       children: [
-                                        // Day Ribbon
-                                        Align(
-                                          alignment: Alignment.topRight,
-                                          child: Container(
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 14,
-                                              vertical: 4,
-                                            ),
-                                            decoration: BoxDecoration(
-                                              color: Colors.teal[400],
-                                              borderRadius:
-                                                  BorderRadius.circular(12),
-                                              boxShadow: [
-                                                BoxShadow(
-                                                  color: Colors.teal
-                                                      .withOpacity(0.15),
-                                                  blurRadius: 6,
-                                                  offset: const Offset(0, 2),
+                                        // Top bar with Day indicator and Close button
+                                        Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.spaceBetween,
+                                          children: [
+                                            // Day Ribbon (moved to left)
+                                            Container(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    horizontal: 14,
+                                                    vertical: 4,
+                                                  ),
+                                              decoration: BoxDecoration(
+                                                color: Colors.teal[400],
+                                                borderRadius:
+                                                    BorderRadius.circular(12),
+                                                boxShadow: [
+                                                  BoxShadow(
+                                                    color: Colors.teal
+                                                        .withOpacity(0.15),
+                                                    blurRadius: 6,
+                                                    offset: const Offset(0, 2),
+                                                  ),
+                                                ],
+                                              ),
+                                              child: Text(
+                                                'Day ${index + 1}',
+                                                style: const TextStyle(
+                                                  fontSize: 16,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: Colors.white,
+                                                  letterSpacing: 0.5,
                                                 ),
-                                              ],
-                                            ),
-                                            child: Text(
-                                              'Day ${index + 1}',
-                                              style: const TextStyle(
-                                                fontSize: 16,
-                                                fontWeight: FontWeight.bold,
-                                                color: Colors.white,
-                                                letterSpacing: 0.5,
                                               ),
                                             ),
-                                          ),
+                                            // Close button (new)
+                                            IconButton(
+                                              onPressed: () {
+                                                Navigator.of(context).pop();
+                                              },
+                                              style: IconButton.styleFrom(
+                                                backgroundColor: Colors.white
+                                                    .withOpacity(0.9),
+                                                padding: const EdgeInsets.all(
+                                                  8,
+                                                ),
+                                              ),
+                                              icon: const Icon(
+                                                Icons.close,
+                                                color: Colors.grey,
+                                                size: 20,
+                                              ),
+                                            ),
+                                          ],
                                         ),
                                         const SizedBox(height: 10),
                                         // Location

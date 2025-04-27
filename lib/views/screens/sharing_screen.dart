@@ -15,6 +15,7 @@ import 'my_posts_list.dart';
 import '../UIComponents/custom_dialog.dart';
 import '../UIComponents/trip_journal_card.dart';
 import '../UIComponents/post_url_preview.dart';
+import '../UIComponents/trip_journal_preview.dart';
 
 class SharingScreen extends StatefulWidget {
   final UserModel user;
@@ -386,8 +387,7 @@ class _SharingScreenState extends State<SharingScreen> {
                     });
                   },
                 ),
-              if (post.url != null)
-              PostUrlPreview(linkUrl: post.url!),
+              if (post.url != null) PostUrlPreview(linkUrl: post.url!),
               if (post.musicUrl != null)
                 PostMusicPreview(
                   musicUrl: post.musicUrl,
@@ -397,7 +397,10 @@ class _SharingScreenState extends State<SharingScreen> {
               if (isTripJournal && (post.tripJournals?.isNotEmpty ?? false))
                 Padding(
                   padding: const EdgeInsets.only(top: 8.0),
-                  child: TripJournalBookCard(journals: post.tripJournals!),
+                  child: TripJournalPreview(
+                    journals: post.tripJournals!,
+                    onTap: () => _showTripJournalDialog(context, post),
+                  ),
                 ),
             ],
           ),
@@ -408,24 +411,36 @@ class _SharingScreenState extends State<SharingScreen> {
 
   void _showTripJournalDialog(BuildContext context, PostModel post) {
     final journals = post.tripJournals ?? [];
+
     showDialog(
       context: context,
+      barrierDismissible: true,
+      barrierColor: Colors.black54,
       builder:
-          (context) => AlertDialog(
-            title: const Text('Trip Journal Details'),
-            content:
-                journals.isEmpty
-                    ? const Text('No trip journal entries.')
-                    : SizedBox(
-                      width: double.maxFinite,
-                      child: TripJournalBookCard(journals: journals),
-                    ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Close'),
+          (context) => Center(
+            child: Container(
+              width:
+                  MediaQuery.of(context).size.width *
+                  0.92, // Slightly smaller width
+              height:
+                  MediaQuery.of(context).size.height *
+                  0.60, // Slightly smaller height
+              margin: const EdgeInsets.symmetric(horizontal: 16),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.2),
+                    blurRadius: 20,
+                    offset: const Offset(0, 10),
+                  ),
+                ],
               ),
-            ],
+              child: TripJournalBookCard(
+                journals: journals,
+                padding: const EdgeInsets.all(0),
+              ),
+            ),
           ),
     );
   }
