@@ -24,7 +24,6 @@ class TripJournalPreview extends StatelessWidget {
     final firstTimestamp = firstJournal['date'] as Timestamp?;
     final firstDate = firstTimestamp?.toDate();
 
-    // Get the last date if there are multiple entries
     final lastJournal = journals.last;
     final lastTimestamp = lastJournal['date'] as Timestamp?;
     final lastDate = lastTimestamp?.toDate();
@@ -32,66 +31,155 @@ class TripJournalPreview extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.green.withOpacity(0.05),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: Colors.green.withOpacity(0.2),
-            width: 1,
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Colors.teal.shade50,
+              Colors.blue.shade50,
+            ],
           ),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: Colors.teal.withOpacity(0.3),
+            width: 1.5,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.teal.withOpacity(0.1),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
+            ),
+          ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Icon(Icons.location_on, color: Colors.green, size: 20),
-                const SizedBox(width: 8),
+                // Location with icon
                 Expanded(
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.teal.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Icon(
+                          Icons.tour,  // Changed to a more attractive icon
+                          color: Colors.teal,
+                          size: 24,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          location ?? 'Unknown Location',
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.teal,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                // Journey days badge
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.teal.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: Colors.teal.withOpacity(0.2),
+                    ),
+                  ),
                   child: Text(
-                    location ?? 'Unknown Location',
+                    '${journals.length} ${journals.length == 1 ? 'Day' : 'Days'}',
                     style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w500,
-                      color: Colors.green,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.teal,
                     ),
                   ),
                 ),
               ],
             ),
-            if (firstDate != null) ...[
-              const SizedBox(height: 4),
-              Row(
+            const SizedBox(height: 12),
+            // Date range with icon
+            if (firstDate != null) 
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.5),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.event_available,
+                      color: Colors.teal.shade300,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      journals.length > 1 && lastDate != null
+                          ? '${_formatDate(firstDate)} - ${_formatDate(lastDate)}'
+                          : _formatDate(firstDate),
+                      style: TextStyle(
+                        fontSize: 15,
+                        color: Colors.grey.shade700,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            const SizedBox(height: 12),
+            // Tap for more details button
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.5),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                  color: Colors.teal.withOpacity(0.2),
+                ),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.calendar_today, 
-                    color: Colors.grey[600], 
-                    size: 16
+                  Icon(
+                    Icons.auto_stories,
+                    size: 18,
+                    color: Colors.teal.shade300,
                   ),
-                  const SizedBox(width: 4),
+                  const SizedBox(width: 8),
                   Text(
-                    journals.length > 1 && lastDate != null
-                        ? '${_formatDate(firstDate)} - ${_formatDate(lastDate)}'
-                        : _formatDate(firstDate),
+                    'Tap to view journey details',
                     style: TextStyle(
                       fontSize: 14,
-                      color: Colors.grey[600],
+                      color: Colors.teal.shade700,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
                 ],
               ),
-            ],
-            if (journals.length > 1) ...[
-              const SizedBox(height: 8),
-              Text(
-                '${journals.length} days journey',
-                style: TextStyle(
-                  fontSize: 13,
-                  color: Colors.grey[600],
-                  fontStyle: FontStyle.italic,
-                ),
-              ),
-            ],
+            ),
           ],
         ),
       ),

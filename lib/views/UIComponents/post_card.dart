@@ -13,18 +13,31 @@ class PostCard extends StatelessWidget {
   }) : super(key: key);
 
   @override
+  @override
   Widget build(BuildContext context) {
     return Container(
       margin: margin,
       child: ClipPath(
         clipper: WaveClipper(),
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(12), // 👈 just slightly rounded
+          borderRadius: BorderRadius.circular(12),
           child: Container(
             decoration: BoxDecoration(
-              color: color ?? Color(0xFFE3F2FD), // Light blue sea theme
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  const Color(0xFF81D4FA), // Wave top - brighter blue
+                  const Color(0xFFB3E5FC), // Wave middle - medium blue
+                  const Color(0xFFE1F5FE), // Content area - light blue
+                ],
+                stops: const [0.0, 0.08, 0.2], // Subtle transition for wave area
+              ),
             ),
-            child: Padding(padding: const EdgeInsets.all(12.0), child: child),
+            child: Padding(
+              padding: const EdgeInsets.all(12.0),
+              child: child,
+            ),
           ),
         ),
       ),

@@ -215,6 +215,23 @@ class _SharingScreenState extends State<SharingScreen> {
                                   }
                                 }
                               },
+                              onToggleVisibility: (
+                                selectedIds,
+                                makePublic,
+                              ) async {
+                                final action =
+                                    makePublic ? 'public' : 'private';
+                                final confirm = await showConfirmDialog(
+                                  context,
+                                  'Change Visibility',
+                                  'Are you sure you want to make ${selectedIds.length} post(s) $action?',
+                                );
+                                if (confirm) {
+                                  for (final id in selectedIds) {
+                                    _eventHandler.togglePostVisibility(id);
+                                  }
+                                }
+                              },
                             )
                             : _buildSharedContentList(displayedPosts),
                   ),
@@ -342,7 +359,6 @@ class _SharingScreenState extends State<SharingScreen> {
       itemBuilder: (context, index) {
         final post = posts[index];
         final isTripJournal = post.postType == PostType.tripJournal;
-
         final avatarUrl = post.authorAvatar;
 
         return PostCard(
@@ -387,7 +403,11 @@ class _SharingScreenState extends State<SharingScreen> {
                     });
                   },
                 ),
-              if (post.url != null) PostUrlPreview(linkUrl: post.url!),
+              if (post.url != null) 
+              PostUrlPreview(
+                key: ValueKey('url-preview-${post.id}'),
+                linkUrl: post.url!,
+              ),
               if (post.musicUrl != null)
                 PostMusicPreview(
                   musicUrl: post.musicUrl,

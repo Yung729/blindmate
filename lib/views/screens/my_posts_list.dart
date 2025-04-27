@@ -4,6 +4,8 @@ import '../UIComponents/post_card.dart';
 import '../UIComponents/post_header.dart';
 import '../UIComponents/post_content.dart';
 import '../UIComponents/post_music_preview.dart';
+import '../UIComponents/trip_journal_preview.dart';
+import '../UIComponents/post_url_preview.dart';
 
 class MyPostsList extends StatefulWidget {
   final List<PostModel> posts;
@@ -19,6 +21,8 @@ class MyPostsList extends StatefulWidget {
   final void Function(String postId) onCollapse;
   final void Function(BuildContext context, PostModel post) onViewTripJournal;
   final void Function(List<String> selectedPostIds)? onDeleteSelected;
+  final void Function(List<String> selectedPostIds, bool makePublic)?
+  onToggleVisibility;
 
   const MyPostsList({
     Key? key,
@@ -35,6 +39,7 @@ class MyPostsList extends StatefulWidget {
     required this.onCollapse,
     required this.onViewTripJournal,
     this.onDeleteSelected,
+    this.onToggleVisibility,
   }) : super(key: key);
 
   @override
@@ -43,9 +48,36 @@ class MyPostsList extends StatefulWidget {
 
 class _MyPostsListState extends State<MyPostsList> {
   final Set<String> _selectedPostIds = {};
+  bool _isDeleting = false;
 
   bool get _allSelected =>
       widget.posts.isNotEmpty && _selectedPostIds.length == widget.posts.length;
+
+  bool? get _selectedPostsVisibility {
+    if (_selectedPostIds.isEmpty) return null;
+
+    final selectedPosts =
+        widget.posts
+            .where((post) => _selectedPostIds.contains(post.id))
+            .toList();
+
+    final firstVisibility = selectedPosts.first.isPublic;
+    final allSameVisibility = selectedPosts.every(
+      (post) => post.isPublic == firstVisibility,
+    );
+
+    return allSameVisibility ? firstVisibility : null;
+  }
+
+  void _toggleVisibility() {
+    final visibility = _selectedPostsVisibility;
+    if (visibility != null &&
+        widget.onToggleVisibility != null &&
+        _selectedPostIds.isNotEmpty) {
+      // Pass the opposite of current visibility to toggle
+      widget.onToggleVisibility!(_selectedPostIds.toList(), !visibility);
+    }
+  }
 
   void _toggleSelectAll(bool? value) {
     setState(() {
@@ -75,9 +107,28 @@ class _MyPostsListState extends State<MyPostsList> {
   }
 
   void _deleteSelected() {
-    if (widget.onDeleteSelected != null && _selectedPostIds.isNotEmpty) {
-      widget.onDeleteSelected!(_selectedPostIds.toList());
-      // Do NOT clear selection here! Only clear after confirmation in parent.
+    if (widget.onDeleteSelected != null &&
+        _selectedPostIds.isNotEmpty &&
+        !_isDeleting) {
+      final selectedIds = List<String>.from(_selectedPostIds);
+
+      setState(() {
+        _isDeleting = true;
+      });
+
+      // Call delete callback
+      widget.onDeleteSelected!(selectedIds);
+
+      // Force UI refresh after deletion
+      setState(() {
+        _selectedPostIds.clear();
+        _isDeleting = false;
+      });
+
+      // Force another refresh to ensure list updates
+      Future.microtask(() {
+        if (mounted) setState(() {});
+      });
     }
   }
 
@@ -177,12 +228,10 @@ class _MyPostsListState extends State<MyPostsList> {
                               children: [
                                 PostHeader(
                                   userName: "You",
-                                  avatarUrl:
-                                      widget
-                                          .avatarUrl,
+                                  avatarUrl: widget.avatarUrl,
                                   timeAgo: widget.getTimeAgo(post.timestamp),
                                   isPublic: post.isPublic,
-                                  onOptions: null, // <-- No 3-dots button
+                                  onOptions: null,
                                   isTripJournal: isTripJournal,
                                   onTripJournalTap:
                                       isTripJournal
@@ -204,11 +253,29 @@ class _MyPostsListState extends State<MyPostsList> {
                                     onCollapse:
                                         () => widget.onCollapse(post.id!),
                                   ),
+                                if (post.url != null)
+                                  PostUrlPreview(
+                                    key: ValueKey('url-preview-${post.id}'),
+                                    linkUrl: post.url!,
+                                  ),
                                 if (post.musicUrl != null)
                                   PostMusicPreview(
                                     musicUrl: post.musicUrl,
                                     musicTitle: post.musicTitle,
                                     onPlay: () => widget.onPlayMusic(post),
+                                  ),
+                                if (isTripJournal &&
+                                    (post.tripJournals?.isNotEmpty ?? false))
+                                  Padding(
+                                    padding: const EdgeInsets.only(top: 8.0),
+                                    child: TripJournalPreview(
+                                      journals: post.tripJournals!,
+                                      onTap:
+                                          () => widget.onViewTripJournal(
+                                            context,
+                                            post,
+                                          ),
+                                    ),
                                   ),
                               ],
                             ),
@@ -220,7 +287,6 @@ class _MyPostsListState extends State<MyPostsList> {
                 },
               ),
             ),
-            const SizedBox(height: 60), // Space for the floating delete button
           ],
         ),
         // Floating Delete Button at Bottom
@@ -230,31 +296,94 @@ class _MyPostsListState extends State<MyPostsList> {
             right: 0,
             bottom: 16,
             child: Center(
-              child: AnimatedScale(
-                scale: _selectedPostIds.isNotEmpty ? 1.0 : 0.0,
-                duration: const Duration(milliseconds: 200),
-                child: ElevatedButton.icon(
-                  icon: const Icon(Icons.delete, color: Colors.white),
-                  label: Text(
-                    "Delete (${_selectedPostIds.length})",
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  // Delete button
+                  AnimatedScale(
+                    scale: _selectedPostIds.isNotEmpty ? 1.0 : 0.0,
+                    duration: const Duration(milliseconds: 200),
+                    child: ElevatedButton.icon(
+                      icon:
+                          _isDeleting
+                              ? const SizedBox(
+                                width: 24,
+                                height: 24,
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2,
+                                ),
+                              )
+                              : const Icon(Icons.delete, color: Colors.white),
+                      label: Text(
+                        _isDeleting
+                            ? "Deleting..."
+                            : "Delete (${_selectedPostIds.length})",
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.red,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 24,
+                          vertical: 16,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(30),
+                        ),
+                        elevation: 8,
+                      ),
+                      onPressed: _isDeleting ? null : _deleteSelected,
                     ),
                   ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.red,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 32,
-                      vertical: 16,
+                  const SizedBox(width: 12),
+                  // Visibility toggle button
+                  AnimatedScale(
+                    scale: _selectedPostIds.isNotEmpty ? 1.0 : 0.0,
+                    duration: const Duration(milliseconds: 200),
+                    child: ElevatedButton.icon(
+                      icon: Icon(
+                        _selectedPostsVisibility == null
+                            ? Icons.block
+                            : (_selectedPostsVisibility!
+                                ? Icons.visibility_off
+                                : Icons.visibility),
+                        color: Colors.white,
+                      ),
+                      label: Text(
+                        _selectedPostsVisibility == null
+                            ? "Mixed Visibility"
+                            : (_selectedPostsVisibility!
+                                ? "Make Private (${_selectedPostIds.length})"
+                                : "Make Public (${_selectedPostIds.length})"),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor:
+                            _selectedPostsVisibility == null
+                                ? Colors.grey
+                                : Colors.blue,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 24,
+                          vertical: 16,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(30),
+                        ),
+                        elevation: 8,
+                      ),
+                      onPressed:
+                          _selectedPostsVisibility == null
+                              ? null
+                              : _toggleVisibility,
                     ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(30),
-                    ),
-                    elevation: 8,
                   ),
-                  onPressed: _deleteSelected,
-                ),
+                ],
               ),
             ),
           ),
