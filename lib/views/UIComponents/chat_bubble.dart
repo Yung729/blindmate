@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import '../../viewmodels/state/chat_state.dart';
-import './music_overlay_manager.dart';
 import 'package:intl/intl.dart';
+import './inline_youtube_player.dart';
 
 class ChatBubble extends StatefulWidget {
   final bool isMe;
@@ -293,82 +291,15 @@ class _ChatBubbleState extends State<ChatBubble> with SingleTickerProviderStateM
   }
 
   Widget _buildMusicContent(BuildContext context) {
-    return GestureDetector(
-      onTap: () {
-        if (widget.musicUrl != null && widget.musicUrl!.isNotEmpty) {
-          final chatState = Provider.of<ChatState>(context, listen: false);
-          chatState.setMusicPlaying(true);
-          MusicOverlayManager().playMusic(context, widget.musicUrl!);
-        }
-      },
-      child: Container(
-        width: 250,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(8.0),
-          color: Color(0xFFE3F2FD),
+    if (widget.musicUrl != null && widget.musicUrl!.isNotEmpty) {
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 4),
+        child: InlineYoutubePlayer(
+          youtubeUrl: widget.musicUrl!,
+          title: widget.musicTitle,
         ),
-        padding: const EdgeInsets.all(8.0),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            _buildMusicThumbnail(),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    widget.musicTitle ?? "Untitled",
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  Text(
-                    "Tap to play",
-                    style: TextStyle(color: Colors.grey[600], fontSize: 12),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
-            ),
-            const Padding(
-              padding: EdgeInsets.all(4.0),
-              child: Icon(
-                Icons.play_circle_fill,
-                color: Colors.blue,
-                size: 30,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildMusicThumbnail() {
-    final videoId = widget.musicUrl != null && widget.musicUrl!.isNotEmpty
-        ? Uri.tryParse(widget.musicUrl!)?.queryParameters['v'] ?? ''
-        : '';
-        
-    return SizedBox(
-      width: 60,
-      height: 60,
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(8.0),
-        child: Image.network(
-          "http://img.youtube.com/vi/$videoId/mqdefault.jpg",
-          fit: BoxFit.cover,
-          errorBuilder: (context, error, stackTrace) {
-            return const Center(
-              child: Icon(
-                Icons.music_note,
-                size: 30,
-                color: Colors.grey,
-              ),
-            );
-          },
-        ),
-      ),
-    );
+      );
+    }
+    return const SizedBox.shrink();
   }
 }

@@ -4,18 +4,16 @@ import '../../models/dataModels/user_model.dart';
 import '../../viewmodels/state/sharing_state.dart';
 import '../../viewmodels/dataBinding/sharing_data_binding.dart';
 import '../../viewmodels/eventHandlers/sharing_event_handler.dart';
-import '../UIComponents/floating_music_player.dart';
-import '../UIComponents/custom_button.dart';
 import '../../models/dataModels/post_model.dart';
 import '../UIComponents/post_card.dart';
 import '../UIComponents/post_header.dart';
 import '../UIComponents/post_content.dart';
-import '../UIComponents/post_music_preview.dart';
 import 'my_posts_list.dart';
 import '../UIComponents/custom_dialog.dart';
 import '../UIComponents/trip_journal_card.dart';
 import '../UIComponents/post_url_preview.dart';
 import '../UIComponents/trip_journal_preview.dart';
+import '../UIComponents/inline_youtube_player.dart';
 
 class SharingScreen extends StatefulWidget {
   final UserModel user;
@@ -168,84 +166,65 @@ class _SharingScreenState extends State<SharingScreen> {
                 .where((post) => !sharingState.hiddenPostIds.contains(post.id))
                 .toList();
 
-        return Stack(
-          children: [
-            Scaffold(
-              appBar: AppBar(title: const Text("Sharing Space")),
-              body: Column(
-                children: [
-                  _buildCreatePostAndToggleRow(),
-                  Expanded(
-                    child:
-                        _showMyPostsOnly
-                            ? MyPostsList(
-                              posts: displayedPosts,
-                              userId: widget.user.userId,
-                              avatarUrl:
-                                  widget.user.avatarImg, // <-- Add this line!
-                              scrollController: _scrollController,
-                              expandedPosts: _expandedPosts,
-                              maxLinesCollapsed: _maxLinesCollapsed,
-                              onShowPostOptions:
-                                  (post) => _showPostOptions(context, post),
-                              onPlayMusic:
-                                  (post) =>
-                                      _eventHandler.playMusic(post.musicUrl!),
-                              getTimeAgo: getTimeAgo,
-                              onExpand: (postId) {
-                                setState(() {
-                                  _expandedPosts.add(postId);
-                                });
-                              },
-                              onCollapse: (postId) {
-                                setState(() {
-                                  _expandedPosts.remove(postId);
-                                });
-                              },
-                              onViewTripJournal: _showTripJournalDialog,
-                              onDeleteSelected: (selectedIds) async {
-                                final confirm = await showConfirmDialog(
-                                  context,
-                                  'Delete Posts',
-                                  'Are you sure you want to delete ${selectedIds.length} post(s)?',
-                                );
-                                if (confirm) {
-                                  for (final id in selectedIds) {
-                                    _eventHandler.deletePost(id);
-                                  }
-                                }
-                              },
-                              onToggleVisibility: (
-                                selectedIds,
-                                makePublic,
-                              ) async {
-                                final action =
-                                    makePublic ? 'public' : 'private';
-                                final confirm = await showConfirmDialog(
-                                  context,
-                                  'Change Visibility',
-                                  'Are you sure you want to make ${selectedIds.length} post(s) $action?',
-                                );
-                                if (confirm) {
-                                  for (final id in selectedIds) {
-                                    _eventHandler.togglePostVisibility(id);
-                                  }
-                                }
-                              },
-                            )
-                            : _buildSharedContentList(displayedPosts),
-                  ),
-                ],
+        return Scaffold(
+          appBar: AppBar(title: const Text("Sharing Space")),
+          body: Column(
+            children: [
+              _buildCreatePostAndToggleRow(),
+              Expanded(
+                child:
+                    _showMyPostsOnly
+                        ? MyPostsList(
+                          posts: displayedPosts,
+                          userId: widget.user.userId,
+                          avatarUrl: widget.user.avatarImg,
+                          scrollController: _scrollController,
+                          expandedPosts: _expandedPosts,
+                          maxLinesCollapsed: _maxLinesCollapsed,
+                          onShowPostOptions: (post) => _showPostOptions(context, post),
+                          onPlayMusic: (post) => _eventHandler.playMusic(post.musicUrl!),
+                          getTimeAgo: getTimeAgo,
+                          onExpand: (postId) {
+                            setState(() {
+                              _expandedPosts.add(postId);
+                            });
+                          },
+                          onCollapse: (postId) {
+                            setState(() {
+                              _expandedPosts.remove(postId);
+                            });
+                          },
+                          onViewTripJournal: _showTripJournalDialog,
+                          onDeleteSelected: (selectedIds) async {
+                            final confirm = await showConfirmDialog(
+                              context,
+                              'Delete Posts',
+                              'Are you sure you want to delete ${selectedIds.length} post(s)?',
+                            );
+                            if (confirm) {
+                              for (final id in selectedIds) {
+                                _eventHandler.deletePost(id);
+                              }
+                            }
+                          },
+                          onToggleVisibility: (selectedIds, makePublic) async {
+                            final action = makePublic ? 'public' : 'private';
+                            final confirm = await showConfirmDialog(
+                              context,
+                              'Change Visibility',
+                              'Are you sure you want to make ${selectedIds.length} post(s) $action?',
+                            );
+                            if (confirm) {
+                              for (final id in selectedIds) {
+                                _eventHandler.togglePostVisibility(id);
+                              }
+                            }
+                          },
+                        )
+                        : _buildSharedContentList(displayedPosts),
               ),
-            ),
-            if (sharingState.currentMusicUrl != null)
-              FloatingMusicPlayer(
-                youtubeUrl: sharingState.currentMusicUrl!,
-                onClose: () {
-                  _eventHandler.closeMusic();
-                },
-              ),
-          ],
+            ],
+          ),
         );
       },
     );
@@ -258,9 +237,8 @@ class _SharingScreenState extends State<SharingScreen> {
         children: [
           CircleAvatar(
             backgroundImage:
-                (widget.user.avatarImg != null &&
-                        widget.user.avatarImg!.isNotEmpty)
-                    ? NetworkImage(widget.user.avatarImg!)
+                widget.user.avatarImg.isNotEmpty
+                    ? NetworkImage(widget.user.avatarImg)
                     : const AssetImage('assets/default_pic.jpg')
                         as ImageProvider,
           ),
@@ -404,15 +382,14 @@ class _SharingScreenState extends State<SharingScreen> {
                   },
                 ),
               if (post.url != null) 
-              PostUrlPreview(
-                key: ValueKey('url-preview-${post.id}'),
-                linkUrl: post.url!,
-              ),
+                PostUrlPreview(
+                  key: ValueKey('url-preview-${post.id}'),
+                  linkUrl: post.url!,
+                ),
               if (post.musicUrl != null)
-                PostMusicPreview(
-                  musicUrl: post.musicUrl,
-                  musicTitle: post.musicTitle,
-                  onPlay: () => _eventHandler.playMusic(post.musicUrl!),
+                InlineYoutubePlayer(
+                  youtubeUrl: post.musicUrl!,
+                  title: post.musicTitle,
                 ),
               if (isTripJournal && (post.tripJournals?.isNotEmpty ?? false))
                 Padding(
@@ -441,10 +418,10 @@ class _SharingScreenState extends State<SharingScreen> {
             child: Container(
               width:
                   MediaQuery.of(context).size.width *
-                  0.92, // Slightly smaller width
+                  0.92,
               height:
                   MediaQuery.of(context).size.height *
-                  0.60, // Slightly smaller height
+                  0.60,
               margin: const EdgeInsets.symmetric(horizontal: 16),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(20),

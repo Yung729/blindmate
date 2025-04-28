@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'package:blindmate/services/reward_service.dart';
-import 'package:blindmate/views/UIComponents/music_overlay_manager.dart';
 import 'package:blindmate/viewmodels/dataBinding/matching_data_binding.dart';
 import 'package:blindmate/viewmodels/eventHandlers/matching_event_handler.dart';
 import 'package:blindmate/viewmodels/state/matching_state.dart';
@@ -90,7 +89,6 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
           // Stop music playback when chat ends
           if (_chatState.isMusicPlaying) {
             _chatState.setMusicPlaying(false);
-            MusicOverlayManager().closeMusic();
           }
           _chatHandler.handleExit().then((_) {
             Navigator.popUntil(context, (route) => route.isFirst);
@@ -103,7 +101,6 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
             // Stop music playback when partner leaves
             if (_chatState.isMusicPlaying) {
               _chatState.setMusicPlaying(false);
-              MusicOverlayManager().closeMusic();
             }
             _chatHandler.handleExit().then((_) {
               Navigator.popUntil(context, (route) => route.isFirst);
@@ -147,7 +144,6 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     // Set music as stopped in the ChatState and close any active player
     if (_chatState.isMusicPlaying) {
       _chatState.setMusicPlaying(false);
-      MusicOverlayManager().closeMusic();
     }
     
     super.dispose();
@@ -162,7 +158,6 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       // Stop music playback when app goes to background
       if (_chatState.isMusicPlaying) {
         _chatState.setMusicPlaying(false);
-        MusicOverlayManager().closeMusic();
       }
       _chatHandler.handleExit();
     }
@@ -200,7 +195,6 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       // Stop music playback when reporting user
       if (_chatState.isMusicPlaying) {
         _chatState.setMusicPlaying(false);
-        MusicOverlayManager().closeMusic();
       }
       await _chatHandler.handleExit();
       Navigator.popUntil(context, (route) => route.isFirst);
