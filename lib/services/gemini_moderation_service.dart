@@ -32,6 +32,36 @@ Message:
     return 'UNSAFE';
   }
 
+  Future<bool> isStickerSearchPositive(String query) async {
+    final model = GenerativeModel(model: 'gemini-1.5-flash', apiKey: apiKey);
+
+    final prompt = '''
+Evaluate the following sticker search query and determine if it will likely return positive or negative stickers.
+Respond with ONLY ONE of the following labels:
+
+- "POSITIVE": if the query will likely return positive, uplifting, happy, friendly, or neutral stickers.
+- "NEGATIVE": if the query will likely return negative, offensive, violent, explicit, or inappropriate stickers.
+
+For example:
+- "happy", "love", "cute", "smile", "information", "weather" would be POSITIVE
+- "hate", "violence", "explicit", "offensive" would be NEGATIVE
+
+Query:
+"$query"
+''';
+
+    try {
+      final response = await model.generateContent([Content.text(prompt)]);
+      final result = response.text?.trim().toUpperCase();
+
+      print('Sticker query moderation result: $result');
+      return result == 'POSITIVE';
+    } catch (e) {
+      print('Error moderating sticker query: $e');
+      return false; // Default to not allowing if there's an error
+    }
+  }
+
 Future<List<Map<String, dynamic>>> generateSurveyQuestions() async {
     final model = GenerativeModel(model: 'gemini-1.5-flash', apiKey: apiKey);
 

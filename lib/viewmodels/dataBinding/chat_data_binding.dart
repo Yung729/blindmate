@@ -42,8 +42,22 @@ class ChatDataBinding {
   Future<void> loadStickers(String query) async {
     try {
       chatState.setIsLoadingStickers(true);
-      List<String> stickers = await _giphyService.fetchStickers(query);
-      setStickers(stickers);
+      
+      // Check if the sticker search query is positive using Gemini
+      final isPositive = await _moderationService.isStickerSearchPositive(query);
+      
+      if (isPositive) {
+        // Fetch stickers with the query if it's positive
+        List<String> stickers = await _giphyService.fetchStickers(query);
+        setStickers(stickers);
+        debugPrint("🔍 Positive sticker search: '$query'");
+      } else {
+        // If negative, don't search and show an error message
+        chatState.setErrorMessage(
+          "🚫 Search blocked: Only positive sticker searches are allowed",
+        );
+        debugPrint("⛔ Negative sticker search blocked: '$query'");
+      }
     } catch (e) {
       debugPrint("❌ Failed to load stickers: $e");
     } finally {
