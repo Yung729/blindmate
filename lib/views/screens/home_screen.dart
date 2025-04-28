@@ -1,5 +1,5 @@
 import 'package:blindmate/models/dataModels/user_model.dart';
-import 'package:blindmate/services/dialog_service.dart';
+import 'package:blindmate/services/survey_service.dart';
 import 'package:blindmate/viewmodels/dataBinding/auth_data_binding.dart';
 import 'package:blindmate/viewmodels/eventHandlers/auth_event_handler.dart';
 import 'package:blindmate/viewmodels/state/auth_state.dart';
@@ -23,7 +23,7 @@ class _HomeScreenState extends State<HomeScreen>
   bool _hasShownSurveyDialog = false;
   late AnimationController _animationController;
   late Animation<double> _swingAnimation;
-  final DialogService _dialogService = DialogService();
+  final SurveyService _dialogService = SurveyService();
 
   @override
   void initState() {
