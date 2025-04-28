@@ -1,28 +1,28 @@
 import 'package:flutter/material.dart';
-import '../../models/dataModels/post_model.dart';
 import '../UIComponents/post_card.dart';
 import '../UIComponents/post_header.dart';
 import '../UIComponents/post_content.dart';
 import '../UIComponents/post_music_preview.dart';
 import '../UIComponents/trip_journal_preview.dart';
 import '../UIComponents/post_url_preview.dart';
+import '../UIComponents/trip_journal_panel.dart';
+import '../UIComponents/custom_button.dart';
 
 class MyPostsList extends StatefulWidget {
-  final List<PostModel> posts;
+  final List<Map<String, dynamic>> posts;
   final String userId;
   final String? avatarUrl;
   final ScrollController scrollController;
   final Set<String> expandedPosts;
   final int maxLinesCollapsed;
-  final Function(PostModel) onShowPostOptions;
-  final Function(PostModel) onPlayMusic;
+  final Function(Map<String, dynamic>) onShowPostOptions;
+  final Function(Map<String, dynamic>) onPlayMusic;
   final String Function(DateTime) getTimeAgo;
   final void Function(String postId) onExpand;
   final void Function(String postId) onCollapse;
-  final void Function(BuildContext context, PostModel post) onViewTripJournal;
+  final void Function(BuildContext context, Map<String, dynamic> post) onViewTripJournal;
   final void Function(List<String> selectedPostIds)? onDeleteSelected;
-  final void Function(List<String> selectedPostIds, bool makePublic)?
-  onToggleVisibility;
+  final void Function(List<String> selectedPostIds, bool makePublic)? onToggleVisibility;
 
   const MyPostsList({
     Key? key,
@@ -49,6 +49,7 @@ class MyPostsList extends StatefulWidget {
 class _MyPostsListState extends State<MyPostsList> {
   final Set<String> _selectedPostIds = {};
   bool _isDeleting = false;
+  bool _showTripJournalsPanel = false;
 
   bool get _allSelected =>
       widget.posts.isNotEmpty && _selectedPostIds.length == widget.posts.length;
@@ -57,16 +58,23 @@ class _MyPostsListState extends State<MyPostsList> {
     if (_selectedPostIds.isEmpty) return null;
 
     final selectedPosts =
-        widget.posts
-            .where((post) => _selectedPostIds.contains(post.id))
-            .toList();
+        widget.posts.where((post) => _selectedPostIds.contains(post['id'])).toList();
 
-    final firstVisibility = selectedPosts.first.isPublic;
+    final firstVisibility = selectedPosts.first['visibility'] == 'public';
     final allSameVisibility = selectedPosts.every(
-      (post) => post.isPublic == firstVisibility,
+      (post) => (post['visibility'] == 'public') == firstVisibility,
     );
 
     return allSameVisibility ? firstVisibility : null;
+  }
+
+  List<Map<String, dynamic>> get _filteredPosts {
+    if (_showTripJournalsPanel) {
+      return widget.posts
+          .where((post) => post['postType'] == 'tripJournal')
+          .toList();
+    }
+    return widget.posts;
   }
 
   void _toggleVisibility() {
@@ -74,7 +82,6 @@ class _MyPostsListState extends State<MyPostsList> {
     if (visibility != null &&
         widget.onToggleVisibility != null &&
         _selectedPostIds.isNotEmpty) {
-      // Pass the opposite of current visibility to toggle
       widget.onToggleVisibility!(_selectedPostIds.toList(), !visibility);
     }
   }
@@ -82,7 +89,7 @@ class _MyPostsListState extends State<MyPostsList> {
   void _toggleSelectAll(bool? value) {
     setState(() {
       if (value == true) {
-        _selectedPostIds.addAll(widget.posts.map((p) => p.id!));
+        _selectedPostIds.addAll(widget.posts.map((p) => p['id'] as String));
       } else {
         _selectedPostIds.clear();
       }
@@ -99,7 +106,6 @@ class _MyPostsListState extends State<MyPostsList> {
     });
   }
 
-  /// Call this from parent after confirmed deletion
   void clearSelection() {
     setState(() {
       _selectedPostIds.clear();
@@ -116,16 +122,13 @@ class _MyPostsListState extends State<MyPostsList> {
         _isDeleting = true;
       });
 
-      // Call delete callback
       widget.onDeleteSelected!(selectedIds);
 
-      // Force UI refresh after deletion
       setState(() {
         _selectedPostIds.clear();
         _isDeleting = false;
       });
 
-      // Force another refresh to ensure list updates
       Future.microtask(() {
         if (mounted) setState(() {});
       });
@@ -149,11 +152,13 @@ class _MyPostsListState extends State<MyPostsList> {
       );
     }
 
+    final tripJournalsCount =
+        widget.posts.where((post) => post['postType'] == 'tripJournal').length;
+
     return Stack(
       children: [
         Column(
           children: [
-            // Select All Row (checkbox on left, aligned with post checkboxes)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
               child: Row(
@@ -171,6 +176,36 @@ class _MyPostsListState extends State<MyPostsList> {
                     "Select All",
                     style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
                   ),
+                  const Spacer(),
+                  CustomButton(
+                    text: 'Trip Journals ($tripJournalsCount)',
+                    onPressed: () {
+                      showModalBottomSheet(
+                        context: context,
+                        isScrollControlled: true,
+                        backgroundColor: Colors.transparent,
+                        builder: (BuildContext context) {
+                          return TripJournalPanel(
+                            posts: widget.posts,
+                            getTimeAgo: widget.getTimeAgo,
+                            onViewTripJournal: widget.onViewTripJournal,
+                            onClose: () => Navigator.pop(context),
+                          );
+                        },
+                      );
+                    },
+                    icon: Icon(
+                      _showTripJournalsPanel ? Icons.close : Icons.book,
+                      size: 20,
+                      color: Colors.white,
+                    ),
+                    backgroundColor:
+                        _showTripJournalsPanel ? Colors.grey : Colors.blue,
+                    horizontalPadding: 16,
+                    verticalPadding: 8,
+                    fontSize: 14,
+                    borderRadius: 20,
+                  ),
                 ],
               ),
             ),
@@ -181,8 +216,16 @@ class _MyPostsListState extends State<MyPostsList> {
                 itemCount: widget.posts.length,
                 itemBuilder: (context, index) {
                   final post = widget.posts[index];
-                  final isTripJournal = post.postType == PostType.tripJournal;
-                  final isSelected = _selectedPostIds.contains(post.id);
+                  final isTripJournal = post['postType'] == 'tripJournal';
+                  final isSelected = _selectedPostIds.contains(post['id']);
+
+                  // Parse timestamp safely
+                  DateTime postTime;
+                  try {
+                    postTime = DateTime.parse(post['timestamp']);
+                  } catch (_) {
+                    postTime = DateTime.now();
+                  }
 
                   return AnimatedContainer(
                     duration: const Duration(milliseconds: 200),
@@ -194,18 +237,17 @@ class _MyPostsListState extends State<MyPostsList> {
                       border: Border.all(
                         color: Colors.transparent,
                         width: 2.2,
-                      ), // Always transparent border, no outline
+                      ),
                       borderRadius: BorderRadius.circular(16),
-                      boxShadow:
-                          isSelected
-                              ? [
-                                BoxShadow(
-                                  color: Colors.red.withOpacity(0.08),
-                                  blurRadius: 8,
-                                  offset: const Offset(0, 2),
-                                ),
-                              ]
-                              : [],
+                      boxShadow: isSelected
+                          ? [
+                              BoxShadow(
+                                color: Colors.red.withOpacity(0.08),
+                                blurRadius: 8,
+                                offset: const Offset(0, 2),
+                              ),
+                            ]
+                          : [],
                     ),
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -218,7 +260,7 @@ class _MyPostsListState extends State<MyPostsList> {
                           ),
                           child: _CustomRoundCheckbox(
                             value: isSelected,
-                            onChanged: (val) => _toggleSelect(post.id!, val),
+                            onChanged: (val) => _toggleSelect(post['id'], val),
                           ),
                         ),
                         Expanded(
@@ -229,52 +271,49 @@ class _MyPostsListState extends State<MyPostsList> {
                                 PostHeader(
                                   userName: "You",
                                   avatarUrl: widget.avatarUrl,
-                                  timeAgo: widget.getTimeAgo(post.timestamp),
-                                  isPublic: post.isPublic,
+                                  timeAgo: widget.getTimeAgo(postTime),
+                                  isPublic: post['visibility'] == 'public',
                                   onOptions: null,
                                   isTripJournal: isTripJournal,
-                                  onTripJournalTap:
-                                      isTripJournal
-                                          ? () => widget.onViewTripJournal(
+                                  onTripJournalTap: isTripJournal
+                                      ? () => widget.onViewTripJournal(
                                             context,
                                             post,
                                           )
-                                          : null,
+                                      : null,
                                 ),
                                 const SizedBox(height: 8),
-                                if (post.content.isNotEmpty)
+                                if ((post['content'] ?? '').isNotEmpty)
                                   PostContent(
-                                    content: post.content,
+                                    content: post['content'],
                                     isExpanded: widget.expandedPosts.contains(
-                                      post.id,
+                                      post['id'],
                                     ),
                                     maxLinesCollapsed: widget.maxLinesCollapsed,
-                                    onExpand: () => widget.onExpand(post.id!),
-                                    onCollapse:
-                                        () => widget.onCollapse(post.id!),
+                                    onExpand: () => widget.onExpand(post['id']),
+                                    onCollapse: () => widget.onCollapse(post['id']),
                                   ),
-                                if (post.url != null)
+                                if (post['url'] != null)
                                   PostUrlPreview(
-                                    key: ValueKey('url-preview-${post.id}'),
-                                    linkUrl: post.url!,
+                                    key: ValueKey('url-preview-${post['id']}'),
+                                    linkUrl: post['url'],
                                   ),
-                                if (post.musicUrl != null)
+                                if (post['musicUrl'] != null)
                                   PostMusicPreview(
-                                    musicUrl: post.musicUrl,
-                                    musicTitle: post.musicTitle,
+                                    musicUrl: post['musicUrl'],
+                                    musicTitle: post['musicTitle'],
                                     onPlay: () => widget.onPlayMusic(post),
                                   ),
                                 if (isTripJournal &&
-                                    (post.tripJournals?.isNotEmpty ?? false))
+                                    (post['tripJournals']?.isNotEmpty ?? false))
                                   Padding(
                                     padding: const EdgeInsets.only(top: 8.0),
                                     child: TripJournalPreview(
-                                      journals: post.tripJournals!,
-                                      onTap:
-                                          () => widget.onViewTripJournal(
-                                            context,
-                                            post,
-                                          ),
+                                      journals: List<Map<String, dynamic>>.from(post['tripJournals']),
+                                      onTap: () => widget.onViewTripJournal(
+                                        context,
+                                        post,
+                                      ),
                                     ),
                                   ),
                               ],
@@ -289,7 +328,26 @@ class _MyPostsListState extends State<MyPostsList> {
             ),
           ],
         ),
-        // Floating Delete Button at Bottom
+        if (_showTripJournalsPanel)
+          Positioned.fill(
+            child: Container(
+              color: Colors.black.withOpacity(0.5),
+              child: Padding(
+                padding: EdgeInsets.only(
+                  bottom: MediaQuery.of(context).viewInsets.bottom,
+                ),
+                child: Align(
+                  alignment: Alignment.bottomCenter,
+                  child: TripJournalPanel(
+                    posts: widget.posts,
+                    getTimeAgo: widget.getTimeAgo,
+                    onViewTripJournal: widget.onViewTripJournal,
+                    onClose: () => setState(() => _showTripJournalsPanel = false),
+                  ),
+                ),
+              ),
+            ),
+          ),
         if (_selectedPostIds.isNotEmpty)
           Positioned(
             left: 0,
@@ -299,22 +357,20 @@ class _MyPostsListState extends State<MyPostsList> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // Delete button
                   AnimatedScale(
                     scale: _selectedPostIds.isNotEmpty ? 1.0 : 0.0,
                     duration: const Duration(milliseconds: 200),
                     child: ElevatedButton.icon(
-                      icon:
-                          _isDeleting
-                              ? const SizedBox(
-                                width: 24,
-                                height: 24,
-                                child: CircularProgressIndicator(
-                                  color: Colors.white,
-                                  strokeWidth: 2,
-                                ),
-                              )
-                              : const Icon(Icons.delete, color: Colors.white),
+                      icon: _isDeleting
+                          ? const SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 2,
+                              ),
+                            )
+                          : const Icon(Icons.delete, color: Colors.white),
                       label: Text(
                         _isDeleting
                             ? "Deleting..."
@@ -339,7 +395,6 @@ class _MyPostsListState extends State<MyPostsList> {
                     ),
                   ),
                   const SizedBox(width: 12),
-                  // Visibility toggle button
                   AnimatedScale(
                     scale: _selectedPostIds.isNotEmpty ? 1.0 : 0.0,
                     duration: const Duration(milliseconds: 200),
@@ -364,10 +419,9 @@ class _MyPostsListState extends State<MyPostsList> {
                         ),
                       ),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor:
-                            _selectedPostsVisibility == null
-                                ? Colors.grey
-                                : Colors.blue,
+                        backgroundColor: _selectedPostsVisibility == null
+                            ? Colors.grey
+                            : Colors.blue,
                         padding: const EdgeInsets.symmetric(
                           horizontal: 24,
                           vertical: 16,
@@ -377,10 +431,9 @@ class _MyPostsListState extends State<MyPostsList> {
                         ),
                         elevation: 8,
                       ),
-                      onPressed:
-                          _selectedPostsVisibility == null
-                              ? null
-                              : _toggleVisibility,
+                      onPressed: _selectedPostsVisibility == null
+                          ? null
+                          : _toggleVisibility,
                     ),
                   ),
                 ],
@@ -392,7 +445,6 @@ class _MyPostsListState extends State<MyPostsList> {
   }
 }
 
-/// Custom round checkbox widget (like Facebook manage posts)
 class _CustomRoundCheckbox extends StatelessWidget {
   final bool value;
   final ValueChanged<bool?> onChanged;
@@ -419,23 +471,21 @@ class _CustomRoundCheckbox extends StatelessWidget {
             width: 2.2,
           ),
           borderRadius: BorderRadius.circular(13),
-          boxShadow:
-              value
-                  ? [
-                    BoxShadow(
-                      color: Colors.red.withOpacity(0.15),
-                      blurRadius: 6,
-                      offset: const Offset(0, 2),
-                    ),
-                  ]
-                  : [],
+          boxShadow: value
+              ? [
+                  BoxShadow(
+                    color: Colors.red.withOpacity(0.15),
+                    blurRadius: 6,
+                    offset: const Offset(0, 2),
+                  ),
+                ]
+              : [],
         ),
-        child:
-            value
-                ? const Center(
-                  child: Icon(Icons.check, color: Colors.white, size: 18),
-                )
-                : null,
+        child: value
+            ? const Center(
+                child: Icon(Icons.check, color: Colors.white, size: 18),
+              )
+            : null,
       ),
     );
   }

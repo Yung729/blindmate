@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../models/dataModels/user_model.dart';
 import '../../viewmodels/state/sharing_state.dart';
 import '../../viewmodels/dataBinding/sharing_data_binding.dart';
 import '../../viewmodels/eventHandlers/sharing_event_handler.dart';
-import '../../models/dataModels/post_model.dart';
 import '../UIComponents/post_card.dart';
 import '../UIComponents/post_header.dart';
 import '../UIComponents/post_content.dart';
@@ -14,11 +12,19 @@ import '../UIComponents/trip_journal_card.dart';
 import '../UIComponents/post_url_preview.dart';
 import '../UIComponents/trip_journal_preview.dart';
 import '../UIComponents/inline_youtube_player.dart';
+import '../UIComponents/custom_button.dart';
 
 class SharingScreen extends StatefulWidget {
-  final UserModel user;
+  final String userId;
+  final String userName;
+  final String avatarImg;
 
-  const SharingScreen({super.key, required this.user});
+  const SharingScreen({
+    super.key,
+    required this.userId,
+    required this.userName,
+    required this.avatarImg,
+  });
 
   @override
   _SharingScreenState createState() => _SharingScreenState();
@@ -31,8 +37,6 @@ class _SharingScreenState extends State<SharingScreen> {
   final ScrollController _scrollController = ScrollController();
   final Set<String> _expandedPosts = <String>{};
   static const int _maxLinesCollapsed = 3;
-  final Set<String> _hiddenPostIds = <String>{};
-  PostModel? _recentlyHiddenPost;
 
   @override
   void initState() {
@@ -72,13 +76,14 @@ class _SharingScreenState extends State<SharingScreen> {
     return '${postTime.day}/${postTime.month}/${postTime.year}';
   }
 
-  void _showPostOptions(BuildContext context, PostModel post) {
+  void _showPostOptions(BuildContext context, Map<String, dynamic> post) {
     showModalBottomSheet(
       context: context,
       builder: (BuildContext bc) {
+        final bool isPublic = post['visibility'] == 'public';
         return Wrap(
           children: <Widget>[
-            if (post.userId == widget.user.userId)
+            if (post['userId'] == widget.userId)
               ListTile(
                 leading: const Icon(Icons.delete),
                 title: const Text('Delete Post'),
@@ -90,35 +95,44 @@ class _SharingScreenState extends State<SharingScreen> {
                     'Are you sure you want to delete this post?',
                   );
                   if (confirmDelete) {
-                    _eventHandler.deletePost(post.id!);
+                    _eventHandler.deletePost(post['id']);
                   }
                 },
               ),
-            if (post.userId == widget.user.userId)
+            if (post['userId'] == widget.userId)
               ListTile(
                 leading: const Icon(Icons.visibility),
-                title: Text(post.isPublic ? 'Make Private' : 'Make Public'),
+                title: Text(isPublic ? 'Make Private' : 'Make Public'),
                 onTap: () async {
                   Navigator.pop(context);
                   final confirmVisibility = await showConfirmDialog(
                     context,
-                    post.isPublic ? 'Make Private' : 'Make Public',
-                    post.isPublic
+                    isPublic ? 'Make Private' : 'Make Public',
+                    isPublic
                         ? 'Are you sure you want to make this post private?'
                         : 'Are you sure you want to make this post public?',
                   );
                   if (confirmVisibility) {
-                    _eventHandler.togglePostVisibility(post.id!);
+                    _eventHandler.togglePostVisibility(post['id']);
                   }
                 },
               ),
-            if (post.userId != widget.user.userId)
+            if (post['userId'] != widget.userId)
               ListTile(
                 leading: const Icon(Icons.visibility_off),
                 title: const Text("I don't want to see this post"),
                 onTap: () {
                   Navigator.pop(context);
-                  _hidePost(post);
+                  _eventHandler.hidePost(post['id']);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: const Text('Post hidden.'),
+                      action: SnackBarAction(
+                        label: 'Undo',
+                        onPressed: () => _eventHandler.unhidePost(post['id']),
+                      ),
+                    ),
+                  );
                 },
               ),
             ListTile(
@@ -132,39 +146,15 @@ class _SharingScreenState extends State<SharingScreen> {
     );
   }
 
-  void _hidePost(PostModel post) {
-    Provider.of<SharingState>(context, listen: false).hidePost(post.id!);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Text('Post hidden.'),
-        action: SnackBarAction(
-          label: 'Undo',
-          onPressed: () {
-            Provider.of<SharingState>(
-              context,
-              listen: false,
-            ).unhidePost(post.id!);
-          },
-        ),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return Consumer<SharingState>(
       builder: (context, sharingState, child) {
-        final filteredPosts =
-            _showMyPostsOnly
-                ? sharingState.posts
-                    .where((post) => post.userId == widget.user.userId)
-                    .toList()
-                : sharingState.posts;
-
-        final displayedPosts =
-            filteredPosts
-                .where((post) => !sharingState.hiddenPostIds.contains(post.id))
-                .toList();
+        final displayedPosts = _eventHandler.getDisplayedPosts(
+          userId: widget.userId,
+          showMyPostsOnly: _showMyPostsOnly,
+          hiddenPostIds: sharingState.hiddenPostIds,
+        );
 
         return Scaffold(
           appBar: AppBar(title: const Text("Sharing Space")),
@@ -176,50 +166,26 @@ class _SharingScreenState extends State<SharingScreen> {
                     _showMyPostsOnly
                         ? MyPostsList(
                           posts: displayedPosts,
-                          userId: widget.user.userId,
-                          avatarUrl: widget.user.avatarImg,
+                          userId: widget.userId,
+                          avatarUrl: widget.avatarImg,
                           scrollController: _scrollController,
                           expandedPosts: _expandedPosts,
                           maxLinesCollapsed: _maxLinesCollapsed,
-                          onShowPostOptions: (post) => _showPostOptions(context, post),
-                          onPlayMusic: (post) => _eventHandler.playMusic(post.musicUrl!),
+                          onShowPostOptions:
+                              (post) => _showPostOptions(context, post),
+                          onPlayMusic:
+                              (post) =>
+                                  _eventHandler.playMusic(post['musicUrl']),
                           getTimeAgo: getTimeAgo,
-                          onExpand: (postId) {
-                            setState(() {
-                              _expandedPosts.add(postId);
-                            });
-                          },
-                          onCollapse: (postId) {
-                            setState(() {
-                              _expandedPosts.remove(postId);
-                            });
-                          },
+                          onExpand:
+                              (postId) =>
+                                  setState(() => _expandedPosts.add(postId)),
+                          onCollapse:
+                              (postId) =>
+                                  setState(() => _expandedPosts.remove(postId)),
                           onViewTripJournal: _showTripJournalDialog,
-                          onDeleteSelected: (selectedIds) async {
-                            final confirm = await showConfirmDialog(
-                              context,
-                              'Delete Posts',
-                              'Are you sure you want to delete ${selectedIds.length} post(s)?',
-                            );
-                            if (confirm) {
-                              for (final id in selectedIds) {
-                                _eventHandler.deletePost(id);
-                              }
-                            }
-                          },
-                          onToggleVisibility: (selectedIds, makePublic) async {
-                            final action = makePublic ? 'public' : 'private';
-                            final confirm = await showConfirmDialog(
-                              context,
-                              'Change Visibility',
-                              'Are you sure you want to make ${selectedIds.length} post(s) $action?',
-                            );
-                            if (confirm) {
-                              for (final id in selectedIds) {
-                                _eventHandler.togglePostVisibility(id);
-                              }
-                            }
-                          },
+                          onDeleteSelected: _handleDeleteSelected,
+                          onToggleVisibility: _handleToggleVisibility,
                         )
                         : _buildSharedContentList(displayedPosts),
               ),
@@ -237,17 +203,21 @@ class _SharingScreenState extends State<SharingScreen> {
         children: [
           CircleAvatar(
             backgroundImage:
-                widget.user.avatarImg.isNotEmpty
-                    ? NetworkImage(widget.user.avatarImg)
+                widget.avatarImg.isNotEmpty
+                    ? NetworkImage(widget.avatarImg)
                     : const AssetImage('assets/default_pic.jpg')
                         as ImageProvider,
           ),
           const SizedBox(width: 10),
           Expanded(
             child: GestureDetector(
-              onTap: () async {
-                await _eventHandler.navigateToCreatePost(context, widget.user);
-              },
+              onTap:
+                  () => _eventHandler.navigateToCreatePost(
+                    context,
+                    userId: widget.userId,
+                    userName: widget.userName,
+                    avatarImg: widget.avatarImg,
+                  ),
               child: Container(
                 padding: const EdgeInsets.symmetric(
                   vertical: 10,
@@ -273,55 +243,29 @@ class _SharingScreenState extends State<SharingScreen> {
 
   Widget _buildSingleToggleButton() {
     final bool isAllPosts = !_showMyPostsOnly;
-    return GestureDetector(
-      onTap: () {
+    return CustomButton(
+      text: isAllPosts ? "All Posts" : "My Posts",
+      onPressed: () {
         setState(() {
           _showMyPostsOnly = !_showMyPostsOnly;
           _scrollController.jumpTo(0);
           _expandedPosts.clear();
         });
       },
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 250),
-        curve: Curves.easeInOut,
-        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-        decoration: BoxDecoration(
-          color: isAllPosts ? Colors.blue : Colors.grey[400],
-          borderRadius: BorderRadius.circular(24),
-          boxShadow: [
-            if (isAllPosts)
-              BoxShadow(
-                color: Colors.blue.withOpacity(0.18),
-                blurRadius: 8,
-                offset: const Offset(0, 3),
-              ),
-          ],
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              isAllPosts ? Icons.public : Icons.person,
-              color: Colors.white,
-              size: 20,
-            ),
-            const SizedBox(width: 8),
-            Text(
-              isAllPosts ? "All Posts" : "My Posts",
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w600,
-                fontSize: 14,
-                letterSpacing: 0.2,
-              ),
-            ),
-          ],
-        ),
+      icon: Icon(
+        isAllPosts ? Icons.public : Icons.person,
+        color: Colors.white,
+        size: 20,
       ),
+      backgroundColor: isAllPosts ? Colors.blue : Colors.grey[400],
+      horizontalPadding: 18,
+      verticalPadding: 10,
+      fontSize: 14,
+      borderRadius: 24,
     );
   }
 
-  Widget _buildSharedContentList(List<PostModel> posts) {
+  Widget _buildSharedContentList(List<Map<String, dynamic>> posts) {
     if (_sharingState.isLoading && posts.isEmpty) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -336,8 +280,17 @@ class _SharingScreenState extends State<SharingScreen> {
       itemCount: posts.length,
       itemBuilder: (context, index) {
         final post = posts[index];
-        final isTripJournal = post.postType == PostType.tripJournal;
-        final avatarUrl = post.authorAvatar;
+        final isTripJournal = post['postType'] == 'tripJournal';
+        final avatarUrl = post['authorAvatar'];
+        final isPublic = post['visibility'] == 'public';
+
+        // Parse timestamp safely
+        DateTime postTime;
+        try {
+          postTime = DateTime.parse(post['timestamp']);
+        } catch (_) {
+          postTime = DateTime.now();
+        }
 
         return PostCard(
           child: Column(
@@ -348,12 +301,12 @@ class _SharingScreenState extends State<SharingScreen> {
                   Expanded(
                     child: PostHeader(
                       userName:
-                          post.userId == widget.user.userId
+                          post['userId'] == widget.userId
                               ? "You"
                               : "Depression People",
                       avatarUrl: avatarUrl,
-                      timeAgo: getTimeAgo(post.timestamp),
-                      isPublic: post.isPublic,
+                      timeAgo: getTimeAgo(postTime),
+                      isPublic: isPublic,
                       onOptions: () => _showPostOptions(context, post),
                       isTripJournal: isTripJournal,
                       onTripJournalTap:
@@ -365,37 +318,33 @@ class _SharingScreenState extends State<SharingScreen> {
                 ],
               ),
               const SizedBox(height: 8),
-              if (post.content.isNotEmpty)
+              if (post['content']?.isNotEmpty ?? false)
                 PostContent(
-                  content: post.content,
-                  isExpanded: _expandedPosts.contains(post.id),
+                  content: post['content'],
+                  isExpanded: _expandedPosts.contains(post['id']),
                   maxLinesCollapsed: _maxLinesCollapsed,
-                  onExpand: () {
-                    setState(() {
-                      _expandedPosts.add(post.id!);
-                    });
-                  },
-                  onCollapse: () {
-                    setState(() {
-                      _expandedPosts.remove(post.id);
-                    });
-                  },
+                  onExpand:
+                      () => setState(() => _expandedPosts.add(post['id'])),
+                  onCollapse:
+                      () => setState(() => _expandedPosts.remove(post['id'])),
                 ),
-              if (post.url != null) 
+              if (post['url'] != null)
                 PostUrlPreview(
-                  key: ValueKey('url-preview-${post.id}'),
-                  linkUrl: post.url!,
+                  key: ValueKey('url-preview-${post['id']}'),
+                  linkUrl: post['url'],
                 ),
-              if (post.musicUrl != null)
+              if (post['musicUrl'] != null)
                 InlineYoutubePlayer(
-                  youtubeUrl: post.musicUrl!,
-                  title: post.musicTitle,
+                  youtubeUrl: post['musicUrl'],
+                  title: post['musicTitle'],
                 ),
-              if (isTripJournal && (post.tripJournals?.isNotEmpty ?? false))
+              if (isTripJournal && (post['tripJournals']?.isNotEmpty ?? false))
                 Padding(
                   padding: const EdgeInsets.only(top: 8.0),
                   child: TripJournalPreview(
-                    journals: post.tripJournals!,
+                    journals: List<Map<String, dynamic>>.from(
+                      post['tripJournals'],
+                    ),
                     onTap: () => _showTripJournalDialog(context, post),
                   ),
                 ),
@@ -406,8 +355,40 @@ class _SharingScreenState extends State<SharingScreen> {
     );
   }
 
-  void _showTripJournalDialog(BuildContext context, PostModel post) {
-    final journals = post.tripJournals ?? [];
+  Future<void> _handleDeleteSelected(List<String> selectedIds) async {
+    final confirm = await showConfirmDialog(
+      context,
+      'Delete Posts',
+      'Are you sure you want to delete ${selectedIds.length} post(s)?',
+    );
+    if (confirm) {
+      for (final id in selectedIds) {
+        _eventHandler.deletePost(id);
+      }
+    }
+  }
+
+  Future<void> _handleToggleVisibility(
+    List<String> selectedIds,
+    bool makePublic,
+  ) async {
+    final action = makePublic ? 'public' : 'private';
+    final confirm = await showConfirmDialog(
+      context,
+      'Change Visibility',
+      'Are you sure you want to make ${selectedIds.length} post(s) $action?',
+    );
+    if (confirm) {
+      for (final id in selectedIds) {
+        _eventHandler.togglePostVisibility(id);
+      }
+    }
+  }
+
+  void _showTripJournalDialog(BuildContext context, Map<String, dynamic> post) {
+    final journals = List<Map<String, dynamic>>.from(
+      post['tripJournals'] ?? [],
+    );
 
     showDialog(
       context: context,
@@ -416,12 +397,8 @@ class _SharingScreenState extends State<SharingScreen> {
       builder:
           (context) => Center(
             child: Container(
-              width:
-                  MediaQuery.of(context).size.width *
-                  0.92,
-              height:
-                  MediaQuery.of(context).size.height *
-                  0.60,
+              width: MediaQuery.of(context).size.width * 0.92,
+              height: MediaQuery.of(context).size.height * 0.60,
               margin: const EdgeInsets.symmetric(horizontal: 16),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(20),

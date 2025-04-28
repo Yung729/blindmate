@@ -32,8 +32,9 @@ class PostService {
         .map((snapshot) {
       return snapshot.docs
           .map((doc) => PostModel.fromMap(doc.data(), doc.id))
-          .where((post) =>
-              post.visibility == 'public' || post.userId == currentUserId)
+          .where((post) => 
+              post.visibility != 'deleted' && // Filter out deleted posts
+              (post.visibility == 'public' || post.userId == currentUserId))
           .toList();
     });
   }
@@ -46,10 +47,12 @@ class PostService {
   // Delete a post
   Future<void> deletePost(String postId) async {
     try {
-      await _firestore.collection('shared_content').doc(postId).delete();
+      await _firestore.collection('shared_content').doc(postId).update({
+        'visibility': 'deleted'
+      });
     } catch (e) {
-      print("Error deleting post from Firestore: $e");
-      throw e; // Re-throw the error to be caught in the EventHandler
+      print("Error soft deleting post in Firestore: $e");
+      throw e;
     }
   }
 

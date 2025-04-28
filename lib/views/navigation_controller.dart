@@ -147,7 +147,11 @@ class _NavigationControllerState extends State<NavigationController> {
 
     final List<Widget> screens = [
       const HomeScreen(),
-      SharingScreen(user: currentUserState.currentUser!),
+      SharingScreen(
+        userId: currentUserState.currentUser!.userId,
+        userName: currentUserState.currentUser!.name,
+        avatarImg: currentUserState.currentUser!.avatarImg,
+      ),
       DoMissionScreen(user: currentUserState.currentUser!),
       const BottleNoteHomeScreen(),
       const PickUpScreen(),

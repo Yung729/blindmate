@@ -62,8 +62,12 @@ class SharingState extends ChangeNotifier {
   }
 
   void deletePost(String postId) {
-    posts.removeWhere((post) => post.id == postId);
-    notifyListeners();
+    // Find the post and update its visibility to 'deleted'
+    final index = posts.indexWhere((post) => post.id == postId);
+    if (index != -1) {
+      posts[index].visibility = 'deleted';
+      notifyListeners();
+    }
   }
 
   void toggleVisibility(String postId) {

@@ -37,20 +37,22 @@ class TripJournalPreview extends StatelessWidget {
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              Colors.teal.shade50,
-              Colors.blue.shade50,
+              const Color(0xFF1A8FE3).withOpacity(0.15), // Ocean blue
+              const Color(0xFF01579B).withOpacity(0.25), // Deep sea blue
             ],
+            stops: const [0.3, 1.0],
           ),
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: Colors.teal.withOpacity(0.3),
+            color: Colors.blue.shade200,
             width: 1.5,
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.teal.withOpacity(0.1),
-              blurRadius: 8,
+              color: Colors.blue.withOpacity(0.15),
+              blurRadius: 12,
               offset: const Offset(0, 4),
+              spreadRadius: 2,
             ),
           ],
         ),
@@ -60,19 +62,26 @@ class TripJournalPreview extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                // Location with icon
+                // Location with wave icon
                 Expanded(
                   child: Row(
                     children: [
                       Container(
-                        padding: const EdgeInsets.all(8),
+                        padding: const EdgeInsets.all(10),
                         decoration: BoxDecoration(
-                          color: Colors.teal.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(12),
+                          color: Colors.blue.shade100,
+                          borderRadius: BorderRadius.circular(14),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.blue.withOpacity(0.2),
+                              blurRadius: 8,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
                         ),
                         child: const Icon(
-                          Icons.tour,  // Changed to a more attractive icon
-                          color: Colors.teal,
+                          Icons.waves, // Ocean wave icon
+                          color: Color(0xFF01579B),
                           size: 24,
                         ),
                       ),
@@ -80,11 +89,18 @@ class TripJournalPreview extends StatelessWidget {
                       Expanded(
                         child: Text(
                           location ?? 'Unknown Location',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
-                            color: Colors.teal,
+                            color: Colors.blue.shade900,
                             letterSpacing: 0.5,
+                            shadows: [
+                              Shadow(
+                                color: Colors.blue.shade100,
+                                offset: const Offset(0, 1),
+                                blurRadius: 2,
+                              ),
+                            ],
                           ),
                         ),
                       ),
@@ -95,43 +111,64 @@ class TripJournalPreview extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 12,
-                    vertical: 6,
+                    vertical: 8,
                   ),
                   decoration: BoxDecoration(
-                    color: Colors.teal.withOpacity(0.1),
+                    color: Colors.white.withOpacity(0.9),
                     borderRadius: BorderRadius.circular(20),
                     border: Border.all(
-                      color: Colors.teal.withOpacity(0.2),
+                      color: Colors.blue.shade200,
                     ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.blue.withOpacity(0.1),
+                        blurRadius: 4,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
                   ),
-                  child: Text(
-                    '${journals.length} ${journals.length == 1 ? 'Day' : 'Days'}',
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.teal,
-                    ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.sailing,
+                        size: 16,
+                        color: Colors.blue.shade700,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        '${journals.length} ${journals.length == 1 ? 'Day' : 'Days'}',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.blue.shade700,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
             // Date range with icon
-            if (firstDate != null) 
+            if (firstDate != null)
               Container(
                 padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 8,
+                  horizontal: 14,
+                  vertical: 10,
                 ),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.5),
-                  borderRadius: BorderRadius.circular(10),
+                  color: Colors.white.withOpacity(0.7),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: Colors.blue.shade100,
+                  ),
                 ),
                 child: Row(
                   children: [
                     Icon(
-                      Icons.event_available,
-                      color: Colors.teal.shade300,
+                      Icons.calendar_month,
+                      color: Colors.blue.shade700,
                       size: 20,
                     ),
                     const SizedBox(width: 8),
@@ -141,40 +178,50 @@ class TripJournalPreview extends StatelessWidget {
                           : _formatDate(firstDate),
                       style: TextStyle(
                         fontSize: 15,
-                        color: Colors.grey.shade700,
+                        color: Colors.blue.shade900,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
                   ],
                 ),
               ),
-            const SizedBox(height: 12),
-            // Tap for more details button
+            const SizedBox(height: 16),
+            // View details button
             Container(
               width: double.infinity,
-              padding: const EdgeInsets.symmetric(vertical: 8),
+              padding: const EdgeInsets.symmetric(vertical: 12),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.5),
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(
-                  color: Colors.teal.withOpacity(0.2),
+                gradient: LinearGradient(
+                  colors: [
+                    Colors.blue.shade400,
+                    Colors.blue.shade600,
+                  ],
                 ),
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.blue.withOpacity(0.3),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
               ),
-              child: Row(
+              child: const Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Icon(
-                    Icons.auto_stories,
-                    size: 18,
-                    color: Colors.teal.shade300,
+                    Icons.explore,
+                    size: 20,
+                    color: Colors.white,
                   ),
-                  const SizedBox(width: 8),
+                  SizedBox(width: 8),
                   Text(
-                    'Tap to view journey details',
+                    'Explore Journey Details',
                     style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.teal.shade700,
-                      fontWeight: FontWeight.w500,
+                      fontSize: 15,
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 0.3,
                     ),
                   ),
                 ],

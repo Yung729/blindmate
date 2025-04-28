@@ -40,6 +40,34 @@ class _TripJournalBookCardState extends State<TripJournalBookCard> {
       );
     }
 
+    // Add this inside the _TripJournalBookCardState class
+    IconData _getActivityIcon(String activity) {
+      switch (activity) {
+        case 'Food & Dining':
+          return Icons.restaurant;
+        case 'Sunset View':
+          return Icons.wb_sunny;
+        case 'Swimming':
+          return Icons.pool;
+        case 'Beach':
+          return Icons.beach_access;
+        case 'Hiking':
+          return Icons.hiking;
+        case 'Shopping':
+          return Icons.shopping_bag;
+        case 'Sightseeing':
+          return Icons.photo_camera;
+        case 'Water Sports':
+          return Icons.surfing;
+        case 'Nature':
+          return Icons.park;
+        case 'Cultural':
+          return Icons.museum;
+        default:
+          return Icons.local_activity;
+      }
+    }
+
     return Padding(
       padding: widget.padding ?? const EdgeInsets.all(0),
       child: Column(
@@ -271,6 +299,108 @@ class _TripJournalBookCardState extends State<TripJournalBookCard> {
                                                     color: Colors.black87,
                                                     height: 1.4,
                                                   ),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ],
+                                        if ((journal['activities']
+                                                    as List<dynamic>?)
+                                                ?.isNotEmpty ??
+                                            false) ...[
+                                          const SizedBox(height: 12),
+                                          Row(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Container(
+                                                decoration: BoxDecoration(
+                                                  color: Colors.amber[50],
+                                                  shape: BoxShape.circle,
+                                                ),
+                                                padding: const EdgeInsets.all(
+                                                  6,
+                                                ),
+                                                child: const Icon(
+                                                  Icons.local_activity,
+                                                  color: Colors.amber,
+                                                  size: 18,
+                                                ),
+                                              ),
+                                              const SizedBox(width: 10),
+                                              Expanded(
+                                                child: Wrap(
+                                                  spacing: 6,
+                                                  runSpacing: 6,
+                                                  children:
+                                                      (journal['activities']
+                                                              as List<dynamic>?)
+                                                          ?.map(
+                                                            (
+                                                              activity,
+                                                            ) => Container(
+                                                              padding:
+                                                                  const EdgeInsets.symmetric(
+                                                                    horizontal:
+                                                                        10,
+                                                                    vertical: 4,
+                                                                  ),
+                                                              decoration: BoxDecoration(
+                                                                color: Colors
+                                                                    .white
+                                                                    .withOpacity(
+                                                                      0.7,
+                                                                    ),
+                                                                borderRadius:
+                                                                    BorderRadius.circular(
+                                                                      12,
+                                                                    ),
+                                                                border: Border.all(
+                                                                  color: Colors
+                                                                      .amber
+                                                                      .withOpacity(
+                                                                        0.3,
+                                                                      ),
+                                                                ),
+                                                              ),
+                                                              child: Row(
+                                                                mainAxisSize:
+                                                                    MainAxisSize
+                                                                        .min,
+                                                                children: [
+                                                                  Icon(
+                                                                    _getActivityIcon(
+                                                                      activity
+                                                                          .toString(),
+                                                                    ),
+                                                                    size: 14,
+                                                                    color:
+                                                                        Colors
+                                                                            .amber[700],
+                                                                  ),
+                                                                  const SizedBox(
+                                                                    width: 4,
+                                                                  ),
+                                                                  Text(
+                                                                    activity
+                                                                        .toString(),
+                                                                    style: TextStyle(
+                                                                      fontSize:
+                                                                          12,
+                                                                      color:
+                                                                          Colors
+                                                                              .amber[900],
+                                                                      fontWeight:
+                                                                          FontWeight
+                                                                              .w500,
+                                                                    ),
+                                                                  ),
+                                                                ],
+                                                              ),
+                                                            ),
+                                                          )
+                                                          .toList() ??
+                                                      [],
                                                 ),
                                               ),
                                             ],

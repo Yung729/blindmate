@@ -101,6 +101,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
           _tripJournals = entries;
         });
       },
+      pastJournals: [],
     );
   }
 

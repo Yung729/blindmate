@@ -37,7 +37,12 @@ class PostModel {
   });
 
   // Getter to check if the post is public
-  bool get isPublic => visibility == 'public';
+  bool get isPublic {
+    if (visibility == 'deleted') return false;
+    return visibility == 'public';
+  }
+
+  bool get isDeleted => visibility == 'deleted';
 
   // Setter to set the post visibility
   set isPublic(bool value) {
