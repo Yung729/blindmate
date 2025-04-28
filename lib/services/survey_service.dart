@@ -1,7 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
-class DialogService {
+class SurveyService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   // Check if survey dialog should be shown
