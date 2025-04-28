@@ -1,9 +1,10 @@
+import 'package:blindmate/models/dataModels/user_model.dart';
+import 'package:blindmate/services/dialog_service.dart';
 import 'package:blindmate/viewmodels/dataBinding/auth_data_binding.dart';
 import 'package:blindmate/viewmodels/eventHandlers/auth_event_handler.dart';
 import 'package:blindmate/viewmodels/state/auth_state.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'matching_screen.dart';
 import 'bottle_note_home_screen.dart';
 import '../UIComponents/custom_button.dart';
@@ -19,9 +20,10 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen>
     with SingleTickerProviderStateMixin {
   late final AuthState authState;
-  bool _hasShownSurveyDialog = false; // Track if the dialog has been shown
+  bool _hasShownSurveyDialog = false;
   late AnimationController _animationController;
   late Animation<double> _swingAnimation;
+  final DialogService _dialogService = DialogService();
 
   @override
   void initState() {
@@ -39,42 +41,15 @@ class _HomeScreenState extends State<HomeScreen>
       CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
     );
 
-    // Show the survey dialog immediately after the first frame, but only once
+    // Check survey dialog status after the first frame
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!_hasShownSurveyDialog && authState.currentUser != null) {
-        DocumentSnapshot userDoc = await FirebaseFirestore.instance
-            .collection('users')
-            .doc(authState.currentUser!.userId)
-            .get();
+        bool shouldShowDialog = await _dialogService
+            .shouldShowSurveyDialog(authState.currentUser!.userId);
 
-        if (userDoc.exists) {
-          Timestamp? surveyTimestamp = userDoc.get('surveyDate') as Timestamp?;
-          Timestamp? dialogTimestamp = userDoc.get('popDialog') as Timestamp?;
-          bool shouldShowDialog = false;
-
-          // Check if 7 or more days have passed since the last survey
-          if (surveyTimestamp != null) {
-            DateTime surveyDate = surveyTimestamp.toDate();
-            DateTime today = DateTime.now();
-            int daysDifference = today.difference(surveyDate).inDays;
-            print(
-              'Survey Date: $surveyDate, Today: $today, Days Difference: $daysDifference',
-            );
-
-            if (daysDifference >= 7) {
-              // Check if dialog was shown today
-              if (dialogTimestamp != null) {
-                DateTime lastDialogDate = dialogTimestamp.toDate();
-                DateTime todayStart = DateTime(today.year, today.month, today.day, 0, 0, 0);
-                shouldShowDialog = lastDialogDate.isBefore(todayStart);
-              } 
-            }
-          } 
-
-          if (shouldShowDialog) {
-            _showSurveyDialog();
-            _hasShownSurveyDialog = true;
-          }
+        if (shouldShowDialog) {
+          _showSurveyDialog();
+          _hasShownSurveyDialog = true;
         }
       }
     });
@@ -87,7 +62,7 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   void _startRandomMatching() {
-    final currentUser = authState.currentUser;
+    final UserModel? currentUser = authState.currentUser;
     if (currentUser != null) {
       Navigator.push(
         context,
@@ -99,64 +74,31 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   void _goToSurvey() {
-    final user = authState.currentUser;
-    if (authState.currentUser != null) {
+    final UserModel? user = authState.currentUser;
+    if (user != null) {
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => SurveyPage(userId: user!.userId),
+          builder: (context) => SurveyPage(userId: user.userId),
         ),
       ).then((_) async {
-        // 🔄 Refresh user data after returning from SurveyPage
+        // Refresh user data after survey
         final eventHandler = AuthEventHandler(authState, AuthDataBinding());
         await eventHandler.fetchUserData(context);
-        if (mounted) setState(() {}); // Rebuild UI
+        if (mounted) setState(() {});
       });
     } else {
-      // Handle the case where currentUser is null
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('User not logged in')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('User not logged in')),
+      );
     }
   }
 
   void _showSurveyDialog() {
-    // Update popDialog timestamp before showing the dialog
-    FirebaseFirestore.instance
-        .collection('users')
-        .doc(authState.currentUser!.userId)
-        .update({
-      'popDialog': Timestamp.fromDate(
-        DateTime.now().toUtc().add(const Duration(hours: 8)), // Malaysia time
-      ),
-    }).catchError((e) {
-      print('Error updating popDialog: $e');
-    });
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Survey Invitation'),
-        content: const Text(
-          'Would you like to answer survey question?\nNote: It may increase your level.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context); // Close the dialog
-            },
-            child: const Text('No'),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context); // Close the dialog
-              _goToSurvey(); // Navigate to SurveyPage
-            },
-            child: const Text('Yes'),
-          ),
-        ],
-      ),
-    );
+    final UserModel? user = authState.currentUser;
+    if (user != null) {
+      _dialogService.showSurveyDialog(context, user.userId, _goToSurvey);
+    }
   }
 
   @override
