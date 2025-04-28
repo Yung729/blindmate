@@ -13,6 +13,7 @@ class MissionModel {
   final bool finished;
   final String assignedUser;
   final int progress;
+  final Timestamp createdAt;
 
   MissionModel({
     required this.id,
@@ -27,6 +28,7 @@ class MissionModel {
     this.finished = false,
     required this.assignedUser,
     this.progress = 0,
+    required this.createdAt,
   });
 
   factory MissionModel.fromMap(Map<String, dynamic> map, String id) {
@@ -43,6 +45,7 @@ class MissionModel {
       finished: map['finished'] ?? false,
       assignedUser: map['assignedUser'] ?? '',
       progress: map['progress'] ?? 0,
+      createdAt: map['createdAt'] ?? Timestamp.now(),
     );
   }
 
@@ -60,6 +63,7 @@ class MissionModel {
       'finished': finished,
       'assignedUser': assignedUser,
       'progress': progress,
+      'createdAt': createdAt,
     };
   }
 
