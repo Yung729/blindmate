@@ -407,7 +407,20 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
           },
           child: Scaffold(
             appBar: AppBar(
-              title: const Text("Chat"),
+              title: Row(
+                children: [
+                  CircleAvatar(
+                    radius: 18,
+                    backgroundImage: (authState.currentUser?.avatarImg != null &&
+                            authState.currentUser!.avatarImg.isNotEmpty)
+                        ? NetworkImage(authState.currentUser!.avatarImg)
+                        : const AssetImage('assets/default_pic.jpg')
+                            as ImageProvider,
+                  ),
+                  const SizedBox(width: 8),
+                  const Text("Chat"),
+                ],
+              ),
               flexibleSpace: Container(
                 decoration: const BoxDecoration(
                   gradient: LinearGradient(
@@ -467,7 +480,11 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                             final isMe =
                                 message.senderId == widget.currentUserId;
 
-                            return _buildChatBubble(message, isMe);
+                            return _buildChatBubble(
+                              message,
+                              isMe,
+                              authState.currentUser?.avatarImg,
+                            );
                           },
                         ),
                       ),
@@ -586,17 +603,16 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     return ChatBubble(isMe: false, child: const TypingBubble());
   }
 
-  Widget _buildChatBubble(message, bool isMe) {
-    if (message.musicUrl != null || message.musicTitle != null) {
-      print("🎵 Building chat bubble with musicUrl: ${message.musicUrl}, musicTitle: ${message.musicTitle}");
-    }
-    
+  Widget _buildChatBubble(message, bool isMe, String? currentUserAvatarImg) {
     return ChatBubble(
       isMe: isMe,
       text: message.text,
       stickerUrl: message.stickerUrl,
       musicUrl: message.musicUrl,
       musicTitle: message.musicTitle,
+      avatarUrl: isMe
+          ? currentUserAvatarImg
+          : null, // For partner, you can add their avatar if available
     );
   }
 

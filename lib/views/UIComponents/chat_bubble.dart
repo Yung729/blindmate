@@ -10,6 +10,7 @@ class ChatBubble extends StatelessWidget {
   final String? musicUrl;
   final String? musicTitle;
   final Widget? child;
+  final String? avatarUrl;
 
   const ChatBubble({
     Key? key,
@@ -19,10 +20,9 @@ class ChatBubble extends StatelessWidget {
     this.musicUrl,
     this.musicTitle,
     this.child,
+    this.avatarUrl,
   }) : super(key: key);
   
-
-
   @override
   Widget build(BuildContext context) {
     bool isMusicMessage = musicUrl != null && musicUrl!.isNotEmpty;
@@ -38,9 +38,11 @@ class ChatBubble extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (!isMe)
-            const CircleAvatar(
+            CircleAvatar(
               radius: 20,
-              backgroundImage: AssetImage('assets/default_pic.jpg'),
+              backgroundImage: (avatarUrl != null && avatarUrl!.isNotEmpty)
+                  ? NetworkImage(avatarUrl!)
+                  : const AssetImage('assets/default_pic.jpg') as ImageProvider,
             ),
           SizedBox(width: screenWidth * 0.02 + 4),
           Flexible(
@@ -85,9 +87,11 @@ class ChatBubble extends StatelessWidget {
           ),
           SizedBox(width: screenWidth * 0.02 + 4),
           if (isMe)
-            const CircleAvatar(
+            CircleAvatar(
               radius: 20,
-              backgroundImage: AssetImage('assets/default_pic.jpg'),
+              backgroundImage: (avatarUrl != null && avatarUrl!.isNotEmpty)
+                  ? NetworkImage(avatarUrl!)
+                  : const AssetImage('assets/default_pic.jpg') as ImageProvider,
             ),
         ],
       ),
