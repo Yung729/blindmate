@@ -240,31 +240,41 @@ class _BottomDrawerState extends State<BottomDrawer> {
                       width: 1,
                     ),
                   ),
-                  child: TextField(
-                    controller: _searchController,
-                    decoration: InputDecoration(
-                      hintText: 'Search stickers...',
-                      hintStyle: TextStyle(color: Colors.grey[400]),
-                      prefixIcon: Icon(Icons.search, size: 20, color: Colors.grey[400]),
-                      contentPadding: const EdgeInsets.symmetric(
-                        vertical: 0,
-                        horizontal: 12,
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: _searchController,
+                          decoration: InputDecoration(
+                            hintText: 'Search stickers...',
+                            hintStyle: TextStyle(color: Colors.grey[400]),
+                            contentPadding: const EdgeInsets.symmetric(
+                              vertical: 0,
+                              horizontal: 12,
+                            ),
+                            border: InputBorder.none,
+                            isDense: true,
+                          ),
+                          style: TextStyle(fontSize: 14, color: Colors.grey[700]),
+                          // No onChanged handler - search only happens on button press
+                        ),
                       ),
-                      border: InputBorder.none,
-                      isDense: true,
-                    ),
-                    style: TextStyle(fontSize: 14, color: Colors.grey[700]),
-                    onChanged: (value) {
-                      _debounceTimer?.cancel();
-                      _debounceTimer = Timer(
-                        const Duration(milliseconds: 500),
-                        () {
-                          if (value.isNotEmpty) {
-                            widget.onStickerSearch(value);
+                      // Search button
+                      IconButton(
+                        icon: Icon(Icons.search, size: 20, color: Colors.grey[600]),
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(
+                          minWidth: 30,
+                          minHeight: 30,
+                        ),
+                        onPressed: () {
+                          final query = _searchController.text.trim();
+                          if (query.length >= 3) {
+                            widget.onStickerSearch(query);
                           }
                         },
-                      );
-                    },
+                      ),
+                    ],
                   ),
                 ),
               ),
