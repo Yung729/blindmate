@@ -45,8 +45,6 @@ class _MatchingScreenState extends State<MatchingScreen>
   void _listenForStateChanges() {
     _matchingState.addListener(() {
       if (_matchingState.chatRoomId != null && !_isNavigating && mounted) {
-        // Move setState outside of the listener callback and into a post-frame callback
-        // to avoid calling setState during build
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (!mounted) return;
           setState(() {

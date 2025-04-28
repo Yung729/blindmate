@@ -64,8 +64,8 @@ class _BottomDrawerState extends State<BottomDrawer> {
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.1),
-              blurRadius: 10,
+              color: Colors.black.withOpacity(0.08),
+              blurRadius: 8,
               spreadRadius: 0,
               offset: const Offset(0, -2),
             ),
@@ -131,22 +131,26 @@ class _BottomDrawerState extends State<BottomDrawer> {
     return GestureDetector(
       onTap: isFlower && !hasFlowers ? null : onTap,
       child: Container(
-        width: 65, // Fixed width for consistent sizing
+        width: 65,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              width: 46, // Fixed width for icon container
-              height: 46, // Fixed height for icon container
+              width: 46,
+              height: 46,
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
                 color: isFlower && !hasFlowers 
-                  ? Colors.grey[100] 
-                  : const Color(0xFFF5F5F7),
+                    ? Colors.grey[100]
+                    : Colors.grey[50],
                 borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: Colors.grey[200]!,
+                  width: 1,
+                ),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
+                    color: Colors.black.withOpacity(0.04),
                     blurRadius: 4,
                     offset: const Offset(0, 2),
                   ),
@@ -159,17 +163,17 @@ class _BottomDrawerState extends State<BottomDrawer> {
                     icon,
                     size: 22,
                     color: isFlower && !hasFlowers 
-                      ? Colors.grey[400] 
-                      : const Color(0xFF2C2C2E),
+                        ? Colors.grey[400]
+                        : Colors.grey[700],
                   ),
                   if (isFlower && hasFlowers)
                     Positioned(
-                      right: -15,
-                      top: -15,
+                      right: -12,
+                      top: -12,
                       child: Container(
                         padding: const EdgeInsets.all(4),
                         decoration: BoxDecoration(
-                          color: Colors.red,
+                          color: Colors.red[400],
                           borderRadius: BorderRadius.circular(10),
                           boxShadow: [
                             BoxShadow(
@@ -204,8 +208,8 @@ class _BottomDrawerState extends State<BottomDrawer> {
                 fontSize: 12,
                 fontWeight: FontWeight.w500,
                 color: isFlower && !hasFlowers 
-                  ? Colors.grey[400] 
-                  : const Color(0xFF2C2C2E),
+                    ? Colors.grey[400]
+                    : Colors.grey[700],
               ),
             ),
           ],
@@ -222,29 +226,34 @@ class _BottomDrawerState extends State<BottomDrawer> {
       mainAxisSize: MainAxisSize.min,
       children: [
         Container(
-          color: Colors.white,
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           child: Row(
             children: [
               Expanded(
                 child: Container(
                   height: 36,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[50],
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: Colors.grey[200]!,
+                      width: 1,
+                    ),
+                  ),
                   child: TextField(
                     controller: _searchController,
                     decoration: InputDecoration(
                       hintText: 'Search stickers...',
-                      prefixIcon: const Icon(Icons.search, size: 20),
+                      hintStyle: TextStyle(color: Colors.grey[400]),
+                      prefixIcon: Icon(Icons.search, size: 20, color: Colors.grey[400]),
                       contentPadding: const EdgeInsets.symmetric(
                         vertical: 0,
                         horizontal: 12,
                       ),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(20),
-                        borderSide: const BorderSide(width: 1),
-                      ),
+                      border: InputBorder.none,
                       isDense: true,
                     ),
-                    style: const TextStyle(fontSize: 14),
+                    style: TextStyle(fontSize: 14, color: Colors.grey[700]),
                     onChanged: (value) {
                       _debounceTimer?.cancel();
                       _debounceTimer = Timer(
@@ -260,29 +269,42 @@ class _BottomDrawerState extends State<BottomDrawer> {
                 ),
               ),
               const SizedBox(width: 8),
-              IconButton(
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(
-                  minWidth: 32,
-                  minHeight: 32,
+              Container(
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.grey[100],
+                  border: Border.all(
+                    color: Colors.grey[200]!,
+                    width: 1,
+                  ),
                 ),
-                icon: const Icon(Icons.close, size: 20),
-                onPressed: () {
-                  setState(() {
-                    widget.toggleStickers(false);
-                    _searchController.clear();
-                  });
-                },
+                child: IconButton(
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(
+                    minWidth: 40,
+                    minHeight: 40,
+                  ),
+                  icon: Icon(Icons.close, size: 20, color: Colors.grey[600]),
+                  onPressed: () {
+                    setState(() {
+                      widget.toggleStickers(false);
+                      _searchController.clear();
+                    });
+                  },
+                ),
               ),
             ],
           ),
         ),
-        const SizedBox(height: 4),
+        const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 16),
+          child: Divider(),
+        ),
         Container(
           height: gridHeight,
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: GridView.builder(
-            physics: const AlwaysScrollableScrollPhysics(),
+            physics: const BouncingScrollPhysics(),
             scrollDirection: Axis.vertical,
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 4,
@@ -294,9 +316,27 @@ class _BottomDrawerState extends State<BottomDrawer> {
             itemBuilder: (context, index) {
               return GestureDetector(
                 onTap: () => widget.onStickerSelected(widget.stickerList[index]),
-                child: Image.network(
-                  widget.stickerList[index],
-                  fit: BoxFit.cover,
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: Colors.grey[200]!,
+                      width: 1,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.04),
+                        blurRadius: 4,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  padding: const EdgeInsets.all(8),
+                  child: Image.network(
+                    widget.stickerList[index],
+                    fit: BoxFit.contain,
+                  ),
                 ),
               );
             },

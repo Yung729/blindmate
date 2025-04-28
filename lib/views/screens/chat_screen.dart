@@ -168,6 +168,18 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     }
   }
 
+  @override
+  void didChangeMetrics() {
+    super.didChangeMetrics();
+    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+    if (bottomInset > 0 && _isDrawerVisible && !_showStickers) {
+      // Keyboard is visible and drawer is open, but not in sticker mode
+      setState(() {
+        _isDrawerVisible = false;
+      });
+    }
+  }
+
   Future<void> _showReportDialog() async {
     final shouldReport = await showConfirmDialog(
       context,
@@ -370,12 +382,12 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     final isKeyboardVisible = MediaQuery.of(context).viewInsets.bottom > 0;
 
     // Base heights for different states
-    double baseHeight = screenHeight * 0.37; // 40% of screen height for stickers
+    double baseHeight = screenHeight * 0.38; // 40% of screen height for stickers
     double minHeight = screenHeight * 0.13; // 25% for normal drawer
 
     // Adjust for keyboard and bottom padding
     if (isKeyboardVisible) {
-      baseHeight = screenHeight * 0.37;
+      baseHeight = screenHeight * 0.38;
       minHeight = screenHeight * 0.35;
     }
 
@@ -600,58 +612,141 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   }
 
   Widget _buildTypingIndicatorBubble() {
-    return ChatBubble(isMe: false, child: const TypingBubble());
+    return ChatBubble(
+      isMe: false,
+      child: const TypingBubble(),
+      showAvatar: true,
+    );
   }
 
   Widget _buildChatBubble(message, bool isMe, String? currentUserAvatarImg) {
+    // Determine if this message should show avatar based on the next message
+    final messageIndex = _chatState.messages.indexOf(message);
+    final nextMessage = messageIndex < _chatState.messages.length - 1 
+        ? _chatState.messages[messageIndex + 1]
+        : null;
+    
+    // Show avatar if it's the last message from this sender
+    final showAvatar = nextMessage == null || nextMessage.senderId != message.senderId;
+    
     return ChatBubble(
       isMe: isMe,
       text: message.text,
       stickerUrl: message.stickerUrl,
       musicUrl: message.musicUrl,
       musicTitle: message.musicTitle,
-      avatarUrl: isMe
-          ? currentUserAvatarImg
-          : null, // For partner, you can add their avatar if available
+      avatarUrl: isMe ? currentUserAvatarImg : null,
+      timestamp: message.timestamp,
+      showAvatar: showAvatar,
+      moderationStatus: message.moderationStatus,
     );
   }
 
   Widget _buildMessageInput() {
-    return Padding(
-      padding: const EdgeInsets.all(8.0),
-      child: Row(
-        children: [
-          IconButton(
-            icon: const Icon(Icons.add),
-            onPressed: () {
-              setState(() {
-                _isDrawerVisible =
-                    !_isDrawerVisible; // Toggle drawer visibility
-              });
-            },
-          ),
-          Expanded(
-            child: TextField(
-              controller: _messageController,
-              onChanged: (text) {
-                if (text.isNotEmpty) {
-                  _chatHandler.updateTyping(true);
-                } else {
-                  _chatHandler.updateTyping(false);
-                }
-              },
-              onSubmitted: (_) => _chatHandler.resetInactivityTimer(),
-              decoration: const InputDecoration(hintText: "Type a message..."),
-            ),
-          ),
-          IconButton(
-            icon: const Icon(Icons.send),
-            onPressed: () {
-              _chatHandler.sendMessage(context, text: _messageController.text);
-              _messageController.clear();
-            },
+    final bool hasText = _messageController.text.isNotEmpty;
+    
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 8.0),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            offset: const Offset(0, -1),
+            blurRadius: 4.0,
+            color: Colors.black.withOpacity(0.04),
           ),
         ],
+      ),
+      child: SafeArea(
+        child: Row(
+          children: [
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.blue[50],
+                shape: BoxShape.circle,
+              ),
+              child: IconButton(
+                icon: Icon(
+                  Icons.add_circle_outline,
+                  color: Colors.blue[400],
+                  size: 26,
+                ),
+                onPressed: () {
+                  // Dismiss keyboard when opening drawer
+                  FocusScope.of(context).unfocus();
+                  setState(() {
+                    _isDrawerVisible = !_isDrawerVisible;
+                  });
+                },
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 2),
+                decoration: BoxDecoration(
+                  color: Colors.grey[50],
+                  borderRadius: BorderRadius.circular(24.0),
+                  border: Border.all(
+                    color: Colors.grey[200]!,
+                    width: 1,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _messageController,
+                        maxLines: 4,
+                        minLines: 1,
+                        textCapitalization: TextCapitalization.sentences,
+                        style: const TextStyle(fontSize: 16),
+                        onChanged: (text) {
+                          setState(() {}); // Rebuild to update send button color
+                          if (text.isNotEmpty) {
+                            _chatHandler.updateTyping(true);
+                          } else {
+                            _chatHandler.updateTyping(false);
+                          }
+                        },
+                        onSubmitted: (_) => _chatHandler.resetInactivityTimer(),
+                        decoration: InputDecoration(
+                          hintText: "Type a message...",
+                          hintStyle: TextStyle(color: Colors.grey[400]),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16.0,
+                            vertical: 10.0,
+                          ),
+                          border: InputBorder.none,
+                        ),
+                      ),
+                    ),
+                    Container(
+                      margin: const EdgeInsets.only(right: 4),
+                      child: IconButton(
+                        icon: Icon(
+                          Icons.send_rounded,
+                          color: hasText ? Colors.blue[400] : Colors.grey[300],
+                          size: 24,
+                        ),
+                        onPressed: hasText
+                            ? () {
+                                _chatHandler.sendMessage(
+                                  context,
+                                  text: _messageController.text,
+                                );
+                                _messageController.clear();
+                                setState(() {}); // Update send button state
+                              }
+                            : null,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
