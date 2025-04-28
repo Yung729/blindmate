@@ -51,18 +51,20 @@ Future<bool> isDateAfterCreated() async {
     throw Exception("No user is logged in.");
   }
 
-  final missions = await FirebaseFirestore.instance
-      .collection('mission')
-      .where('assignedUser', isEqualTo: currentUser.uid)
-      .limit(1)
-      .get();
+  final missions =
+      await FirebaseFirestore.instance
+          .collection('mission')
+          .where('assignedUser', isEqualTo: currentUser.uid)
+          .limit(1)
+          .get();
 
   if (missions.docs.isEmpty) {
     print("No missions found. Need to generate.");
     return true;
   }
 
-  final createdAtTimestamp = missions.docs.first.data()['createdAt'] as Timestamp?;
+  final createdAtTimestamp =
+      missions.docs.first.data()['createdAt'] as Timestamp?;
   if (createdAtTimestamp == null) {
     print("Mission has no createdAt. Need to generate.");
     return true;
@@ -71,11 +73,17 @@ Future<bool> isDateAfterCreated() async {
   final createdAt = createdAtTimestamp.toDate();
   final now = DateTime.now();
 
-  final createdDateOnly = DateTime(createdAt.year, createdAt.month, createdAt.day);
+  final createdDateOnly = DateTime(
+    createdAt.year,
+    createdAt.month,
+    createdAt.day,
+  );
   final nowDateOnly = DateTime(now.year, now.month, now.day);
 
   if (nowDateOnly.isAfter(createdDateOnly)) {
-    print("Today's date is after createdAt date. Need to clear and regenerate.");
+    print(
+      "Today's date is after createdAt date. Need to clear and regenerate.",
+    );
     return true;
   } else {
     print("Today's date is the same as createdAt date. No need to regenerate.");
@@ -89,10 +97,11 @@ Future<void> clearMissionList() async {
     throw Exception("No user is logged in.");
   }
 
-  final missions = await FirebaseFirestore.instance
-      .collection('mission')
-      .where('assignedUser', isEqualTo: currentUser.uid)
-      .get();
+  final missions =
+      await FirebaseFirestore.instance
+          .collection('mission')
+          .where('assignedUser', isEqualTo: currentUser.uid)
+          .get();
 
   for (var doc in missions.docs) {
     await doc.reference.delete();
@@ -176,5 +185,48 @@ Future<void> generateAndStoreMissions() async {
   } catch (e) {
     print('❌ Error during mission generation: $e');
     rethrow;
+  }
+}
+
+Future<void> trackUserMissionProgress({
+  required String category,
+  required String type,
+  int actionCount = 1,
+  int actionTime = 0,
+}) async {
+  final currentUser = FirebaseAuth.instance.currentUser;
+  final missionsRef = FirebaseFirestore.instance.collection('mission');
+
+  if (currentUser == null) {
+    throw Exception("No user is logged in.");
+  }
+
+  final missions =
+      await missionsRef
+          .where('assignedUser', isEqualTo: currentUser.uid)
+          .where('category', isEqualTo: category)
+          .where('type', isEqualTo: type)
+          .where('expiredDate', isGreaterThanOrEqualTo: DateTime.now())
+          .get();
+
+  if (missions.docs.isEmpty) {
+    print(
+      "No missions found for user ${currentUser.uid} with category: $category and type: $type.",
+    );
+    return;
+  }
+
+  for (var mission in missions.docs) {
+    if (type == 'time') {
+      await missionsRef.doc(mission.id).update({
+        'progress': FieldValue.increment(actionTime),
+      });
+      print("Updated mission progress (time) for mission ID: ${mission.id}");
+    } else if (type == 'action') {
+      await missionsRef.doc(mission.id).update({
+        'progress': FieldValue.increment(actionCount),
+      });
+      print("Updated mission progress (action) for mission ID: ${mission.id}");
+    }
   }
 }
