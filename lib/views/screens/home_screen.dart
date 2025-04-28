@@ -7,7 +7,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'matching_screen.dart';
 import 'bottle_note_home_screen.dart';
 import '../UIComponents/custom_button.dart';
-import 'survey.dart'; // Import for SurveyPage
+import 'survey.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -42,28 +42,38 @@ class _HomeScreenState extends State<HomeScreen>
     // Show the survey dialog immediately after the first frame, but only once
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!_hasShownSurveyDialog && authState.currentUser != null) {
-        DocumentSnapshot userDoc =
-            await FirebaseFirestore.instance
-                .collection('users')
-                .doc(authState.currentUser!.userId)
-                .get();
+        DocumentSnapshot userDoc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(authState.currentUser!.userId)
+            .get();
 
         if (userDoc.exists) {
           Timestamp? surveyTimestamp = userDoc.get('surveyDate') as Timestamp?;
+          Timestamp? dialogTimestamp = userDoc.get('popDialog') as Timestamp?;
+          bool shouldShowDialog = false;
+
+          // Check if 7 or more days have passed since the last survey
           if (surveyTimestamp != null) {
             DateTime surveyDate = surveyTimestamp.toDate();
             DateTime today = DateTime.now();
-            // Calculate the difference in days
             int daysDifference = today.difference(surveyDate).inDays;
             print(
               'Survey Date: $surveyDate, Today: $today, Days Difference: $daysDifference',
             );
 
-            // Show dialog if 7 or more days have passed
             if (daysDifference >= 7) {
-              _showSurveyDialog();
-              _hasShownSurveyDialog = true;
+              // Check if dialog was shown today
+              if (dialogTimestamp != null) {
+                DateTime lastDialogDate = dialogTimestamp.toDate();
+                DateTime todayStart = DateTime(today.year, today.month, today.day, 0, 0, 0);
+                shouldShowDialog = lastDialogDate.isBefore(todayStart);
+              } 
             }
+          } 
+
+          if (shouldShowDialog) {
+            _showSurveyDialog();
+            _hasShownSurveyDialog = true;
           }
         }
       }
@@ -111,30 +121,41 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   void _showSurveyDialog() {
+    // Update popDialog timestamp before showing the dialog
+    FirebaseFirestore.instance
+        .collection('users')
+        .doc(authState.currentUser!.userId)
+        .update({
+      'popDialog': Timestamp.fromDate(
+        DateTime.now().toUtc().add(const Duration(hours: 8)), // Malaysia time
+      ),
+    }).catchError((e) {
+      print('Error updating popDialog: $e');
+    });
+
     showDialog(
       context: context,
-      builder:
-          (context) => AlertDialog(
-            title: const Text('Survey Invitation'),
-            content: const Text(
-              'Would you like to answer survey question?\nNote: It may increase your level.',
-            ),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.pop(context); // Close the dialog
-                },
-                child: const Text('No'),
-              ),
-              TextButton(
-                onPressed: () {
-                  Navigator.pop(context); // Close the dialog
-                  _goToSurvey(); // Navigate to SurveyPage
-                },
-                child: const Text('Yes'),
-              ),
-            ],
+      builder: (context) => AlertDialog(
+        title: const Text('Survey Invitation'),
+        content: const Text(
+          'Would you like to answer survey question?\nNote: It may increase your level.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context); // Close the dialog
+            },
+            child: const Text('No'),
           ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context); // Close the dialog
+              _goToSurvey(); // Navigate to SurveyPage
+            },
+            child: const Text('Yes'),
+          ),
+        ],
+      ),
     );
   }
 
