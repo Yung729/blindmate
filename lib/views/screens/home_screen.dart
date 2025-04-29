@@ -140,13 +140,13 @@ class _HomeScreenState extends State<HomeScreen>
                                     image: DecorationImage(
                                       image: authState.currentUser!.avatarImg.isNotEmpty
                                           ? NetworkImage(authState.currentUser!.avatarImg)
-                                          : const AssetImage('assets/logo.png')
+                                          : const AssetImage('assets/default_pic.jpg')
                                               as ImageProvider,
                                       fit: BoxFit.cover,
                                     ),
                                   ),
                                 )
-                              : Image.asset('assets/logo.png', height: 100),
+                              : Image.asset('assets/default_pic.jpg', height: 100),
                           const SizedBox(height: 20),
                           
                           // Welcome text
@@ -156,9 +156,9 @@ class _HomeScreenState extends State<HomeScreen>
                               style: const TextStyle(
                                 fontSize: 22,
                                 fontWeight: FontWeight.bold,
-                                color: Colors.white,
+                                color: Color.fromARGB(255, 97, 95, 95),
                                 shadows: [
-                                  Shadow(blurRadius: 2, color: Colors.black),
+                                  Shadow(blurRadius: 2, color: Color.fromARGB(255, 135, 90, 90)),
                                 ],
                               ),
                             )
