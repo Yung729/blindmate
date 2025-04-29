@@ -10,7 +10,6 @@ import '../UIComponents/music_search_dialog.dart';
 import '../UIComponents/trip_journal_create_dialog.dart';
 import '../UIComponents/fetch_url_thumbail.dart';
 import '../UIComponents/custom_snackbar.dart';
-import 'dart:developer';
 
 class CreatePostScreen extends StatefulWidget {
   final String userId;
@@ -39,6 +38,20 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
   List<Map<String, dynamic>> _pastJournals = [];
   bool _isLoadingJournals = false;
 
+  String _formatDateRange(List<Map<String, dynamic>> journals) {
+    if (journals.isEmpty) return '';
+    final dates =
+        journals.map((j) => j['date']).whereType<DateTime>().toList()..sort();
+    if (dates.isEmpty) return '';
+    final first = dates.first;
+    final last = dates.last;
+    if (first == last) {
+      return '${first.day}/${first.month}/${first.year}';
+    } else {
+      return '${first.day}/${first.month}/${first.year} - ${last.day}/${last.month}/${last.year}';
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -62,10 +75,6 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
   }
 
   Future<void> _fetchPastJournals() async {
-    log(
-      'Fetching trip journals for userId: ${widget.userId}',
-      name: 'CreatePostScreen',
-    );
     setState(() {
       _isLoadingJournals = true;
     });
@@ -564,49 +573,47 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                     Padding(
                       padding: const EdgeInsets.only(top: 16.0),
                       child: Column(
-                        children:
-                            _tripJournals.map((journal) {
-                              final location = journal['location'] as String?;
-                              final date = journal['date'] as DateTime?;
-                              return Container(
-                                margin: const EdgeInsets.only(bottom: 8),
-                                padding: const EdgeInsets.all(14),
-                                decoration: BoxDecoration(
-                                  color: Colors.green.withOpacity(0.05),
-                                  borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(
-                                    color: Colors.green.withOpacity(0.2),
-                                    width: 1,
-                                  ),
+                        children: [
+                          Container(
+                            margin: const EdgeInsets.only(bottom: 8),
+                            padding: const EdgeInsets.all(14),
+                            decoration: BoxDecoration(
+                              color: Colors.green.withOpacity(0.05),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: Colors.green.withOpacity(0.2),
+                                width: 1,
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(
+                                  Icons.location_on,
+                                  color: Colors.green,
                                 ),
-                                child: Row(
-                                  children: [
-                                    const Icon(
-                                      Icons.location_on,
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    // Assuming all journals are for the same location
+                                    '${_tripJournals.first['location']} (${_formatDateRange(_tripJournals)})',
+                                    style: const TextStyle(
+                                      fontSize: 15,
                                       color: Colors.green,
                                     ),
-                                    const SizedBox(width: 8),
-                                    Expanded(
-                                      child: Text(
-                                        '$location (${date != null ? '${date.day}/${date.month}/${date.year}' : ''})',
-                                        style: const TextStyle(
-                                          fontSize: 15,
-                                          color: Colors.green,
-                                        ),
-                                      ),
-                                    ),
-                                    IconButton(
-                                      icon: const Icon(Icons.close, size: 18),
-                                      onPressed: () {
-                                        setState(() {
-                                          _tripJournals.remove(journal);
-                                        });
-                                      },
-                                    ),
-                                  ],
+                                  ),
                                 ),
-                              );
-                            }).toList(),
+                                IconButton(
+                                  icon: const Icon(Icons.close, size: 18),
+                                  onPressed: () {
+                                    setState(() {
+                                      _tripJournals.clear();
+                                    });
+                                  },
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
                     ),
 
@@ -648,6 +655,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                     onTap:
                         urlDisabled
                             ? () {
+                          
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
                                   content: const Text(

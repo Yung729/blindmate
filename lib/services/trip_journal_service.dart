@@ -4,28 +4,52 @@ class UserTripJournalService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   // Fetch user's trip journal posts
-
-  Future<List<Map<String, dynamic>>> fetchUserTripJournals(String userId) async {
+  Future<List<Map<String, dynamic>>> fetchUserTripJournals(
+    String userId,
+  ) async {
     try {
-      final QuerySnapshot querySnapshot = await _firestore
-          .collection('shared_content')
-          .where('userId', isEqualTo: userId)
-          .where('postType', isEqualTo: 'tripJournal')
-          .get();
+      final QuerySnapshot querySnapshot =
+          await _firestore
+              .collection('shared_content')
+              .where('userId', isEqualTo: userId)
+              .where('postType', isEqualTo: 'tripJournal')
+              .get();
 
-      return querySnapshot.docs.map((doc) {
-        final data = doc.data() as Map<String, dynamic>;
-        return {
-          ...data,
-          'id': doc.id,
-          'tripJournals': (data['tripJournals'] as List?)?.map((journal) {
+      return querySnapshot.docs
+          .map((doc) {
+            final data = doc.data() as Map<String, dynamic>;
             return {
-              ...journal,
-              'date': (journal['date'] as Timestamp).toDate(),
+              ...data,
+              'id': doc.id,
+              'tripJournals':
+                  (data['tripJournals'] as List?)?.map<Map<String, dynamic>>((
+                    journal,
+                  ) {
+                    final journalMap = Map<String, dynamic>.from(
+                      journal as Map,
+                    );
+                    return {
+                      ...journalMap,
+                      'date': () {
+                        final rawDate = journalMap['date'];
+                        if (rawDate is Timestamp) return rawDate.toDate();
+                        if (rawDate is DateTime) return rawDate;
+                        if (rawDate is String) {
+                          try {
+                            return DateTime.parse(rawDate);
+                          } catch (_) {
+                            return null;
+                          }
+                        }
+                        return null;
+                      }(),
+                    };
+                  }).toList() ??
+                  <Map<String, dynamic>>[],
             };
-          }).toList() ?? [],
-        };
-      }).where((post) => post['tripJournals'].isNotEmpty).toList();
+          })
+          .where((post) => post['tripJournals'].isNotEmpty)
+          .toList();
     } catch (e) {
       print('Error fetching user trip journals: $e');
       return [];
@@ -33,7 +57,9 @@ class UserTripJournalService {
   }
 
   // Format trip journals for display
-  List<Map<String, dynamic>> formatTripJournals(List<Map<String, dynamic>> journals) {
+  List<Map<String, dynamic>> formatTripJournals(
+    List<Map<String, dynamic>> journals,
+  ) {
     return journals.map((journal) {
       return {
         'location': journal['location'] ?? '',

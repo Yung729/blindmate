@@ -1,4 +1,3 @@
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 enum PostType { normal, tripJournal }
@@ -88,7 +87,12 @@ class PostModel {
     List<Map<String, dynamic>>? tripJournals;
     if (map['tripJournals'] != null) {
       tripJournals = List<Map<String, dynamic>>.from(
-        (map['tripJournals'] as List).map((e) => Map<String, dynamic>.from(e)),
+        (map['tripJournals'] as List).map((e) {
+          final journal = Map<String, dynamic>.from(e);
+          final date = journal['date'];
+          journal['date'] = date is Timestamp ? date.toDate() : date;
+          return journal;
+        }),
       );
     }
 
@@ -97,7 +101,7 @@ class PostModel {
       userId: map['userId'] ?? '',
       userName: map['userName'] ?? '',
       content: map['content'] ?? '',
-      url: map['url'], 
+      url: map['url'],
       musicUrl: map['musicUrl'],
       musicTitle: map['musicTitle'],
       timestamp: timestamp,
@@ -113,7 +117,7 @@ class PostModel {
     return {
       'visibility': visibility,
       'content': content,
-      'url': url, 
+      'url': url,
       'musicUrl': musicUrl,
       'musicTitle': musicTitle,
       'postType': postType == PostType.tripJournal ? 'tripJournal' : 'normal',

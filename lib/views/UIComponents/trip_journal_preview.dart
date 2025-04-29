@@ -1,5 +1,5 @@
+
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 
 class TripJournalPreview extends StatelessWidget {
   final List<Map<String, dynamic>> journals;
@@ -21,12 +21,10 @@ class TripJournalPreview extends StatelessWidget {
 
     final firstJournal = journals.first;
     final location = firstJournal['location'] as String?;
-    final firstTimestamp = firstJournal['date'] as Timestamp?;
-    final firstDate = firstTimestamp?.toDate();
+    final firstDate = firstJournal['date'] as DateTime?;
 
     final lastJournal = journals.last;
-    final lastTimestamp = lastJournal['date'] as Timestamp?;
-    final lastDate = lastTimestamp?.toDate();
+    final lastDate = lastJournal['date'] as DateTime?;
 
     return GestureDetector(
       onTap: onTap,

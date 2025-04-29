@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../viewmodels/state/sharing_state.dart';
 import '../../viewmodels/dataBinding/sharing_data_binding.dart';
 import '../../viewmodels/eventHandlers/sharing_event_handler.dart';
@@ -342,9 +343,16 @@ class _SharingScreenState extends State<SharingScreen> {
                 Padding(
                   padding: const EdgeInsets.only(top: 8.0),
                   child: TripJournalPreview(
-                    journals: List<Map<String, dynamic>>.from(
-                      post['tripJournals'],
-                    ),
+                    journals:
+                        List<Map<String, dynamic>>.from(
+                          post['tripJournals'] ?? [],
+                        ).map((journal) {
+                          final date = journal['date'];
+                          return {
+                            ...journal,
+                            'date': date is Timestamp ? date.toDate() : date,
+                          };
+                        }).toList(),
                     onTap: () => _showTripJournalDialog(context, post),
                   ),
                 ),

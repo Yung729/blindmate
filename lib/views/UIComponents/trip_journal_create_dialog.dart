@@ -1,13 +1,11 @@
 import 'package:flutter/material.dart';
 import 'trip_journal_panel.dart';
+import 'custom_button.dart';
 
 const LinearGradient _journalGradient = LinearGradient(
   begin: Alignment.topLeft,
   end: Alignment.bottomRight,
-  colors: [
-    Color(0xFF43B1F4),
-    Color(0xFF1E88E5),
-  ],
+  colors: [Color(0xFF43B1F4), Color(0xFF1E88E5)],
 );
 
 const Map<String, IconData> availableActivities = {
@@ -34,10 +32,12 @@ class TripJournalEntry {
     String? initialDescription,
     DateTime? initialDate,
     Set<String>? initialActivities,
-  })  : locationController = TextEditingController(text: initialLocation ?? ''),
-        descriptionController = TextEditingController(text: initialDescription ?? ''),
-        date = initialDate,
-        activities = initialActivities ?? {};
+  }) : locationController = TextEditingController(text: initialLocation ?? ''),
+       descriptionController = TextEditingController(
+         text: initialDescription ?? '',
+       ),
+       date = initialDate,
+       activities = initialActivities ?? {};
 }
 
 class TripJournalDialog extends StatefulWidget {
@@ -107,9 +107,9 @@ class _TripJournalDialogState extends State<TripJournalDialog> {
                     initialDate: e['date'] as DateTime?,
                     initialActivities:
                         (e['activities'] as List<dynamic>?)
-                                ?.map((a) => a.toString())
-                                .toSet() ??
-                            <String>{},
+                            ?.map((a) => a.toString())
+                            .toSet() ??
+                        <String>{},
                   ),
                 )
                 .toList()
@@ -121,26 +121,31 @@ class _TripJournalDialogState extends State<TripJournalDialog> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => TripJournalPanel(
-        posts: widget.pastJournals,
-        getTimeAgo: (date) => '${date.day}/${date.month}/${date.year}',
-        onViewTripJournal: (context, post) {
-          Navigator.pop(context);
-          Navigator.pop(context);
-          if ((post['tripJournals']?.isNotEmpty ?? false)) {
-            widget.onJournalsAdded(List<Map<String, dynamic>>.from(post['tripJournals']));
-          }
-        },
-        onClose: () => Navigator.pop(context),
-        isSelectionMode: true,
-        onSelect: (post) {
-          Navigator.pop(context);
-          if ((post['tripJournals']?.isNotEmpty ?? false)) {
-            widget.onJournalsAdded(List<Map<String, dynamic>>.from(post['tripJournals']));
-          }
-        },
-        title: 'Select Past Journal',
-      ),
+      builder:
+          (context) => TripJournalPanel(
+            posts: widget.pastJournals,
+            getTimeAgo: (date) => '${date.day}/${date.month}/${date.year}',
+            onViewTripJournal: (context, post) {
+              Navigator.pop(context);
+              Navigator.pop(context);
+              if ((post['tripJournals']?.isNotEmpty ?? false)) {
+                widget.onJournalsAdded(
+                  List<Map<String, dynamic>>.from(post['tripJournals']),
+                );
+              }
+            },
+            onClose: () => Navigator.pop(context),
+            isSelectionMode: true,
+            onSelect: (post) {
+              Navigator.pop(context);
+              if ((post['tripJournals']?.isNotEmpty ?? false)) {
+                widget.onJournalsAdded(
+                  List<Map<String, dynamic>>.from(post['tripJournals']),
+                );
+              }
+            },
+            title: 'Select Past Journal',
+          ),
     );
   }
 
@@ -178,16 +183,17 @@ class _TripJournalDialogState extends State<TripJournalDialog> {
   void _handleAdd() {
     if (_formKey.currentState!.validate() &&
         _entries.every((e) => e.date != null)) {
-      final result = _entries
-          .map(
-            (e) => {
-              'location': e.locationController.text,
-              'description': e.descriptionController.text,
-              'date': e.date,
-              'activities': e.activities.toList(),
-            },
-          )
-          .toList();
+      final result =
+          _entries
+              .map(
+                (e) => {
+                  'location': e.locationController.text,
+                  'description': e.descriptionController.text,
+                  'date': e.date,
+                  'activities': e.activities.toList(),
+                },
+              )
+              .toList();
       widget.onJournalsAdded(result);
       Navigator.pop(context);
     }
@@ -362,49 +368,35 @@ class _TripJournalDialogState extends State<TripJournalDialog> {
               child: Row(
                 children: [
                   Expanded(
-                    child: FloatingActionButton.extended(
-                      heroTag: 'addMore',
-                      onPressed:
-                          (_entries.length >= maxEntries || !_canAddMoreDays())
-                              ? null
-                              : _addEntry,
-                      backgroundColor:
-                          _canAddMoreDays()
-                              ? Colors.blue.shade700
-                              : Colors.grey.shade400,
-                      elevation: _canAddMoreDays() ? 2 : 0,
+                    child: CustomButton(
+                      text: 'Add More Days',
                       icon: const Icon(Icons.add, color: Colors.white),
-                      label: Text(
-                        'Add More Days',
-                        style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.white.withOpacity(
-                            _canAddMoreDays() ? 1.0 : 0.7,
-                          ),
-                        ),
-                      ),
+                      onPressed: (_entries.length >= maxEntries || !_canAddMoreDays())
+                          ? null
+                          : _addEntry,
+                      backgroundColor: _canAddMoreDays()
+                          ? Colors.blue.shade700
+                          : Colors.grey.shade400,
+                      fontSize: 15,
+                      borderRadius: 30,
+                      verticalPadding: 15,
+                      horizontalPadding: 0,
                     ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
-                    child: FloatingActionButton.extended(
-                      heroTag: 'save',
-                      onPressed: _handleAdd,
-                      backgroundColor: Colors.green.shade600,
-                      elevation: 2,
+                    child: CustomButton(
+                      text: 'Save Journal',
                       icon: const Icon(
                         Icons.check_circle_outline,
                         color: Colors.white,
                       ),
-                      label: const Text(
-                        'Save Journal',
-                        style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.white,
-                        ),
-                      ),
+                      onPressed: _handleAdd,
+                      backgroundColor: Colors.green.shade600,
+                      fontSize: 15,
+                      borderRadius: 30,
+                      verticalPadding: 15,
+                      horizontalPadding: 0,
                     ),
                   ),
                 ],

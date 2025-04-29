@@ -1,6 +1,7 @@
 
 import 'package:flutter/material.dart';
 import 'fetch_url_thumbail.dart';
+import '../../utils/slider_header.dart';
 import '../../viewmodels/uiValidation/url_validator.dart'; // Import the URL validation utility
 
 class UrlInputDialog extends StatefulWidget {
