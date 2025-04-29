@@ -641,16 +641,19 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     // Show avatar if it's the last message from this sender
     final showAvatar = nextMessage == null || nextMessage.senderId != message.senderId;
     
-    return ChatBubble(
-      isMe: isMe,
-      text: message.text,
-      stickerUrl: message.stickerUrl,
-      musicUrl: message.musicUrl,
-      musicTitle: message.musicTitle,
-      avatarUrl: isMe ? currentUserAvatarImg : null,
-      timestamp: message.timestamp,
-      showAvatar: showAvatar,
-      moderationStatus: message.moderationStatus,
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 1.0),
+      child: ChatBubble(
+        isMe: isMe,
+        text: message.text,
+        stickerUrl: message.stickerUrl,
+        musicUrl: message.musicUrl,
+        musicTitle: message.musicTitle,
+        avatarUrl: isMe ? currentUserAvatarImg : null,
+        timestamp: message.timestamp,
+        showAvatar: showAvatar,
+        moderationStatus: message.moderationStatus,
+      ),
     );
   }
 

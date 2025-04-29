@@ -173,12 +173,14 @@ class _ChatBubbleState extends State<ChatBubble> with SingleTickerProviderStateM
             ),
             child: Row(
               mainAxisAlignment: widget.isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
-              crossAxisAlignment: CrossAxisAlignment.end,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                if (!widget.isMe && widget.showAvatar)
-                  _buildAvatar()
-                else if (!widget.isMe)
-                  SizedBox(width: 44),
+                if (!widget.isMe)
+                  Container(
+                    width: 36,
+                    margin: EdgeInsets.only(right: 8),
+                    child: widget.showAvatar ? _buildAvatar() : null,
+                  ),
                   
                 SizedBox(width: screenWidth * 0.02),
                 
@@ -231,10 +233,12 @@ class _ChatBubbleState extends State<ChatBubble> with SingleTickerProviderStateM
                 
                 SizedBox(width: screenWidth * 0.02),
                 
-                if (widget.isMe && widget.showAvatar)
-                  _buildAvatar()
-                else if (widget.isMe)
-                  SizedBox(width: 44),
+                if (widget.isMe)
+                  Container(
+                    width: 36,
+                    margin: EdgeInsets.only(left: 8),
+                    child: widget.showAvatar ? _buildAvatar() : null,
+                  ),
               ],
             ),
           ),
