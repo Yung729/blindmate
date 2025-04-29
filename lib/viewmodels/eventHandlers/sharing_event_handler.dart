@@ -23,34 +23,21 @@ class SharingEventHandler {
   required String userName,
   required String avatarImg,
 }) async {
-  // Construct a UserModel with all required fields
-  final user = UserModel(
-    userId: userId,
-    name: userName,
-    avatarImg: avatarImg,
-    email: '', // dummy value
-    levelValue: 0,
-    online: false,
-    status: 'active',
-    emotionStatus: 'neutral', // dummy value
-    progressionValue: 0.0,    // dummy value
-    fragmentNumber: 0,        // dummy value
-    // currentMission: '',       // dummy value
-    flower: 0,                // dummy value
-    surveyDate: DateTime.now(), // dummy value
-    // lastActive: DateTime.now(), // optional
-    // hiddenPosts: const [],     // optional
-  );
-
   final Map<String, dynamic>? newPostData = await Navigator.push(
     context,
-    MaterialPageRoute(builder: (context) => CreatePostScreen(user: user)),
+    MaterialPageRoute(
+      builder: (context) => CreatePostScreen(
+        userId: userId,
+        userName: userName,
+        userAvatar: avatarImg, // Note: parameter name is userAvatar, not avatarImg
+      ),
+    ),
   );
 
   if (newPostData != null) {
     final newPost = PostModel(
-      userId: user.userId,
-      userName: user.name,
+      userId: userId,
+      userName: userName,
       content: newPostData['content'] ?? '',
       musicUrl: newPostData['musicUrl'],
       musicTitle: newPostData['musicTitle'],

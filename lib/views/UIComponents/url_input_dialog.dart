@@ -1,5 +1,7 @@
+
 import 'package:flutter/material.dart';
-import 'fetch_url_thumbail.dart'; // Import the fetchUrlMetadata function
+import 'fetch_url_thumbail.dart';
+import '../../viewmodels/uiValidation/url_validator.dart'; // Import the URL validation utility
 
 class UrlInputDialog extends StatefulWidget {
   final Function(String url, String? thumbnail) onUrlAdded;
@@ -37,6 +39,7 @@ class _UrlInputDialogState extends State<UrlInputDialog> {
   final TextEditingController _urlController = TextEditingController();
   String? _thumbnailUrl;
   bool _isFetching = false;
+  String? _errorText; // For error message
 
   @override
   void dispose() {
@@ -47,10 +50,11 @@ class _UrlInputDialogState extends State<UrlInputDialog> {
   Future<void> _fetchThumbnail(String url) async {
     setState(() {
       _isFetching = true;
+      _errorText = null;
     });
 
     try {
-      final metadata = await fetchUrlMetadata(url); // Use fetchUrlMetadata directly
+      final metadata = await fetchUrlMetadata(url);
       setState(() {
         _thumbnailUrl = metadata?['image'];
         _isFetching = false;
@@ -60,16 +64,21 @@ class _UrlInputDialogState extends State<UrlInputDialog> {
       setState(() {
         _thumbnailUrl = null;
         _isFetching = false;
+        _errorText = "Failed to fetch metadata.";
       });
     }
   }
 
   void _handleAddUrl() {
     final url = _urlController.text.trim();
-    if (url.isNotEmpty) {
-      widget.onUrlAdded(url, _thumbnailUrl);
-      Navigator.pop(context);
+    if (!UrlUtils.isValidUrl(url)) {
+      setState(() {
+        _errorText = "Please enter a valid URL (http/https).";
+      });
+      return;
     }
+    widget.onUrlAdded(url, _thumbnailUrl);
+    Navigator.pop(context);
   }
 
   @override
@@ -139,20 +148,24 @@ class _UrlInputDialogState extends State<UrlInputDialog> {
                 fillColor: Colors.grey[100],
                 prefixIcon: const Icon(Icons.link, color: Colors.grey),
                 suffixIcon: IconButton(
-                  icon: const Icon(Icons.search, color: Colors.blue),
-                  onPressed: () {
-                    final url = _urlController.text.trim();
-                    if (url.isNotEmpty) {
-                      _fetchThumbnail(url);
-                    }
-                  },
+                  icon: const Icon(Icons.add, color: Colors.blue),
+                  onPressed: _handleAddUrl,
                 ),
                 contentPadding: const EdgeInsets.symmetric(
                   horizontal: 16,
                   vertical: 12,
                 ),
+                errorText: _errorText,
               ),
               autofocus: true,
+              onChanged: (_) {
+                if (_errorText != null) {
+                  setState(() {
+                    _errorText = null;
+                  });
+                }
+              },
+              onSubmitted: (_) => _handleAddUrl(),
             ),
           ),
           const SizedBox(height: 12),
@@ -180,25 +193,6 @@ class _UrlInputDialogState extends State<UrlInputDialog> {
                 ],
               ),
             ),
-          const SizedBox(height: 16),
-          // Add URL button
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
-            child: ElevatedButton(
-              onPressed: _handleAddUrl,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blue,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                padding: const EdgeInsets.symmetric(vertical: 14),
-              ),
-              child: const Text(
-                "Add URL",
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-              ),
-            ),
-          ),
           const SizedBox(height: 16),
         ],
       ),

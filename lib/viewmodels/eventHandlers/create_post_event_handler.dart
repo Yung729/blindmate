@@ -1,20 +1,42 @@
 import 'package:flutter/material.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
-import '../../models/dataModels/user_model.dart';
 import '../dataBinding/create_post_data_binding.dart';
 import '../state/create_post_state.dart';
 
 class CreatePostEventHandler {
   final CreatePostState createPostState;
   final CreatePostDataBinding dataBinding;
-  final UserModel user;
+  final String userId;
+  final String userName;
+  final String userAvatar;
 
   CreatePostEventHandler({
     required this.createPostState,
     required this.dataBinding,
-    required this.user,
+    required this.userId,
+    required this.userName,
+    required this.userAvatar,
   });
+
+  Future<List<Map<String, dynamic>>> loadUserTripJournals() async {
+    try {
+      final journals = await dataBinding.fetchUserTripJournals(userId);
+      return journals;
+    } catch (e) {
+      print('Error in event handler - loadUserTripJournals: $e');
+      return [];
+    }
+  }
+
+  void selectTripJournal(List<Map<String, dynamic>> selectedJournals) {
+    createPostState.setTripJournals(selectedJournals);
+  }
+
+  // Clear selected trip journals
+  void clearTripJournals() {
+    createPostState.clearTripJournals();
+  }
 
   Future<String> checkContentModeration(String content) async {
     return await dataBinding.checkContentModeration(content);
@@ -43,7 +65,8 @@ class CreatePostEventHandler {
   /// Updated: Accepts a list of trip journals and passes it to dataBinding.createPost
   Future<void> sharePost({List<Map<String, dynamic>>? tripJournals}) async {
     await dataBinding.createPost(
-      user,
+      userId: userId,
+      userName: userName,
       tripJournals: tripJournals,
       url: createPostState.selectedLinkUrl,
     );

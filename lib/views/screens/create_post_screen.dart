@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../models/dataModels/user_model.dart';
 import '../../viewmodels/dataBinding/create_post_data_binding.dart';
 import '../../viewmodels/eventHandlers/create_post_event_handler.dart';
 import '../../viewmodels/state/create_post_state.dart';
@@ -10,11 +9,20 @@ import '../UIComponents/url_input_dialog.dart';
 import '../UIComponents/music_search_dialog.dart';
 import '../UIComponents/trip_journal_create_dialog.dart';
 import '../UIComponents/fetch_url_thumbail.dart';
+import '../UIComponents/custom_snackbar.dart';
+import 'dart:developer';
 
 class CreatePostScreen extends StatefulWidget {
-  final UserModel user;
+  final String userId;
+  final String userName;
+  final String userAvatar;
 
-  const CreatePostScreen({super.key, required this.user});
+  const CreatePostScreen({
+    super.key,
+    required this.userId,
+    required this.userName,
+    required this.userAvatar,
+  });
 
   @override
   _CreatePostScreenState createState() => _CreatePostScreenState();
@@ -27,9 +35,9 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
   bool _isPosting = false;
   Map<String, String>? _cachedMetadata; // Cache for fetched metadata
   bool _isMetadataFetched = false;
-
-  // Trip Journal state (multi-entry)
   List<Map<String, dynamic>> _tripJournals = [];
+  List<Map<String, dynamic>> _pastJournals = [];
+  bool _isLoadingJournals = false;
 
   @override
   void initState() {
@@ -45,8 +53,27 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
     _eventHandler = CreatePostEventHandler(
       createPostState: createPostState,
       dataBinding: dataBinding,
-      user: widget.user,
+      userId: widget.userId,
+      userName: widget.userName,
+      userAvatar: widget.userAvatar,
     );
+
+    _fetchPastJournals();
+  }
+
+  Future<void> _fetchPastJournals() async {
+    log(
+      'Fetching trip journals for userId: ${widget.userId}',
+      name: 'CreatePostScreen',
+    );
+    setState(() {
+      _isLoadingJournals = true;
+    });
+    final journals = await _eventHandler.loadUserTripJournals();
+    setState(() {
+      _pastJournals = journals;
+      _isLoadingJournals = false;
+    });
   }
 
   @override
@@ -101,7 +128,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
           _tripJournals = entries;
         });
       },
-      pastJournals: [],
+      pastJournals: _pastJournals,
     );
   }
 
@@ -112,6 +139,22 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
       listen: false,
     );
 
+    final isValid = UIValidation.isPostValid(
+      postContent: postContent,
+      musicUrl: createPostState.selectedMusicUrl,
+      linkUrl: createPostState.selectedLinkUrl,
+      tripJournals: _tripJournals,
+    );
+
+    if (!isValid) {
+      CustomSnackBar.show(
+        context: context,
+        message: "Post cannot be empty!",
+        status: "ERROR",
+      );
+      return;
+    }
+
     // Prevent both music and trip journal
     if (createPostState.selectedMusicUrl != null && _tripJournals.isNotEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -120,25 +163,6 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
             "You cannot attach both music and trip journal to a post.",
           ),
           backgroundColor: Colors.red,
-        ),
-      );
-      return;
-    }
-
-    if (!UIValidation.isPostContentValid(postContent)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text("Post content cannot be empty!"),
-          backgroundColor: Colors.red,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
-          ),
-          margin: EdgeInsets.only(
-            bottom: MediaQuery.of(context).size.height - 100,
-            left: 20,
-            right: 20,
-          ),
         ),
       );
       return;
@@ -315,8 +339,8 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                         child: CircleAvatar(
                           radius: 24,
                           backgroundImage:
-                              (widget.user.avatarImg.isNotEmpty)
-                                  ? NetworkImage(widget.user.avatarImg)
+                              (widget.userAvatar.isNotEmpty)
+                                  ? NetworkImage(widget.userAvatar)
                                   : const AssetImage(
                                         'assets/default_profile.png',
                                       )
@@ -609,53 +633,78 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
           child: Consumer<CreatePostState>(
             builder: (context, createPostState, child) {
               final urlAdded = createPostState.selectedLinkUrl != null;
-              final musicDisabled = urlAdded || _tripJournals.isNotEmpty;
-              final tripJournalDisabled =
-                  urlAdded || createPostState.selectedMusicUrl != null;
+              final musicAdded = createPostState.selectedMusicUrl != null;
+              final tripJournalAdded = _tripJournals.isNotEmpty;
+
+              final urlDisabled = musicAdded || tripJournalAdded;
+              final musicDisabled = urlAdded || tripJournalAdded;
+              final tripJournalDisabled = urlAdded || musicAdded;
+
               return Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
+                  // Add URL
                   InkWell(
-                    onTap: () {
-                      UrlInputDialog.show(
-                        context,
-                        onUrlAdded: (url, thumbnail) {
-                          Provider.of<CreatePostState>(
-                            context,
-                            listen: false,
-                          ).setLink(url, thumbnail);
-                          _onUrlChanged(url);
-                          setState(() {});
-                        },
-                      );
-                    },
+                    onTap:
+                        urlDisabled
+                            ? () {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: const Text(
+                                    "You cannot add a URL when music or a trip journal is attached.",
+                                  ),
+                                  backgroundColor: Colors.orange,
+                                ),
+                              );
+                            }
+                            : () {
+                              UrlInputDialog.show(
+                                context,
+                                onUrlAdded: (url, thumbnail) {
+                                  Provider.of<CreatePostState>(
+                                    context,
+                                    listen: false,
+                                  ).setLink(url, thumbnail);
+                                  _onUrlChanged(url);
+                                  setState(() {});
+                                },
+                              );
+                            },
                     borderRadius: BorderRadius.circular(12),
-                    child: Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      decoration: BoxDecoration(
-                        color: Colors.grey.shade50,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.grey.shade200),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(Icons.link, color: Colors.blue, size: 20),
-                          const SizedBox(width: 8),
-                          const Text(
-                            "Add URL",
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w500,
+                    child: Opacity(
+                      opacity: urlDisabled ? 0.5 : 1.0,
+                      child: Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade50,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.grey.shade200),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(
+                              Icons.link,
+                              color: Colors.blue,
+                              size: 20,
                             ),
-                          ),
-                        ],
+                            const SizedBox(width: 8),
+                            const Text(
+                              "Add URL",
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
                   const SizedBox(height: 8),
 
+                  // Add Music
                   InkWell(
                     onTap:
                         musicDisabled
@@ -663,7 +712,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
                                   content: const Text(
-                                    "You cannot add music when a trip journal is attached.",
+                                    "You cannot add music when a URL or trip journal is attached.",
                                   ),
                                   backgroundColor: Colors.orange,
                                 ),
@@ -703,6 +752,8 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                     ),
                   ),
                   const SizedBox(height: 8),
+
+                  // Add Trip Journal
                   InkWell(
                     onTap:
                         tripJournalDisabled
@@ -710,7 +761,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
                                   content: const Text(
-                                    "You cannot add a trip journal when music is attached.",
+                                    "You cannot add a trip journal when a URL or music is attached.",
                                   ),
                                   backgroundColor: Colors.orange,
                                 ),

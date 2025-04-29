@@ -46,30 +46,45 @@ class _InlineYoutubePlayerState extends State<InlineYoutubePlayer>
     )..addListener(_listener);
   }
 
+/*************  ✨ Windsurf Command ⭐  *************/
+/// Listener function for the YoutubePlayerController that updates the player
+/// state based on the current video status. It adjusts the slider value,
+/// loading state, playing state, and ready state depending on the player's
+/// current status, such as whether the video is playing, paused, ended, or
+/*******  9016965e-e2e6-41b7-81ae-a1e59bfb68b3  *******/
   void _listener() {
-    if (mounted) {
-      setState(() {
-        _sliderValue = _controller.value.position.inSeconds.toDouble();
+  if (mounted) {
+    setState(() {
+      _sliderValue = _controller.value.position.inSeconds.toDouble();
 
-        // Update loading state based on player state
-        if (_controller.value.isPlaying) {
-          _isLoading = false;
-          _isInitializing = false;
-          _isPlaying = true;
-        } else if (_controller.value.hasError) {
+      // Update loading state based on player state
+      if (_controller.value.isPlaying) {
+        _isLoading = false;
+        _isInitializing = false;
+        _isPlaying = true;
+      } else {
+        // When music is not playing (stopped, paused, or ended)
+        _isPlaying = false;
+        
+        if (_controller.value.hasError) {
           _isLoading = false;
           _isInitializing = false;
         }
-
-        // Update ready state when player is initialized
-        if (!_isReady && _controller.value.isReady) {
-          _isReady = true;
-          // Don't set _isInitializing to false here
-          // We'll keep showing loading until music actually starts
+        
+        // If we're at the end of the video
+        if (_controller.value.position >= _controller.metadata.duration) {
+          _isLoading = false;
+          _isInitializing = false;
         }
-      });
-    }
+      }
+
+      // Update ready state when player is initialized
+      if (!_isReady && _controller.value.isReady) {
+        _isReady = true;
+      }
+    });
   }
+}
 
   Future<void> _handlePlayPause() async {
     if (_isInitializing || _isLoading) return;

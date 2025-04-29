@@ -1,13 +1,14 @@
 import '../../models/api/youtube_api.dart';
 import '../../models/dataModels/post_model.dart';
-import '../../models/dataModels/user_model.dart';
 import '../../services/gemini_moderation_service.dart';
 import '../../services/post_service.dart';
+import '../../services/trip_journal_service.dart';
 import '../state/create_post_state.dart';
 
 class CreatePostDataBinding {
   final CreatePostState createPostState;
   final PostService _postService = PostService();
+  final UserTripJournalService _tripJournalService = UserTripJournalService();
   final GeminiModerationService _moderationService = GeminiModerationService();
 
   CreatePostDataBinding({required this.createPostState});
@@ -30,37 +31,51 @@ class CreatePostDataBinding {
     createPostState.setMusicResults(results);
   }
 
-  /// Now: Stores all trip journals in a single post as a list.
-  Future<PostModel?> createPost(
-    UserModel user, {
-    List<Map<String, dynamic>>? tripJournals,
-    String? url,
-  }) async {
-    if (createPostState.postContent.trim().isEmpty &&
-        url == null &&
-        createPostState.selectedMusicUrl == null &&
-        (tripJournals == null || tripJournals.isEmpty)) {
-      return null;
+  Future<List<Map<String, dynamic>>> fetchUserTripJournals(String userId) async {
+    try {
+      return await _tripJournalService.fetchUserTripJournals(userId);
+    } catch (e) {
+      print('Error in data binding - fetchUserTripJournals: $e');
+      return [];
     }
-
-    final newPost = PostModel(
-      userId: user.userId,
-      userName: user.name,
-      content: createPostState.postContent.trim(),
-      musicUrl: createPostState.selectedMusicUrl,
-      musicTitle: createPostState.selectedMusicTitle,
-      timestamp: DateTime.now(),
-      visibility: createPostState.isPublic ? 'public' : 'private',
-      postType:
-          tripJournals != null && tripJournals.isNotEmpty
-              ? PostType.tripJournal
-              : PostType.normal,
-      tripJournals: tripJournals,
-      url: url,
-    );
-
-    await _postService.createPost(newPost);
-
-    return newPost;
   }
+
+  List<Map<String, dynamic>> formatTripJournals(List<Map<String, dynamic>> journals) {
+    return _tripJournalService.formatTripJournals(journals);
+  }
+
+  /// Now: Stores all trip journals in a single post as a list.
+  Future<PostModel?> createPost({
+  required String userId,
+  required String userName,
+  List<Map<String, dynamic>>? tripJournals,
+  String? url,
+}) async {
+  if (createPostState.postContent.trim().isEmpty &&
+      url == null &&
+      createPostState.selectedMusicUrl == null &&
+      (tripJournals == null || tripJournals.isEmpty)) {
+    return null;
+  }
+
+  final newPost = PostModel(
+    userId: userId,
+    userName: userName,
+    content: createPostState.postContent.trim(),
+    musicUrl: createPostState.selectedMusicUrl,
+    musicTitle: createPostState.selectedMusicTitle,
+    timestamp: DateTime.now(),
+    visibility: createPostState.isPublic ? 'public' : 'private',
+    postType:
+        tripJournals != null && tripJournals.isNotEmpty
+            ? PostType.tripJournal
+            : PostType.normal,
+    tripJournals: tripJournals,
+    url: url,
+  );
+
+  await _postService.createPost(newPost);
+
+  return newPost;
+}
 }
