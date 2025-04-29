@@ -1,30 +1,39 @@
 import 'package:flutter/material.dart';
 import 'package:youtube_player_flutter/youtube_player_flutter.dart';
+import 'loading_indicator.dart'; // Assuming you have a loading indicator widget
 
 class InlineYoutubePlayer extends StatefulWidget {
   final String youtubeUrl;
   final String? title;
 
-  const InlineYoutubePlayer({
-    Key? key, 
-    required this.youtubeUrl,
-    this.title,
-  }) : super(key: key);
+  const InlineYoutubePlayer({Key? key, required this.youtubeUrl, this.title})
+    : super(key: key);
 
   @override
   State<InlineYoutubePlayer> createState() => _InlineYoutubePlayerState();
 }
 
-class _InlineYoutubePlayerState extends State<InlineYoutubePlayer> {
+class _InlineYoutubePlayerState extends State<InlineYoutubePlayer>
+    with AutomaticKeepAliveClientMixin {
   late YoutubePlayerController _controller;
   bool _isPlaying = false;
+  bool _isReady = false;
+  bool _isInitializing = false;
+  bool _isLoading = false;
   String? _videoId;
   double _sliderValue = 0.0;
+
+  @override
+  bool get wantKeepAlive => true;
 
   @override
   void initState() {
     super.initState();
     _videoId = YoutubePlayer.convertUrlToId(widget.youtubeUrl);
+    _initializePlayer();
+  }
+
+  void _initializePlayer() {
     _controller = YoutubePlayerController(
       initialVideoId: _videoId!,
       flags: const YoutubePlayerFlags(
@@ -41,7 +50,68 @@ class _InlineYoutubePlayerState extends State<InlineYoutubePlayer> {
     if (mounted) {
       setState(() {
         _sliderValue = _controller.value.position.inSeconds.toDouble();
+
+        // Update loading state based on player state
+        if (_controller.value.isPlaying) {
+          _isLoading = false;
+          _isInitializing = false;
+          _isPlaying = true;
+        } else if (_controller.value.hasError) {
+          _isLoading = false;
+          _isInitializing = false;
+        }
+
+        // Update ready state when player is initialized
+        if (!_isReady && _controller.value.isReady) {
+          _isReady = true;
+          // Don't set _isInitializing to false here
+          // We'll keep showing loading until music actually starts
+        }
       });
+    }
+  }
+
+  Future<void> _handlePlayPause() async {
+    if (_isInitializing || _isLoading) return;
+
+    if (_controller.value.isPlaying) {
+      _controller.pause();
+      setState(() {
+        _isPlaying = false;
+        _isLoading = false;
+      });
+      return;
+    }
+
+    setState(() {
+      _isLoading = true; // Show loading when attempting to play
+    });
+
+    if (!_isReady) {
+      setState(() {
+        _isInitializing = true;
+      });
+
+      await Future.delayed(const Duration(milliseconds: 500));
+
+      if (!_isReady) {
+        _controller.load(_videoId!);
+
+        // Wait for player to be ready
+        while (!_isReady && mounted) {
+          await Future.delayed(const Duration(milliseconds: 100));
+        }
+      }
+    }
+
+    if (mounted) {
+      // Ensure video is at beginning if it's ended
+      if (_controller.value.position >= _controller.metadata.duration) {
+        _controller.seekTo(const Duration(seconds: 0));
+      }
+
+      _controller.play();
+      // Loading indicator will be hidden by the listener when playback actually starts
     }
   }
 
@@ -54,6 +124,7 @@ class _InlineYoutubePlayerState extends State<InlineYoutubePlayer> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     return SizedBox(
       height: 96,
       child: Container(
@@ -102,7 +173,6 @@ class _InlineYoutubePlayerState extends State<InlineYoutubePlayer> {
                         );
                       },
                     ),
-                    // Overlay gradient on thumbnail
                     Container(
                       height: 96,
                       width: 96,
@@ -121,7 +191,7 @@ class _InlineYoutubePlayerState extends State<InlineYoutubePlayer> {
                 ),
               ),
 
-            // Hidden video player
+            // Hidden video player (required for audio playback)
             Opacity(
               opacity: 0,
               child: SizedBox(
@@ -137,15 +207,17 @@ class _InlineYoutubePlayerState extends State<InlineYoutubePlayer> {
             // Controls and info section
             Expanded(
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 8.0,
+                  vertical: 4.0,
+                ),
                 child: LayoutBuilder(
                   builder: (context, constraints) {
                     return Column(
                       mainAxisSize: MainAxisSize.min,
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Title with smaller height
-                        if (widget.title != null) 
+                        if (widget.title != null)
                           SizedBox(
                             height: 16,
                             child: Text(
@@ -162,37 +234,36 @@ class _InlineYoutubePlayerState extends State<InlineYoutubePlayer> {
 
                         const SizedBox(height: 4),
 
-                        // Progress bar and controls in remaining space
                         Expanded(
                           child: Row(
                             children: [
-                              // Play button with tighter constraints
                               SizedBox(
                                 width: 32,
                                 height: 32,
                                 child: IconButton(
                                   padding: EdgeInsets.zero,
-                                  icon: Icon(
-                                    _isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
-                                    color: Colors.white,
-                                    size: 24,
-                                  ),
-                                  onPressed: () {
-                                    setState(() {
-                                      _isPlaying = !_isPlaying;
-                                      if (_isPlaying) {
-                                        _controller.play();
-                                      } else {
-                                        _controller.pause();
-                                      }
-                                    });
-                                  },
+                                  icon:
+                                      (_isInitializing || _isLoading)
+                                          ? UIComponents.loadingIndicator(
+                                            width: 24,
+                                            height: 24,
+                                            strokeWidth: 2,
+                                          )
+                                          : Icon(
+                                            _isPlaying
+                                                ? Icons.pause_rounded
+                                                : Icons.play_arrow_rounded,
+                                            color: Colors.white,
+                                            size: 24,
+                                          ),
+                                  onPressed: _handlePlayPause,
                                 ),
                               ),
 
-                              // Progress and time with explicit sizes
                               Expanded(
-                                child: ValueListenableBuilder<YoutubePlayerValue>(
+                                child: ValueListenableBuilder<
+                                  YoutubePlayerValue
+                                >(
                                   valueListenable: _controller,
                                   builder: (context, value, child) {
                                     return Column(
@@ -203,26 +274,37 @@ class _InlineYoutubePlayerState extends State<InlineYoutubePlayer> {
                                           child: SliderTheme(
                                             data: SliderThemeData(
                                               trackHeight: 2,
-                                              thumbShape: const RoundSliderThumbShape(
-                                                enabledThumbRadius: 4,
-                                              ),
-                                              overlayShape: const RoundSliderOverlayShape(
-                                                overlayRadius: 8,
-                                              ),
+                                              thumbShape:
+                                                  const RoundSliderThumbShape(
+                                                    enabledThumbRadius: 4,
+                                                  ),
+                                              overlayShape:
+                                                  const RoundSliderOverlayShape(
+                                                    overlayRadius: 8,
+                                                  ),
                                               activeTrackColor: Colors.white,
-                                              inactiveTrackColor: Colors.white.withOpacity(0.3),
+                                              inactiveTrackColor: Colors.white
+                                                  .withOpacity(0.3),
                                               thumbColor: Colors.white,
-                                              overlayColor: Colors.white.withOpacity(0.2),
+                                              overlayColor: Colors.white
+                                                  .withOpacity(0.2),
                                             ),
                                             child: Slider(
                                               value: _sliderValue,
-                                              max: value.metaData.duration.inSeconds.toDouble(),
+                                              max:
+                                                  value
+                                                      .metaData
+                                                      .duration
+                                                      .inSeconds
+                                                      .toDouble(),
                                               onChanged: (newValue) {
                                                 setState(() {
                                                   _sliderValue = newValue;
                                                 });
                                                 _controller.seekTo(
-                                                  Duration(seconds: newValue.toInt()),
+                                                  Duration(
+                                                    seconds: newValue.toInt(),
+                                                  ),
                                                 );
                                               },
                                             ),
@@ -231,22 +313,32 @@ class _InlineYoutubePlayerState extends State<InlineYoutubePlayer> {
                                         SizedBox(
                                           height: 14,
                                           child: Padding(
-                                            padding: const EdgeInsets.symmetric(horizontal: 4),
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 4,
+                                            ),
                                             child: Row(
-                                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment
+                                                      .spaceBetween,
                                               children: [
                                                 Text(
-                                                  _formatDuration(value.position),
+                                                  _formatDuration(
+                                                    value.position,
+                                                  ),
                                                   style: TextStyle(
                                                     fontSize: 10,
-                                                    color: Colors.white.withOpacity(0.7),
+                                                    color: Colors.white
+                                                        .withOpacity(0.7),
                                                   ),
                                                 ),
                                                 Text(
-                                                  _formatDuration(value.metaData.duration),
+                                                  _formatDuration(
+                                                    value.metaData.duration,
+                                                  ),
                                                   style: TextStyle(
                                                     fontSize: 10,
-                                                    color: Colors.white.withOpacity(0.7),
+                                                    color: Colors.white
+                                                        .withOpacity(0.7),
                                                   ),
                                                 ),
                                               ],
