@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:blindmate/services/gemini_moderation_service.dart';
 import 'package:blindmate/viewmodels/state/do_mission_state.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/services.dart' show rootBundle;
@@ -8,29 +9,29 @@ import '../models/dataModels/mission_model.dart';
 import 'package:intl/intl.dart';
 
 /// Loads prompt from assets and sends it to Gemini API.
-Future<String> callGeminiToGenerateMissions() async {
-  const apiKey =
-      'AIzaSyCpduqdv3nfhxOZ4bF99Mm2YEuYc3OLAgs'; // 🔐 Replace securely in production
-  final model = GenerativeModel(model: 'gemini-1.5-flash', apiKey: apiKey);
+// Future<String> callGeminiToGenerateMissions() async {
+//   const apiKey =
+//       'AIzaSyCpduqdv3nfhxOZ4bF99Mm2YEuYc3OLAgs'; // 🔐 Replace securely in production
+//   final model = GenerativeModel(model: 'gemini-1.5-flash', apiKey: apiKey);
 
-  final promptFilePath = 'assets/MissionGenerationPrompt.txt';
-  final prompt = await rootBundle.loadString(
-    'assets/MissionGenerationPrompt.txt',
-  );
-  final response = await model.generateContent([Content.text(prompt)]);
+//   final promptFilePath = 'assets/MissionGenerationPrompt.txt';
+//   final prompt = await rootBundle.loadString(
+//     'assets/MissionGenerationPrompt.txt',
+//   );
+//   final response = await model.generateContent([Content.text(prompt)]);
 
-  var jsonResult = response.text?.trim();
+//   var jsonResult = response.text?.trim();
 
-  print('Gemini Response: $jsonResult');
+//   print('Gemini Response: $jsonResult');
 
-  jsonResult = jsonResult?.replaceAll(RegExp(r'^```json|\n|```'), '');
+//   jsonResult = jsonResult?.replaceAll(RegExp(r'^```json|\n|```'), '');
 
-  if (jsonResult == null || jsonResult.isEmpty) {
-    throw Exception('Gemini returned an empty result');
-  }
+//   if (jsonResult == null || jsonResult.isEmpty) {
+//     throw Exception('Gemini returned an empty result');
+//   }
 
-  return jsonResult;
-}
+//   return jsonResult;
+// }
 
 /// Saves a list of generated missions to Firestore.
 Future<void> saveGeneratedMissionsToFirebase(
@@ -97,17 +98,33 @@ Future<void> clearMissionList() async {
     throw Exception("No user is logged in.");
   }
 
-  final missions =
-      await FirebaseFirestore.instance
-          .collection('mission')
-          .where('assignedUser', isEqualTo: currentUser.uid)
-          .get();
+  final missions = await FirebaseFirestore.instance
+      .collection('mission')
+      .where('assignedUser', isEqualTo: currentUser.uid)
+      .get();
 
   for (var doc in missions.docs) {
-    await doc.reference.delete();
+    final data = doc.data();
+    final createdAtTimestamp = data['createdAt'] as Timestamp?;
+    if (createdAtTimestamp == null) {
+      // If no createdAt, expire it by default
+      await doc.reference.update({'status': false});
+      continue;
+    }
+
+    final createdAt = createdAtTimestamp.toDate();
+    final now = DateTime.now();
+
+    // Compare only date (ignoring time)
+    final createdDateOnly = DateTime(createdAt.year, createdAt.month, createdAt.day);
+    final nowDateOnly = DateTime(now.year, now.month, now.day);
+
+    if (nowDateOnly.isAfter(createdDateOnly)) {
+      await doc.reference.update({'status': false});
+    }
   }
 
-  print("Mission list cleared for user ${currentUser.uid}.");
+  print("Expired outdated missions for user ${currentUser.uid}.");
 }
 
 /// Fetches a limited number of missions from Firestore.
@@ -139,6 +156,22 @@ Future<List<MissionModel>> fetchMissionsFromFirebase({int limit = 3}) async {
       .toList();
 }
 
+Future<List<MissionModel>> fetchStatusTrueMissions({int limit = 3}) async {
+  final allMissions = await fetchMissionsFromFirebase(limit: limit);
+  final filtered = allMissions.where((m) => m.status == true).toList();
+
+  print("Filtered missions with status == true: ${filtered.length}");
+  return filtered;
+}
+
+Future<List<MissionModel>> fetchFinishedTrueMissions({int limit = 3}) async {
+  final allMissions = await fetchMissionsFromFirebase(limit: limit);
+  final filtered = allMissions.where((m) => m.finished == true).toList();
+
+  print("Filtered missions with finished == true: ${filtered.length}");
+  return filtered;
+}
+
 /// Main function to generate missions, store in Firebase, and update app state.
 Future<void> generateAndStoreMissions() async {
   try {
@@ -149,7 +182,9 @@ Future<void> generateAndStoreMissions() async {
     }
 
     // 1. Generate missions with Gemini
-    final geminiJson = await callGeminiToGenerateMissions();
+    final geminiService = GeminiModerationService();
+    final geminiJson = await geminiService.generateMissionJsonFromPrompt();
+
     final parsed = json.decode(geminiJson);
 
     if (parsed['missions'] == null || parsed['missions'] is! List) {
@@ -165,7 +200,7 @@ Future<void> generateAndStoreMissions() async {
     // 2. Build list of MissionModel with added fields
     final missions =
         (parsed['missions'] as List).map((e) {
-          e['selected'] = false;
+          e['status'] = true;
           e['finished'] = false;
           e['assignedUser'] = assignedUserId;
           e['progress'] = 0;

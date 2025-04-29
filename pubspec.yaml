@@ -94,7 +94,6 @@ flutter:
       - assets/bottle.json
       - assets/sea_background.webp
       - assets/flower.gif
-      - assets/MissionGenerationPrompt.txt
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

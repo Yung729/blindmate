@@ -11,7 +11,7 @@ class UserModel {
   final String emotionStatus;
   final double progressionValue;
   int fragmentNumber;
-  String currentMission;
+  // String currentMission;
   String avatarImg;
   int flower;
   final DateTime surveyDate;
@@ -28,7 +28,7 @@ class UserModel {
     required this.emotionStatus,
     required this.progressionValue,
     required this.fragmentNumber,
-    required this.currentMission,
+    // required this.currentMission,
     required this.avatarImg,
     required this.flower,
     required this.surveyDate,
@@ -53,7 +53,7 @@ class UserModel {
           .toDouble()
           .clamp(0.0, 1.0),
       fragmentNumber: (data['fragmentNumber'] as num? ?? 0).toInt(),
-      currentMission: data['currentMission'] ?? '',
+      // currentMission: data['currentMission'] ?? '',
       avatarImg: data['avatarImg'] ?? '',
       flower: data['flower'] ?? 0,
       surveyDate:
@@ -78,7 +78,7 @@ class UserModel {
               : FieldValue.serverTimestamp(),
       'emotionStatus': emotionStatus,
       'fragmentNumber': fragmentNumber,
-      'currentMission': currentMission,
+      // 'currentMission': currentMission,
       'avatarImg': avatarImg,
       'levelValue': levelValue,
       'progressionValue': progressionValue,

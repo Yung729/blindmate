@@ -9,7 +9,7 @@ class MissionModel {
   final String difficulty; // "easy", "medium", "hard"
   final Requirement requirements;
   final Reward rewards;
-  final bool selected;
+  final bool status;
   final bool finished;
   final String assignedUser;
   final int progress;
@@ -24,7 +24,7 @@ class MissionModel {
     required this.difficulty,
     required this.requirements,
     required this.rewards,
-    this.selected = false,
+    this.status = false,
     this.finished = false,
     required this.assignedUser,
     this.progress = 0,
@@ -41,7 +41,7 @@ class MissionModel {
       difficulty: map['difficulty'],
       requirements: Requirement.fromMap(map['requirements']),
       rewards: Reward.fromMap(map['rewards']),
-      selected: map['selected'] ?? false,
+      status: map['status'] ?? true,
       finished: map['finished'] ?? false,
       assignedUser: map['assignedUser'] ?? '',
       progress: map['progress'] ?? 0,
@@ -59,7 +59,7 @@ class MissionModel {
       'difficulty': difficulty,
       'requirements': requirements.toMap(),
       'rewards': rewards.toMap(),
-      'selected': selected,
+      'status': status,
       'finished': finished,
       'assignedUser': assignedUser,
       'progress': progress,

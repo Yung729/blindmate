@@ -110,4 +110,88 @@ Future<List<Map<String, dynamic>>> generateSurveyQuestions() async {
       rethrow;
     }
   }
+
+  Future<String> generateMissionJsonFromPrompt() async {
+    final model = GenerativeModel(model: 'gemini-1.5-flash', apiKey: apiKey);
+    final prompt = 
+    '''
+  Generate 5 missions for a social app focusing ONLY on time-based OR action-based achievements.
+  Each mission should use these existing tracked metrics and features:
+
+  Time-based metrics available:
+  - Chat duration (how long users chat)
+  - Time between messages (10-minute inactivity limit)
+
+  Action-based metrics available:
+  1. Chat Actions:
+     - Number of safe messages sent (safeMessageCount) or just message total
+     - Number of stickers sent (stickerCount)
+     - Mini-games played
+     - Music shares in chat
+
+  2. Post Actions:
+     - Number of posts created (postsCreated)
+     - Number of music posts shared (musicShares)
+
+  3. Bottle Note Actions:
+     - Number of notes sent (notesSent)
+     - Number of notes received (notesReceived)
+
+  Return missions in this exact JSON format:
+  {
+    "missions": [
+      {
+        "id": "unique alphanumeric string id (e.g., 0fc3r0meKjngcowxbLt2)",
+        "title": "Brief, engaging mission name",
+        "description": "Clear, one-line description of what to accomplish",
+        "type": "time/action",
+        "category": "chat/post/note",
+        "difficulty": "easy/medium/hard",
+        "requirements": {
+          "metric": "chat_duration/safe_messages/stickers/posts/notes",
+          "target": number,
+        },
+        "rewards": {
+          "xp": number (100-1000)
+        }
+      }
+    ]
+  }
+
+  Example missions:
+  1. Time-based:
+     - Chat for 30 minutes continuously
+     - Maintain active chat (no inactivity warnings) for 1 hour
+
+  2. Action-based:
+     - Send 10 safe messages
+     - Share 3 stickers in one chat
+     - Create 5 music posts
+     - Send 3 bottle notes
+
+  Requirements:
+  - Each mission must be achievable within one session
+  - Use only metrics that are actually tracked
+  - Time-based missions should focus on engagement
+  - Action-based missions should encourage positive behavior
+  - Rewards should match difficulty
+  - Must be trackable with existing metrics
+
+  Generate ONLY valid JSON without any additional text or explanations.
+  ''';
+    
+    final response = await model.generateContent([Content.text(prompt)]);
+    var jsonResult = response.text?.trim();
+
+    print('Gemini Mission Response (Raw): $jsonResult');
+
+    // Clean up the response
+    jsonResult = jsonResult?.replaceAll(RegExp(r'^```json|\n|```'), '');
+
+    if (jsonResult == null || jsonResult.isEmpty) {
+      throw Exception('Gemini returned an empty result');
+    }
+
+    return jsonResult;
+  }
 }

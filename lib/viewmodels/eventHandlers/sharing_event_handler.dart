@@ -35,7 +35,7 @@ class SharingEventHandler {
     emotionStatus: 'neutral', // dummy value
     progressionValue: 0.0,    // dummy value
     fragmentNumber: 0,        // dummy value
-    currentMission: '',       // dummy value
+    // currentMission: '',       // dummy value
     flower: 0,                // dummy value
     surveyDate: DateTime.now(), // dummy value
     // lastActive: DateTime.now(), // optional

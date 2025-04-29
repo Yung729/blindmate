@@ -1,4 +1,5 @@
 import 'package:blindmate/models/dataModels/user_model.dart';
+import 'package:blindmate/services/do_mission_service.dart';
 import 'package:blindmate/services/survey_service.dart';
 import 'package:blindmate/viewmodels/dataBinding/auth_data_binding.dart';
 import 'package:blindmate/viewmodels/eventHandlers/auth_event_handler.dart';
@@ -50,6 +51,10 @@ class _HomeScreenState extends State<HomeScreen>
         if (shouldShowDialog) {
           _showSurveyDialog();
           _hasShownSurveyDialog = true;
+        }
+
+        if ((await fetchMissionsFromFirebase(limit: 1)).isEmpty) {
+          await generateAndStoreMissions();
         }
       }
     });
