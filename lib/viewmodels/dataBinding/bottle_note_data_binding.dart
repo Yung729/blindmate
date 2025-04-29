@@ -38,10 +38,11 @@ class BottleNoteDataBinding {
 
     bottleNoteState.setLastNoteStatus(moderationResult!);
 
-    if (moderationResult == 'UNSAFE') {
-      throw Exception("BANNED");
-      // return;
+    if (!['UNSAFE', 'SAFE', 'WARNING'].contains(moderationResult)) {
+      throw Exception('Invalid moderation result: $moderationResult');
     }
+
+    if (moderationResult == 'UNSAFE') return;
 
     final newNote = BottleNote(
       noteId: const Uuid().v4(),
@@ -67,9 +68,12 @@ class BottleNoteDataBinding {
 
     bottleNoteState.setLastNoteStatus(moderationResult!);
 
-    if (moderationResult == 'UNSAFE') {
-      throw Exception("UNSAFE");
+
+    if (!['UNSAFE', 'SAFE', 'WARNING'].contains(moderationResult)) {
+      throw Exception('Invalid moderation result: $moderationResult');
     }
+
+    if (moderationResult == 'UNSAFE') return;
 
     final reply = Reply(
       replyId: const Uuid().v4(),

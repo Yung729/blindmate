@@ -85,9 +85,11 @@ class _SendBottleNoteScreenState extends State<SendBottleNoteScreen>
         } else if (_eventHandler.state.lastNoteStatus == 'WARNING') {
           message =
               "⚠️ Your bottle note has been sent, but contains sensitive content. You will be redirected in 3 seconds";
-        } else {
+        } else if (_eventHandler.state.lastNoteStatus == 'UNSAFE') {
           message =
               "❌ Your message was blocked due to inappropriate content. You will be redirected in 3 seconds";
+        } else {
+          message = "❌ Failed to send bottle note! Please try again later";
         }
         CustomSnackBar.show(
           context: context,

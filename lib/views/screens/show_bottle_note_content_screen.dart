@@ -60,7 +60,6 @@ class _ShowBottleNoteScreenState extends State<ShowBottleNoteScreen> {
 
     if (user == null || replyText.isEmpty) return;
 
-    // Show loading while checking
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -74,7 +73,7 @@ class _ShowBottleNoteScreenState extends State<ShowBottleNoteScreen> {
         content: replyText,
       );
 
-      Navigator.pop(context); // Close loading
+      Navigator.pop(context);
 
       if (!mounted) return;
 
@@ -83,25 +82,27 @@ class _ShowBottleNoteScreenState extends State<ShowBottleNoteScreen> {
       switch (result) {
         case 'SAFE':
           message = "✅ Reply sent!";
-          await _loadReplies(); // Reload replies after successful reply
-          Navigator.of(context).pop(); // Close reply dialog/screen
+          await _loadReplies();
           break;
         case 'WARNING':
           message = "⚠️ Reply sent, but it contains sensitive content.";
-          await _loadReplies(); // Reload replies after successful reply
-          Navigator.of(context).pop();
+          await _loadReplies();
+          break;
+        case 'UNSAFE':
+          message = "❌ Reply blocked due to inappropriate content.";
           break;
         default:
-          message = "❌ Reply blocked due to inappropriate content.";
+          message = "❌ Failed to send bottle note! Please try again later.";
       }
 
+      Navigator.of(context).pop();
       CustomSnackBar.show(context: context, message: message, status: result);
     } catch (e) {
-      Navigator.pop(context); // Close loading
+      Navigator.pop(context);
       if (mounted) {
         CustomSnackBar.show(
           context: context,
-          message: "Failed to send reply: $e",
+          message: "❌ Error: ${e.toString()}",
           status: 'ERROR',
         );
       }

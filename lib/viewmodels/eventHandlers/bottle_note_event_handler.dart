@@ -62,11 +62,7 @@ class BottleNoteEventHandler {
     try {
       await dataBinding.sendNote(userId, content);
     } catch (e) {
-      if (e.toString().contains("BANNED")) {
-        throw Exception("BANNED");
-        // return;
-      }
-      rethrow;
+      throw Exception("Failed to send note: $e");
     }
   }
 
@@ -83,10 +79,7 @@ class BottleNoteEventHandler {
       await dataBinding.replyToNote(noteId, userId, content);
       // return 'SAFE';
     } catch (e) {
-      if (e.toString().contains("UNSAFE")) {
-        // return 'UNSAFE';
-      }
-      rethrow;
+      throw Exception("Failed to reply note: $e");
     }
   }
 
