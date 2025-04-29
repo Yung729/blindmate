@@ -79,13 +79,15 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     });
 
     _chatState.addListener(() {
-      if (!mounted || _chatState.hasSummaryShown) return;
+      if (!mounted || _chatState.hasSummaryShown || _isSummaryBeingShown) return;
 
       if (_chatState.isBanned) {
         _showBanDialog();
       } else if (_chatState.reportedUser) {
         _showChatSummary().then((_) {
           _chatState.markSummaryShown();
+          // Reset the local flag after showing summary
+          _isSummaryBeingShown = false;
           // Stop music playback when chat ends
           if (_chatState.isMusicPlaying) {
             _chatState.setMusicPlaying(false);
@@ -98,6 +100,8 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
         if (!_chatState.isBanned) {
           _showChatSummary().then((_) {
             _chatState.markSummaryShown();
+            // Reset the local flag after showing summary
+            _isSummaryBeingShown = false;
             // Stop music playback when partner leaves
             if (_chatState.isMusicPlaying) {
               _chatState.setMusicPlaying(false);
@@ -202,7 +206,7 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   }
 
   Future<void> _showBanDialog() async {
-    if (_chatState.hasSummaryShown) return;
+    if (_chatState.hasSummaryShown || _isSummaryBeingShown) return;
 
     showErrorDialog(
       context,
@@ -211,6 +215,8 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       onOk: () async {
         await _showChatSummary();
         _chatState.markSummaryShown();
+        // Reset the local flag after showing summary
+        _isSummaryBeingShown = false;
         await _chatHandler.handleExit();
         if (mounted) {
           Navigator.popUntil(context, (route) => route.isFirst);
@@ -228,6 +234,8 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     if (shouldEnd) {
       await _showChatSummary();
       _chatState.markSummaryShown();
+      // Reset the local flag after showing summary
+      _isSummaryBeingShown = false;
       await _chatHandler.handleExit();
       if (mounted && Navigator.canPop(context)) {
         Navigator.pop(context);
@@ -235,8 +243,15 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     }
   }
 
+  // Local flag to prevent multiple summary dialogs
+  bool _isSummaryBeingShown = false;
+
   Future<void> _showChatSummary() async {
-    if (_chatState.hasSummaryShown) return;
+    // Check both the state flag and local flag to prevent multiple dialogs
+    if (_chatState.hasSummaryShown || _isSummaryBeingShown) return;
+    
+    // Set local flag to prevent concurrent calls
+    _isSummaryBeingShown = true;
 
     await showCustomDialog(
       context: context,
@@ -269,11 +284,11 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   }
 
   Future<void> _showInactivityDialog() async {
-    if (_chatState.hasSummaryShown) return;
+    if (_chatState.hasSummaryShown || _isSummaryBeingShown) return;
 
     await showCustomDialog(
       context: context,
-      title: "Chat Ended Due to Inactivity",
+      title: "Chat Inactive",
       content: const Text(
         "No messages were sent for 10 minutes. This chat will now close.",
       ),
@@ -282,6 +297,9 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
           onPressed: () async {
             Navigator.pop(context);
             await _showChatSummary();
+            _chatState.markSummaryShown();
+            // Reset the local flag after showing summary
+            _isSummaryBeingShown = false;
             if (mounted && Navigator.canPop(context)) {
               Navigator.pop(context);
             }

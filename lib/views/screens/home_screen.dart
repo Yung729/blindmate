@@ -115,69 +115,92 @@ class _HomeScreenState extends State<HomeScreen>
           SafeArea(
             child: Consumer<AuthState>(
               builder: (context, authState, child) {
-                return Column(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                return Stack(
                   children: [
-                    Padding(
-                      padding: const EdgeInsets.only(top: 100.0),
-                      child: Center(
-                        child: Image.asset('assets/logo.png', height: 160),
+                    // Centered main content
+                    Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          // Avatar
+                          authState.currentUser != null
+                              ? Container(
+                                  width: 100,
+                                  height: 100,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    border: Border.all(color: Colors.white, width: 3),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withOpacity(0.3),
+                                        blurRadius: 8,
+                                        offset: const Offset(0, 3),
+                                      ),
+                                    ],
+                                    image: DecorationImage(
+                                      image: authState.currentUser!.avatarImg.isNotEmpty
+                                          ? NetworkImage(authState.currentUser!.avatarImg)
+                                          : const AssetImage('assets/logo.png')
+                                              as ImageProvider,
+                                      fit: BoxFit.cover,
+                                    ),
+                                  ),
+                                )
+                              : Image.asset('assets/logo.png', height: 100),
+                          const SizedBox(height: 20),
+                          
+                          // Welcome text
+                          if (authState.currentUser != null)
+                            Text(
+                              "Welcome, ${authState.currentUser!.name}!",
+                              style: const TextStyle(
+                                fontSize: 22,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                                shadows: [
+                                  Shadow(blurRadius: 2, color: Colors.black),
+                                ],
+                              ),
+                            )
+                          else
+                            const CircularProgressIndicator(),
+                          const SizedBox(height: 20),
+                          
+                          // Matching button
+                          CustomButton(
+                            text: "Start Matching",
+                            onPressed: _startRandomMatching,
+                          ),
+                        ],
                       ),
                     ),
 
-                    Column(
-                      children: [
-                        if (authState.currentUser != null)
-                          Text(
-                            "Welcome, ${authState.currentUser!.name}!",
-                            style: const TextStyle(
-                              fontSize: 22,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                              shadows: [
-                                Shadow(blurRadius: 2, color: Colors.black),
-                              ],
+                    // Bottom section with bottle (positioned absolutely)
+                    Positioned(
+                      left: 0,
+                      right: 0,
+                      bottom: 30,
+                      child: GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const BottleNoteHomeScreen(),
                             ),
-                          )
-                        else
-                          const CircularProgressIndicator(),
-                        const SizedBox(height: 30),
-                        CustomButton(
-                          text: "Start Matching",
-                          onPressed: _startRandomMatching,
+                          );
+                        },
+                        child: AnimatedBuilder(
+                          animation: _swingAnimation,
+                          builder: (context, child) {
+                            return Transform.rotate(
+                              angle: _swingAnimation.value,
+                              child: Image.asset(
+                                'assets/bottle.png',
+                                height: 100,
+                              ),
+                            );
+                          },
                         ),
-                      ],
-                    ),
-
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 30.0),
-                      child: Column(
-                        children: [
-                          GestureDetector(
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder:
-                                      (context) => const BottleNoteHomeScreen(),
-                                ),
-                              );
-                            },
-                            child: AnimatedBuilder(
-                              animation: _swingAnimation,
-                              builder: (context, child) {
-                                return Transform.rotate(
-                                  angle: _swingAnimation.value,
-                                  child: Image.asset(
-                                    'assets/bottle.png',
-                                    height: 100,
-                                  ),
-                                );
-                              },
-                            ),
-                          ),
-                          const SizedBox(height: 10),
-                        ],
                       ),
                     ),
                   ],
