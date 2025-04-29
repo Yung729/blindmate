@@ -533,61 +533,64 @@ class _NavigationControllerState extends State<NavigationController> {
               backgroundColor: Colors.transparent,
               elevation: 0,
               toolbarHeight: 80,
-              title:
-                  _currentIndex == 0
-                      ? Padding(
-                        padding: const EdgeInsets.only(left: 8.0),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            GestureDetector(
-                              onTap:
-                                  () => _showEmotionPicker(
-                                    context,
-                                    currentUserState,
+              title: _currentIndex == 0
+                  ? Padding(
+                      padding: const EdgeInsets.only(left: 8.0),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          GestureDetector(
+                            onTap: () => _showEmotionPicker(context, currentUserState),
+                            child: Icon(
+                              _getEmotionIcon(currentUserState.currentUser!.emotionStatus),
+                              color: Colors.black,
+                              size: 32,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Row(
+                                children: [
+                                  Text(
+                                    "Level ${currentUserState.currentUser!.levelValue}",
+                                    style: const TextStyle(
+                                      color: Colors.black,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 16,
+                                    ),
                                   ),
-                              child: Icon(
-                                _getEmotionIcon(
-                                  currentUserState.currentUser!.emotionStatus,
-                                ),
-                                color: Colors.black,
-                                size: 32,
+                                  const SizedBox(width: 4),
+                                  GestureDetector(
+                                    onTap: () => _showLevelGuidanceDialog(context),
+                                    child: const Icon(
+                                      question_circle_fill,
+                                      color: Colors.black,
+                                      size: 20,
+                                    ),
+                                  ),
+                                ],
                               ),
-                            ),
-                            const SizedBox(width: 8),
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Text(
-                                  "Level ${currentUserState.currentUser!.levelValue}",
-                                  style: const TextStyle(
-                                    color: Colors.black,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 16,
-                                  ),
+                              const SizedBox(height: 4),
+                              SizedBox(
+                                width: 150,
+                                child: LinearPercentIndicator(
+                                  percent: currentUserState.currentUser!.progressionValue,
+                                  backgroundColor: Colors.grey[300],
+                                  progressColor: Colors.blue,
+                                  lineHeight: 6.0,
+                                  animation: true,
+                                  animationDuration: 1000,
                                 ),
-                                const SizedBox(height: 4),
-                                SizedBox(
-                                  width: 150,
-                                  child: LinearPercentIndicator(
-                                    percent:
-                                        currentUserState
-                                            .currentUser!
-                                            .progressionValue,
-                                    backgroundColor: Colors.grey[300],
-                                    progressColor: Colors.blue,
-                                    lineHeight: 6.0,
-                                    animation: true,
-                                    animationDuration: 1000,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      )
-                      : null,
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    )
+                  : null,
               actions: [
                 IconButton(
                   icon: const Icon(Icons.exit_to_app, color: Colors.black),
