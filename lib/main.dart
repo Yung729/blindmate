@@ -47,6 +47,19 @@ class MyApp extends StatelessWidget {
       title: 'Blind Mate',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.blueAccent),
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Colors.white,
+          elevation: 0,
+          foregroundColor: Colors.black,
+          surfaceTintColor: Colors.white,
+          iconTheme: IconThemeData(color: Colors.black),
+          titleTextStyle: TextStyle(
+            color: Colors.black,
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        scaffoldBackgroundColor: Colors.white,
       ),
       routes: {
         '/login': (context) => const LoginScreen(),

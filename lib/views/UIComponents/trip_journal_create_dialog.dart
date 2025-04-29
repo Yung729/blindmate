@@ -533,6 +533,7 @@ class _TripJournalDialogState extends State<TripJournalDialog> {
                     fillColor: Colors.white,
                   ),
                   maxLines: 3,
+                  maxLength: 100,
                 ),
                 const SizedBox(height: 16),
                 // Activities Section
