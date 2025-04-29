@@ -25,6 +25,13 @@ class _NavigationControllerState extends State<NavigationController> {
 
   int _currentIndex = 0;
 
+  // Define the question_circle_fill icon
+  static const IconData question_circle_fill = IconData(
+    0xf790,
+    fontFamily: 'CupertinoIcons',
+    fontPackage: 'cupertino_icons',
+  );
+
   @override
   void initState() {
     super.initState();
@@ -134,6 +141,360 @@ class _NavigationControllerState extends State<NavigationController> {
           ),
         );
       },
+    );
+  }
+
+  // Method to show the "Survey & Chat FAQ" dialog
+  void _showLevelGuidanceDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      barrierDismissible: false, // Prevent dismissing by tapping outside
+      builder: (_) => AlertDialog(
+        backgroundColor: Colors.grey[100],
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        title: const Text(
+          'Survey & Chat FAQ',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: Colors.blue,
+          ),
+          textAlign: TextAlign.center,
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Learn how to boost your level with these FAQs!',
+                style: TextStyle(fontSize: 14, color: Colors.black87),
+              ),
+              const SizedBox(height: 12),
+              // FAQ 1
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Icon(
+                    Icons.check_circle,
+                    color: Colors.blue,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '1. What is the purpose of the Survey and Chat features?',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black,
+                          ),
+                        ),
+                        Text(
+                          'These features are designed to assess your activity quality and engagement. Both use Gemini moderation service to generate a weekly score that reflects your interactions and responses.',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.black,
+                            height: 1.4,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              // FAQ 2
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Icon(
+                    Icons.check_circle,
+                    color: Colors.blue,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '2. How are the scores calculated?',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black,
+                          ),
+                        ),
+                        Text(
+                          'Gemini moderation service analyzes your survey responses and chat behavior to generate a score for each. These scores are based on relevance, clarity, positivity, and overall interaction quality. The chat score during your chat needs to be close to your survey score (Difference score < 0.3).',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.black,
+                            height: 1.4,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              // FAQ 3
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Icon(
+                    Icons.check_circle,
+                    color: Colors.blue,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '3. How does the level system work?',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black,
+                          ),
+                        ),
+                        Text(
+                          'Each week, your survey score is matched against your chat score. If both scores align (i.e., meet a certain internal consistency), your user level increases, based on a proprietary algorithm.',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.black,
+                            height: 1.4,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              // FAQ 4
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Icon(
+                    Icons.check_circle,
+                    color: Colors.blue,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '4. What happens if the scores don’t match?',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black,
+                          ),
+                        ),
+                        Text(
+                          'If your scores show inconsistency, your level may remain the same or increase more slowly (both scores do not differ too much). Consistency encourages authentic and meaningful participation.',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.black,
+                            height: 1.4,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              // FAQ 5
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Icon(
+                    Icons.check_circle,
+                    color: Colors.blue,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '5. What are the benefits of leveling up?',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black,
+                          ),
+                        ),
+                        Text(
+                          'Higher levels unlock better rewards when completing missions.\n'
+                          'Level < 10: You receive standard rewards (e.g., 100 fragments).\n'
+                          'Level ≥ 10: You start receiving bonus rewards (e.g., 120 fragments or more).\n'
+                          'The higher your level, the greater the bonus.',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.black,
+                            height: 1.4,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              // FAQ 6
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Icon(
+                    Icons.check_circle,
+                    color: Colors.blue,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '6. How often can I take the survey?',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black,
+                          ),
+                        ),
+                        Text(
+                          'The survey is available weekly. You need to complete it once per week to participate in the score matching process.',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.black,
+                            height: 1.4,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              // FAQ 7
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Icon(
+                    Icons.check_circle,
+                    color: Colors.blue,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '7. Can my level decrease?',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black,
+                          ),
+                        ),
+                        Text(
+                          'No, your level does not decrease, but your will stop there if your scores are inconsistent or if you skip weekly surveys.',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.black,
+                            height: 1.4,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              // FAQ 8
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Icon(
+                    Icons.check_circle,
+                    color: Colors.blue,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '8. Is there any other way to increase level?',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black,
+                          ),
+                        ),
+                        Text(
+                          'Yes, you can gain extra level when the people whom you chat with sent you flower. Your level will be added.\n'
+                          'Engage in meaningful and respectful chats.\n'
+                          'Stay active consistently every week.',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.black,
+                            height: 1.4,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          Center(
+            child: ElevatedButton(
+              onPressed: () {
+                Navigator.pop(context); // Close the guidance dialog
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blue,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 18,
+                  vertical: 10,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(24),
+                ),
+              ),
+              child: const Text(
+                'Got It',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 14,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
