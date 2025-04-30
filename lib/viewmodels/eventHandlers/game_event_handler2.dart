@@ -1,0 +1,138 @@
+import 'dart:async';
+import 'package:flutter/material.dart';
+import '../state/game_state2.dart';
+import '../dataBinding/game_data_binding2.dart';
+
+class GameEventHandler2 {
+  final GameState2 _gameState;
+  final GameDataBinding2 _dataBinding;
+  final String _chatRoomId;
+  final String _currentUserId;
+  final String _opponentId;
+
+  Timer? _inactivityTimer;
+  static const int _inactivityThreshold = 30; // 30 seconds of inactivity
+
+  GameEventHandler2({
+    required GameState2 gameState,
+    required GameDataBinding2 dataBinding,
+    required String chatRoomId,
+    required String currentUserId,
+    required String opponentId,
+  }) : _gameState = gameState,
+       _dataBinding = dataBinding,
+       _chatRoomId = chatRoomId,
+       _currentUserId = currentUserId,
+       _opponentId = opponentId;
+
+  Future<void> init(bool isPlayerX) async {
+    await _dataBinding.initializeGame(
+      _chatRoomId,
+      _currentUserId,
+      _opponentId,
+      isPlayerX,
+    );
+    _dataBinding.listenToGame(_chatRoomId);
+    _startInactivityTimer();
+  }
+
+  void _startInactivityTimer() {
+    _inactivityTimer?.cancel();
+    _inactivityTimer = Timer.periodic(Duration(seconds: _inactivityThreshold), (timer) {
+      if (!_gameState.winnerDialogShown) {
+        _handleOpponentTimeout();
+      }
+    });
+  }
+
+  void _resetInactivityTimer() {
+    _inactivityTimer?.cancel();
+    _startInactivityTimer();
+  }
+
+  Future<void> _handleOpponentTimeout() async {
+    await _dataBinding.setWinner(_chatRoomId, _currentUserId);
+    _gameState.setWinner(_currentUserId);
+    _gameState.setWinnerDialogShown(true);
+  }
+
+  Future<void> handleMove(int index) async {
+    if (!_gameState.isCurrentPlayer || _gameState.board[index].isNotEmpty) return;
+
+    final newBoard = List<String>.from(_gameState.board);
+    newBoard[index] = _gameState.isPlayerX ? 'X' : 'O';
+
+    // Check for winner
+    final winner = _checkWinner(newBoard);
+    if (winner != null) {
+      await _dataBinding.setWinner(_chatRoomId, winner);
+      _gameState.setWinner(winner);
+      _gameState.setWinnerDialogShown(true);
+      return;
+    }
+
+    // Check for draw
+    if (!newBoard.contains('')) {
+      await _dataBinding.setWinner(_chatRoomId, 'draw');
+      _gameState.setWinner('draw');
+      _gameState.setWinnerDialogShown(true);
+      return;
+    }
+
+    // Update board and switch turns
+    await _dataBinding.updateBoard(_chatRoomId, newBoard);
+    _gameState.setBoard(newBoard);
+    
+    // Switch current player
+    final newCurrentPlayer = _gameState.isCurrentPlayer ? _opponentId : _currentUserId;
+    await _dataBinding.updateGame(_chatRoomId, {
+      'currentPlayer': newCurrentPlayer,
+    });
+    _gameState.setIsCurrentPlayer(newCurrentPlayer == _currentUserId);
+    
+    _resetInactivityTimer();
+  }
+
+  String? _checkWinner(List<String> board) {
+    // Check rows
+    for (int i = 0; i < 9; i += 3) {
+      if (board[i].isNotEmpty && board[i] == board[i + 1] && board[i] == board[i + 2]) {
+        return _gameState.roles[_currentUserId] == board[i] ? _currentUserId : _opponentId;
+      }
+    }
+
+    // Check columns
+    for (int i = 0; i < 3; i++) {
+      if (board[i].isNotEmpty && board[i] == board[i + 3] && board[i] == board[i + 6]) {
+        return _gameState.roles[_currentUserId] == board[i] ? _currentUserId : _opponentId;
+      }
+    }
+
+    // Check diagonals
+    if (board[0].isNotEmpty && board[0] == board[4] && board[0] == board[8]) {
+      return _gameState.roles[_currentUserId] == board[0] ? _currentUserId : _opponentId;
+    }
+    if (board[2].isNotEmpty && board[2] == board[4] && board[2] == board[6]) {
+      return _gameState.roles[_currentUserId] == board[2] ? _currentUserId : _opponentId;
+    }
+
+    return null;
+  }
+
+  Future<void> handleExitGame() async {
+    await _dataBinding.setWinner(_chatRoomId, _opponentId);
+    _gameState.setWinner(_opponentId);
+    _gameState.setWinnerDialogShown(true);
+    await _dataBinding.clearGame(_chatRoomId);
+    _gameState.reset();
+  }
+
+  Future<void> resetGame() async {
+    await _dataBinding.clearGame(_chatRoomId);
+    _gameState.reset();
+  }
+
+  void dispose() {
+    _inactivityTimer?.cancel();
+  }
+} 

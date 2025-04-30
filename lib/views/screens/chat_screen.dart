@@ -5,6 +5,7 @@ import 'package:blindmate/viewmodels/eventHandlers/matching_event_handler.dart';
 import 'package:blindmate/viewmodels/state/matching_state.dart';
 import 'package:blindmate/views/UIComponents/custom_dialog.dart';
 import 'package:blindmate/views/UIComponents/music_search_dialog.dart';
+import 'package:blindmate/views/screens/mini_game2.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../viewmodels/state/chat_state.dart';
@@ -592,15 +593,60 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                                     });
                                   },
                                   onPlayMiniGame: () {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) => MiniGameScreen(
-                                          chatRoomId: widget.chatRoomId,
-                                          currentUserId: widget.currentUserId,
-                                          opponentId: _chatState.otherUserId ?? '',
-                                          isDrawer: true,
+                                    showDialog(
+                                      context: context,
+                                      builder: (context) => AlertDialog(
+                                        title: Text("Select Game"),
+                                        content: Column(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            ListTile(
+                                              leading: Icon(Icons.draw, color: Colors.blue),
+                                              title: Text("Draw & Guess"),
+                                              subtitle: Text("Draw and let your partner guess"),
+                                              onTap: () {
+                                                Navigator.pop(context);
+                                                Navigator.push(
+                                                  context,
+                                                  MaterialPageRoute(
+                                                    builder: (context) => MiniGameScreen(
+                                                      chatRoomId: widget.chatRoomId,
+                                                      currentUserId: widget.currentUserId,
+                                                      opponentId: _chatState.otherUserId ?? '',
+                                                      isDrawer: true,
+                                                    ),
+                                                  ),
+                                                );
+                                              },
+                                            ),
+                                            Divider(),
+                                            ListTile(
+                                              leading: Icon(Icons.grid_on, color: Colors.green),
+                                              title: Text("Tic Tac Toe"),
+                                              subtitle: Text("Classic X and O game"),
+                                              onTap: () {
+                                                Navigator.pop(context);
+                                                Navigator.push(
+                                                  context,
+                                                  MaterialPageRoute(
+                                                    builder: (context) => MiniGame2Screen(
+                                                      chatRoomId: widget.chatRoomId,
+                                                      currentUserId: widget.currentUserId,
+                                                      opponentId: _chatState.otherUserId ?? '',
+                                                      isPlayerX: true,
+                                                    ),
+                                                  ),
+                                                );
+                                              },
+                                            ),
+                                          ],
                                         ),
+                                        actions: [
+                                          TextButton(
+                                            onPressed: () => Navigator.pop(context),
+                                            child: Text("Cancel"),
+                                          ),
+                                        ],
                                       ),
                                     );
                                   },
