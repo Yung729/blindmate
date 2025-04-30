@@ -13,7 +13,6 @@ class GameEventHandler {
   final String _currentUserId;
   final String _opponentId;
 
-
   Timer? _inactivityTimer;
   Timer? _gameOverTimer;
   static const int _inactivityThreshold = 30; // 30 seconds of inactivity
@@ -172,14 +171,12 @@ class GameEventHandler {
 
     // Update Firestore
     try {
-  await _dataBinding.updateRoles(_chatRoomId, newRoles);
-} catch (e) {
-  debugPrint('Failed to swap roles: $e');
-}
+      await _dataBinding.updateRoles(_chatRoomId, newRoles);
+    } catch (e) {
+      debugPrint('Failed to swap roles: $e');
+    }
     await _dataBinding.updatePoints(_chatRoomId, []);
   }
-
-  
 
   Future<void> clearCanvas() async {
     _gameState.clearPoints();
@@ -193,18 +190,24 @@ class GameEventHandler {
 
   Future<void> handleExitGame() async {
     // Clear the game state
-    await _dataBinding.clearGame(_chatRoomId);
-    
+    // await _dataBinding.clearGame(_chatRoomId);
+    print('1');
+
     // Set the opponent as winner since current user left
-    await _dataBinding.setWinner(_chatRoomId, _opponentId);
-    
+    // await _dataBinding.setWinner(_chatRoomId, _opponentId);
+
     // Reset local state
-    _gameState.reset();
+    // _gameState.reset();
+    print('3');
+            _gameState.setWinnerDialogShown(true);
+
+    _gameState.setWinner(_opponentId);
+
+    print('4');
   }
 
   void dispose() {
     _inactivityTimer?.cancel();
     _gameOverTimer?.cancel();
-    
   }
 }
