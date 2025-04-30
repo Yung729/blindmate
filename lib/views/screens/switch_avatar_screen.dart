@@ -1,4 +1,5 @@
 import 'package:blindmate/views/UIComponents/avatar_frame.dart';
+import 'package:blindmate/views/UIComponents/custom_button.dart';
 import 'package:blindmate/views/UIComponents/empty_message.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:blindmate/models/dataModels/rewards_model.dart';
@@ -110,6 +111,8 @@ class _SwitchAvatarScreenState extends State<SwitchAvatarScreen> {
                         child: Row(
                           children:
                               uniqueRewards.map((reward) {
+                                bool isCurrentAvatar =
+                                    widget.user?.avatarImg == reward.imageUrl;
                                 return Padding(
                                   padding: const EdgeInsets.symmetric(
                                     horizontal: 8.0,
@@ -169,6 +172,12 @@ class _SwitchAvatarScreenState extends State<SwitchAvatarScreen> {
                                       title: reward.rewardTitle,
                                     ),
                                   ),
+                          //           CustomButton(
+                          // text: isCurrentAvatar ? 'Current' : 'Apply',
+                          // onPressed: isCurrentAvatar ? null : () {
+                          //   // Do nothing when the button is tapped (or you can update the UI, etc.)
+                          // },
+                          //         ),
                                 );
                               }).toList(),
                         ),
