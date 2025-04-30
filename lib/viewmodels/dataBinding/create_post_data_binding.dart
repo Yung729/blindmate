@@ -31,7 +31,9 @@ class CreatePostDataBinding {
     createPostState.setMusicResults(results);
   }
 
-  Future<List<Map<String, dynamic>>> fetchUserTripJournals(String userId) async {
+  Future<List<Map<String, dynamic>>> fetchUserTripJournals(
+    String userId,
+  ) async {
     try {
       return await _tripJournalService.fetchUserTripJournals(userId);
     } catch (e) {
@@ -40,42 +42,54 @@ class CreatePostDataBinding {
     }
   }
 
-  List<Map<String, dynamic>> formatTripJournals(List<Map<String, dynamic>> journals) {
+  List<Map<String, dynamic>> formatTripJournals(
+    List<Map<String, dynamic>> journals,
+  ) {
     return _tripJournalService.formatTripJournals(journals);
   }
 
   /// Now: Stores all trip journals in a single post as a list.
   Future<PostModel?> createPost({
-  required String userId,
-  required String userName,
-  List<Map<String, dynamic>>? tripJournals,
-  String? url,
-}) async {
-  if (createPostState.postContent.trim().isEmpty &&
-      url == null &&
-      createPostState.selectedMusicUrl == null &&
-      (tripJournals == null || tripJournals.isEmpty)) {
-    return null;
+    required String userId,
+    required String userName,
+    List<Map<String, dynamic>>? tripJournals,
+    String? url,
+  }) async {
+    if (createPostState.postContent.trim().isEmpty &&
+        url == null &&
+        createPostState.selectedMusicUrl == null &&
+        (tripJournals == null || tripJournals.isEmpty)) {
+      return null;
+    }
+
+    // Determine postType based on content
+    PostType postType;
+    if (tripJournals != null && tripJournals.isNotEmpty) {
+      postType = PostType.tripJournal;
+    } else if (createPostState.selectedMusicUrl != null &&
+        createPostState.selectedMusicUrl!.isNotEmpty) {
+      postType = PostType.musicPost;
+    } else if (url != null && url.isNotEmpty) {
+      postType = PostType.urlPost;
+    } else {
+      postType = PostType.normal;
+    }
+
+    final newPost = PostModel(
+      userId: userId,
+      userName: userName,
+      content: createPostState.postContent.trim(),
+      musicUrl: createPostState.selectedMusicUrl,
+      musicTitle: createPostState.selectedMusicTitle,
+      timestamp: DateTime.now(),
+      visibility: createPostState.isPublic ? 'public' : 'private',
+      postType: postType,
+      tripJournals: tripJournals,
+      url: url,
+    );
+
+    await _postService.createPost(newPost);
+
+    return newPost;
   }
-
-  final newPost = PostModel(
-    userId: userId,
-    userName: userName,
-    content: createPostState.postContent.trim(),
-    musicUrl: createPostState.selectedMusicUrl,
-    musicTitle: createPostState.selectedMusicTitle,
-    timestamp: DateTime.now(),
-    visibility: createPostState.isPublic ? 'public' : 'private',
-    postType:
-        tripJournals != null && tripJournals.isNotEmpty
-            ? PostType.tripJournal
-            : PostType.normal,
-    tripJournals: tripJournals,
-    url: url,
-  );
-
-  await _postService.createPost(newPost);
-
-  return newPost;
-}
 }

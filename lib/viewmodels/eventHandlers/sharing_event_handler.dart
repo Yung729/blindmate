@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../../models/dataModels/post_model.dart';
-import '../../models/dataModels/user_model.dart';
 import '../dataBinding/sharing_data_binding.dart';
 import '../state/sharing_state.dart';
 import '../../services/post_service.dart';

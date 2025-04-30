@@ -1,6 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-enum PostType { normal, tripJournal }
+enum PostType { normal, tripJournal, musicPost, urlPost }
 
 class PostModel {
   final String? id;
@@ -59,7 +59,7 @@ class PostModel {
       'musicTitle': musicTitle,
       'timestamp': FieldValue.serverTimestamp(),
       'visibility': visibility,
-      'postType': postType == PostType.tripJournal ? 'tripJournal' : 'normal',
+      'postType': _postTypeToString(postType),
       'tripJournals': tripJournals,
       // Do NOT include authorAvatar in Firestore, it's for UI only
     };
@@ -78,10 +78,7 @@ class PostModel {
     }
 
     // Determine post type
-    PostType type = PostType.normal;
-    if (map['postType'] == 'tripJournal') {
-      type = PostType.tripJournal;
-    }
+    PostType type = _stringToPostType(map['postType']);
 
     // Deserialize tripJournals if present
     List<Map<String, dynamic>>? tripJournals;
@@ -120,9 +117,37 @@ class PostModel {
       'url': url,
       'musicUrl': musicUrl,
       'musicTitle': musicTitle,
-      'postType': postType == PostType.tripJournal ? 'tripJournal' : 'normal',
+      'postType': _postTypeToString(postType),
       'tripJournals': tripJournals,
       // Do NOT include authorAvatar in Firestore
     };
+  }
+
+  static String _postTypeToString(PostType type) {
+    switch (type) {
+      case PostType.tripJournal:
+        return 'tripJournal';
+      case PostType.musicPost:
+        return 'musicPost';
+      case PostType.urlPost:
+        return 'urlPost';
+      case PostType.normal:
+        return 'normal';
+    }
+  }
+
+  /// Helper: Convert string from Firestore to PostType enum
+  static PostType _stringToPostType(dynamic value) {
+    switch (value) {
+      case 'tripJournal':
+        return PostType.tripJournal;
+      case 'musicPost':
+        return PostType.musicPost;
+      case 'urlPost':
+        return PostType.urlPost;
+      case 'normal':
+      default:
+        return PostType.normal;
+    }
   }
 }
