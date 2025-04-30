@@ -46,51 +46,78 @@ Future<void> saveGeneratedMissionsToFirebase(
   }
 }
 
+// Future<bool> isDateAfterCreated() async {
+//   final currentUser = FirebaseAuth.instance.currentUser;
+//   if (currentUser == null) {
+//     throw Exception("No user is logged in.");
+//   }
+
+//   final missions =
+//       await FirebaseFirestore.instance
+//           .collection('mission')
+//           .where('assignedUser', isEqualTo: currentUser.uid)
+//           .limit(1)
+//           .get();
+
+//   if (missions.docs.isEmpty) {
+//     print("No missions found. Need to generate.");
+//     return true;
+//   }
+
+//   final createdAtTimestamp =
+//       missions.docs.first.data()['createdAt'] as Timestamp?;
+//   if (createdAtTimestamp == null) {
+//     print("Mission has no createdAt. Need to generate.");
+//     return true;
+//   }
+
+//   final createdAt = createdAtTimestamp.toDate();
+//   final now = DateTime.now();
+
+//   final createdDateOnly = DateTime(
+//     createdAt.year,
+//     createdAt.month,
+//     createdAt.day,
+//   );
+//   final nowDateOnly = DateTime(now.year, now.month, now.day);
+
+//   if (nowDateOnly.isAfter(createdDateOnly)) {
+//     print(
+//       "Today's date is after createdAt date. Need to clear and regenerate.",
+//     );
+//     return true;
+//   } else {
+//     print("Today's date is the same as createdAt date. No need to regenerate.");
+//     return false;
+//   }
+// }
 Future<bool> isDateAfterCreated() async {
   final currentUser = FirebaseAuth.instance.currentUser;
-  if (currentUser == null) {
-    throw Exception("No user is logged in.");
-  }
+  if (currentUser == null) throw Exception("No user is logged in.");
 
-  final missions =
-      await FirebaseFirestore.instance
-          .collection('mission')
-          .where('assignedUser', isEqualTo: currentUser.uid)
-          .limit(1)
-          .get();
+  final missions = await FirebaseFirestore.instance
+      .collection('mission')
+      .where('assignedUser', isEqualTo: currentUser.uid)
+      .get();
 
-  if (missions.docs.isEmpty) {
-    print("No missions found. Need to generate.");
-    return true;
-  }
-
-  final createdAtTimestamp =
-      missions.docs.first.data()['createdAt'] as Timestamp?;
-  if (createdAtTimestamp == null) {
-    print("Mission has no createdAt. Need to generate.");
-    return true;
-  }
-
-  final createdAt = createdAtTimestamp.toDate();
   final now = DateTime.now();
+  final today = DateTime(now.year, now.month, now.day);
 
-  final createdDateOnly = DateTime(
-    createdAt.year,
-    createdAt.month,
-    createdAt.day,
-  );
-  final nowDateOnly = DateTime(now.year, now.month, now.day);
+  for (var doc in missions.docs) {
+    final createdAt = (doc.data()['createdAt'] as Timestamp?)?.toDate();
+    if (createdAt == null) continue;
 
-  if (nowDateOnly.isAfter(createdDateOnly)) {
-    print(
-      "Today's date is after createdAt date. Need to clear and regenerate.",
-    );
-    return true;
-  } else {
-    print("Today's date is the same as createdAt date. No need to regenerate.");
-    return false;
+    final createdDate = DateTime(createdAt.year, createdAt.month, createdAt.day);
+    if (today.isAtSameMomentAs(createdDate)) {
+      print("Found a mission already created today. Skip regeneration.");
+      return false;
+    }
   }
+
+  print("No missions created today. Regeneration required.");
+  return true;
 }
+
 
 Future<void> clearMissionList() async {
   final currentUser = FirebaseAuth.instance.currentUser;
