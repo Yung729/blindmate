@@ -51,6 +51,17 @@ class _MiniGameScreenState extends State<MiniGameScreen> {
     _gameSubscription = _gameService.listenToGame(widget.chatRoomId).listen((snapshot) {
       if (snapshot.exists) {
         final data = snapshot.data() as Map<String, dynamic>;
+         final pointsData = data['points'] as List<dynamic>? ?? [];
+      final updatedPoints = pointsData
+          .map((point) => point == null
+              ? null
+              : Offset((point['dx'] as num).toDouble(), (point['dy'] as num).toDouble()))
+          .toList();
+
+      _gameState.setPoints(updatedPoints); // <-- This triggers UI update
+
+
+        // Role/leave check
         final roles = Map<String, String>.from(data['roles'] ?? {});
         
         // Only check for opponent leaving if the game is already initialized
@@ -234,7 +245,50 @@ class _MiniGameScreenState extends State<MiniGameScreen> {
   Widget _buildGameScreen(GameState gameState) {
     return Scaffold(
       key: _scaffoldKey,
-      appBar: AppBar(title: Text("Draw & Guess")),
+      appBar: AppBar(
+        title: Text("Draw & Guess"),
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back),
+          onPressed: () async {
+            // Show confirmation dialog
+            final shouldExit = await showDialog<bool>(
+              context: context,
+              barrierDismissible: false,
+              builder: (context) => AlertDialog(
+                title: Text("Exit Game"),
+                content: Text("Are you sure you want to exit the game?"),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(false),
+                    child: Text("Cancel"),
+                  ),
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(true),
+                    child: Text("Exit"),
+                  ),
+                ],
+              ),
+            );
+
+            if (shouldExit == true && mounted) {
+              // Notify opponent and return to chat
+              await _eventHandler.handleExitGame();
+              if (mounted) {
+                Navigator.of(context).pop(); // Pop the current screen
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => ChatScreen(
+                      chatRoomId: widget.chatRoomId,
+                      currentUserId: widget.currentUserId,
+                    ),
+                  ),
+                );
+              }
+            }
+          },
+        ),
+      ),
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -356,17 +410,40 @@ class DrawingPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-          ..color = Colors.black
-          ..strokeCap = StrokeCap.round
-          ..strokeWidth = 4.0;
+      ..color = Colors.black
+      ..strokeCap = StrokeCap.round
+      ..strokeWidth = 4.0
+      ..isAntiAlias = true;
 
-    for (int i = 0; i < points.length - 1; i++) {
-      if (points[i] != null && points[i + 1] != null) {
-        canvas.drawLine(points[i]!, points[i + 1]!, paint);
+    // Group points into continuous segments
+    List<List<Offset>> segments = [];
+    List<Offset> currentSegment = [];
+
+    for (var point in points) {
+      if (point != null) {
+        currentSegment.add(point);
+      } else if (currentSegment.isNotEmpty) {
+        segments.add(List.from(currentSegment));
+        currentSegment.clear();
+      }
+    }
+    
+    if (currentSegment.isNotEmpty) {
+      segments.add(currentSegment);
+    }
+
+    // Draw each continuous segment
+    for (var segment in segments) {
+      if (segment.length < 2) continue;
+      
+      for (int i = 0; i < segment.length - 1; i++) {
+        canvas.drawLine(segment[i], segment[i + 1], paint);
       }
     }
   }
 
   @override
-  bool shouldRepaint(DrawingPainter oldDelegate) => true;
+  bool shouldRepaint(DrawingPainter oldDelegate) {
+    return oldDelegate.points.length != points.length;
+  }
 }

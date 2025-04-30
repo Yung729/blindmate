@@ -13,7 +13,7 @@ class GameEventHandler {
   final String _currentUserId;
   final String _opponentId;
 
-  
+
   Timer? _inactivityTimer;
   Timer? _gameOverTimer;
   static const int _inactivityThreshold = 30; // 30 seconds of inactivity
@@ -88,12 +88,16 @@ class GameEventHandler {
 
   Future<void> handleDrawing(Offset point) async {
     _gameState.addPoint(point);
-    await _dataBinding.updatePoints(_chatRoomId, _gameState.points);
+    // Only update points in database every 10 points to reduce flickering
+    if (_gameState.points.length % 10 == 0) {
+      await _dataBinding.updatePoints(_chatRoomId, _gameState.points);
+    }
     _resetInactivityTimer();
   }
 
   Future<void> handleDrawingEnd() async {
     _gameState.addNullPoint();
+    // Always update points when drawing ends to ensure final state is saved
     await _dataBinding.updatePoints(_chatRoomId, _gameState.points);
     _resetInactivityTimer();
   }
@@ -114,43 +118,6 @@ class GameEventHandler {
         await _dataBinding.setWinner(_chatRoomId, _currentUserId);
         _gameState.setIsGameEnded(true);
       } else {
-        // // Get current game state before swapping roles
-        // final game = await _dataBinding.getCurrentGame(_chatRoomId);
-        // if (game == null) return;
-
-        // // Swap roles: current guesser becomes drawer, current drawer becomes guesser
-        // final newRoles = {
-        //   _currentUserId: 'drawer',  // Current guesser becomes drawer
-        //   _opponentId: 'guesser',    // Current drawer becomes guesser
-        // };
-
-        // // Update roles in Firestore first
-        // await _dataBinding.updateRoles(_chatRoomId, newRoles);
-
-        // // Then update local state
-        // _gameState.setIsDrawer(true);  // Current user is now drawer
-        // _gameState.setGuessCorrect(false);
-        // _gameState.setRemainingAttempts(2);
-        // _gameState.clearPoints();
-        // await _dataBinding.updatePoints(_chatRoomId, []);
-
-        // // Get a new word for the new drawer (current user)
-        // final newWord = GameUtils.getRandomWord();
-        // _gameState.setCurrentWord(newWord);
-
-        // // Update the entire game model
-        // await _dataBinding.updateGameModel(GameModel(
-        //   chatRoomId: _chatRoomId,
-        //   currentUserId: _currentUserId,
-        //   opponentId: _opponentId,
-        //   isDrawer: true,  // Current user is now drawer
-        //   word: newWord,
-        //   points: [],
-        //   roles: newRoles,
-        //   scores: _gameState.scores,
-        //   timestamp: DateTime.now(),
-        // ));
-
         await _swapRoles(); // <<<<< use existing helper
         await _prepareNewRound();
       }
@@ -159,44 +126,6 @@ class GameEventHandler {
       if (_gameState.remainingAttempts <= 0) {
         await _swapRoles(); // <<<<< use existing helper
         await _prepareNewRound();
-        // _gameState.setRemainingAttempts(_gameState.remainingAttempts - 1);
-        // if (_gameState.remainingAttempts <= 0) {
-        //   // Get current game state before swapping roles
-        //   final game = await _dataBinding.getCurrentGame(_chatRoomId);
-        //   if (game == null) return;
-
-        //   // Swap roles: current guesser becomes drawer, current drawer becomes guesser
-        //   final newRoles = {
-        //     _currentUserId: 'drawer',  // Current guesser becomes drawer
-        //     _opponentId: 'guesser',    // Current drawer becomes guesser
-        //   };
-
-        //   // Update roles in Firestore first
-        //   await _dataBinding.updateRoles(_chatRoomId, newRoles);
-
-        //   // Then update local state
-        //   _gameState.setIsDrawer(true);  // Current user is now drawer
-        //   _gameState.setGuessCorrect(false);
-        //   _gameState.setRemainingAttempts(2);
-        //   _gameState.clearPoints();
-        //   await _dataBinding.updatePoints(_chatRoomId, []);
-
-        //   // Get a new word for the new drawer (current user)
-        //   final newWord = GameUtils.getRandomWord();
-        //   _gameState.setCurrentWord(newWord);
-
-        //   // Update the entire game model
-        //   await _dataBinding.updateGameModel(GameModel(
-        //     chatRoomId: _chatRoomId,
-        //     currentUserId: _currentUserId,
-        //     opponentId: _opponentId,
-        //     isDrawer: true,  // Current user is now drawer
-        //     word: newWord,
-        //     points: [],
-        //     roles: newRoles,
-        //     scores: _gameState.scores,
-        //     timestamp: DateTime.now(),
-        //   ));
       }
     }
   }
@@ -250,6 +179,8 @@ class GameEventHandler {
     await _dataBinding.updatePoints(_chatRoomId, []);
   }
 
+  
+
   Future<void> clearCanvas() async {
     _gameState.clearPoints();
     await _dataBinding.updatePoints(_chatRoomId, []);
@@ -257,6 +188,17 @@ class GameEventHandler {
 
   Future<void> resetGame() async {
     await _dataBinding.clearGame(_chatRoomId);
+    _gameState.reset();
+  }
+
+  Future<void> handleExitGame() async {
+    // Clear the game state
+    await _dataBinding.clearGame(_chatRoomId);
+    
+    // Set the opponent as winner since current user left
+    await _dataBinding.setWinner(_chatRoomId, _opponentId);
+    
+    // Reset local state
     _gameState.reset();
   }
 
