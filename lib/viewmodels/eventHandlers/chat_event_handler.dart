@@ -35,9 +35,11 @@ class ChatEventHandler {
     // Use microtask to schedule state updates without delaying UI
     Future.microtask(() {
       chatState.clear(); // Reset state when initializing new chat
+      // Set the current user ID for tracking music playback
+      chatState.setCurrentUserId(currentUserId);
     });
     
-    dataBinding.initialize(chatRoomId);
+    dataBinding.initialize(chatRoomId, currentUserId);
     await dataBinding.fetchChatPartner(chatRoomId, currentUserId);
     dataBinding.listenTypingStatus(chatRoomId, chatState.otherUserId);
     await dataBinding.loadStickers("happy");

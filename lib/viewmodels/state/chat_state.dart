@@ -4,6 +4,7 @@ import '../../models/dataModels/message_model.dart';
 class ChatState extends ChangeNotifier {
   List<MessageModel> messages = [];
   String? otherUserId;
+  String? currentUserId; 
   bool isOtherUserTyping = false;
   bool partnerLeft = false;
   List<String> stickerList = [];
@@ -29,6 +30,12 @@ class ChatState extends ChangeNotifier {
     if (_isMusicPlaying != isPlaying) {
       _isMusicPlaying = isPlaying;
       notifyListeners();
+    }
+  }
+
+  void setCurrentUserId(String userId) {
+    if (currentUserId != userId) {
+      currentUserId = userId;
     }
   }
 
@@ -140,7 +147,7 @@ class ChatState extends ChangeNotifier {
     isInactive = false;
     isBanned = false;
     _reportedUser = false;
-    isChatOpen = true; // Reset this flag
+    isChatOpen = true; 
     notifyListeners();
   }
 

@@ -11,13 +11,13 @@ class ChatService {
       "wss://blindmate-backend-production.up.railway.app";
 
   WebSocketChannel? _channel;
-  final StreamController<List<MessageModel>> _messageStreamController =
+  final StreamController<MessageModel> _messageStreamController =
       StreamController.broadcast();
-
-  final List<MessageModel> _messages = []; // Store all messages in memory
+  String? _currentUserId; // Track current user ID
 
   /// 🔹 Connect WebSocket after finding a match
-  void connectWebSocket(String chatRoomId) {
+  void connectWebSocket(String chatRoomId, String userId) {
+    _currentUserId = userId; // Store current user ID
     _channel = IOWebSocketChannel.connect(websocketUrl);
     print("✅ WebSocket Connected to chatRoom: $chatRoomId");
 
@@ -41,8 +41,10 @@ class ChatService {
           // Use fromWebSocket instead of fromMap for WebSocket messages
           MessageModel msg = MessageModel.fromWebSocket(data);
           
-          _messages.insert(0, msg);
-          _messageStreamController.add(List.from(_messages));
+          // Only broadcast messages from other users
+          if (msg.senderId != _currentUserId) {
+            _messageStreamController.add(msg);
+          }
         }
       } catch (e) {
         print("⚠️ WebSocket Error: $e");
@@ -51,11 +53,9 @@ class ChatService {
   }
 
   /// 🔹 Get chat messages in real time
-  Stream<List<MessageModel>> getMessages() {
+  Stream<MessageModel> getMessages() {
     print("🎯 getMessages() Called");
-    return _messageStreamController.stream.map((messages) {
-      return messages;
-    });
+    return _messageStreamController.stream;
   }
 
   /// 🔹 Send a message via WebSocket

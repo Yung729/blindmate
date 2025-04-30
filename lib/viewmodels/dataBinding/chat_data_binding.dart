@@ -14,15 +14,19 @@ class ChatDataBinding {
 
   ChatDataBinding({required this.chatState});
 
-  void initialize(String chatRoomId) {
+  void initialize(String chatRoomId, String userId) {
     // Initialize network connections first
-    _chatService.connectWebSocket(chatRoomId);
+    _chatService.connectWebSocket(chatRoomId, userId);
 
     // Set up listeners with optimized state updates
-    _chatService.getMessages().listen((messages) {
+    _chatService.getMessages().listen((message) {
       // Use microtask for better performance while avoiding setState errors
       Future.microtask(() {
-        chatState.setMessages(messages);
+        // Only add if not already in the list
+        if (chatState.messages.isEmpty || 
+            !chatState.messages.any((m) => m.timestamp == message.timestamp)) {
+          chatState.addMessage(message);
+        }
       });
     });
 
