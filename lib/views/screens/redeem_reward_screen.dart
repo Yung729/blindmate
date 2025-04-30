@@ -3,6 +3,7 @@ import 'package:blindmate/services/reward_service.dart';
 import 'package:blindmate/viewmodels/eventHandlers/redeem_reward_event_handler.dart';
 import 'package:blindmate/views/UIComponents/avatar_frame.dart';
 import 'package:blindmate/views/UIComponents/custom_button.dart';
+import 'package:blindmate/views/UIComponents/empty_message.dart';
 import 'package:blindmate/views/UIComponents/reward_click.dart';
 import 'package:blindmate/views/screens/switch_avatar_screen.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -41,9 +42,13 @@ class _RedeemRewardScreenState extends State<RedeemRewardScreen> {
   @override
   void initState() {
     super.initState();
-    _loadUserData();
-    _loadRewards();
-  }
+    _initializeScreen();
+}
+
+Future<void> _initializeScreen() async {
+  await _loadUserData();  // Ensure current user is loaded
+  await _loadRewards();   // Now you can use _currentUser safely
+}
 
   Future<void> _loadUserData() async {
     final user = await RedeemRewardScreen.fetchUserData();
@@ -52,23 +57,69 @@ class _RedeemRewardScreenState extends State<RedeemRewardScreen> {
     });
   }
 
+  // Future<void> _loadRewards() async {
+  //   try {
+  //     final rewards = await RewardService().getAvailableRewards();
+  //     print("Fetched rewards: ${rewards.map((e) => e.rewardTitle).toList()}");
+  //     setState(() {
+  //       _rewards = rewards;
+  //       _isLoading = false;
+  //     });
+  //   } catch (e) {
+  //     setState(() {
+  //       _isLoading = false;
+  //     });
+  //     ScaffoldMessenger.of(
+  //       context,
+  //     ).showSnackBar(SnackBar(content: Text('Error fetching rewards: $e')));
+  //   }
+  // }
   Future<void> _loadRewards() async {
-    try {
-      final rewards = await RewardService().getAvailableRewards();
-      print("Fetched rewards: ${rewards.map((e) => e.rewardTitle).toList()}");
-      setState(() {
-        _rewards = rewards;
-        _isLoading = false;
-      });
-    } catch (e) {
-      setState(() {
-        _isLoading = false;
-      });
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Error fetching rewards: $e')));
+  try {
+    // Set loading state
+    setState(() {
+      _isLoading = true;
+    });
+
+    // Fetch all available rewards
+    final allFetchedRewards = await RewardService().getAvailableRewards();
+    
+    // Make sure we have a current user
+    if (_currentUser == null) {
+      await _loadUserData();
+      if (_currentUser == null) {
+        throw Exception('Failed to load user data');
+      }
     }
+
+    // Get the user's redeemed rewards
+    final userReward = await RewardService().fetchUserRewards(_currentUser!.userId);
+    final redeemedRewardIds = userReward?.redeemedRewards?.toSet() ?? <dynamic>{};
+
+    print("Redeemed reward IDs: $redeemedRewardIds");
+    
+    // Filter out rewards that have been redeemed
+    final unredeemedRewards = allFetchedRewards
+        .where((reward) => !redeemedRewardIds.contains(reward.redeemRewardId))
+        .toList();
+
+    print("All rewards count: ${allFetchedRewards.length}");
+    print("Unredeemed rewards count: ${unredeemedRewards.length}");
+    
+    setState(() {
+      _rewards = unredeemedRewards;
+      _isLoading = false;
+    });
+  } catch (e) {
+    print("Error loading rewards: $e");
+    setState(() {
+      _isLoading = false;
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Error fetching rewards: $e')),
+    );
   }
+}
 
   void _redeemReward(RewardModel reward) async {
     final userFragments = _currentUser!.fragmentNumber;
@@ -93,6 +144,9 @@ class _RedeemRewardScreenState extends State<RedeemRewardScreen> {
           onSuccess:
               (updatedFragmentNumber) => setState(() {
                 _currentUser!.fragmentNumber = updatedFragmentNumber;
+                _rewards.removeWhere(
+              (r) => r.redeemRewardId == reward.redeemRewardId,
+            );
               }),
         );
 
@@ -134,26 +188,6 @@ class _RedeemRewardScreenState extends State<RedeemRewardScreen> {
                 child: Column(
                   // ✅ Use Column here instead of children on Container
                   children: [
-                    // Row(
-                    //   mainAxisAlignment: MainAxisAlignment.end,
-                    //   children: [
-                    //     // AvatarFrame(
-                    //     //   imagePath: _currentUser!.avatarImg,
-                    //     //   onTap: () {
-                    //     //     Navigator.push(
-                    //     //       context,
-                    //     //       MaterialPageRoute(
-                    //     //         builder:
-                    //     //             (context) =>
-                    //     //                 SwitchAvatarScreen(user: _currentUser!),
-                    //     //       ),
-                    //     //     ).then((_) {
-                    //     //       _loadUserData();
-                    //     //     });
-                    //     //   },
-                    //     // ),
-                    //   ],
-                    // ),
                     buildCrystalBox(
                       '${_currentUser!.fragmentNumber}',
                     ), // Optional: using your shared method
@@ -226,6 +260,8 @@ class RewardSection extends StatelessWidget {
           style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 8),
+        avatarRewards.isEmpty
+            ? EmptyRewardsMessage(message: "All avatar rewards have been redeemed!"):
         SingleChildScrollView(
           scrollDirection: Axis.horizontal,
           child: Row(

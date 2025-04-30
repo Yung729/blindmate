@@ -1,4 +1,6 @@
 import 'package:blindmate/views/UIComponents/avatar_frame.dart';
+import 'package:blindmate/views/UIComponents/custom_button.dart';
+import 'package:blindmate/views/UIComponents/empty_message.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:blindmate/models/dataModels/rewards_model.dart';
 import 'package:blindmate/viewmodels/dataBinding/do_mission_data_binding.dart';
@@ -18,6 +20,7 @@ class SwitchAvatarScreen extends StatefulWidget {
 class _SwitchAvatarScreenState extends State<SwitchAvatarScreen> {
   List<UserReward> redeemRewardId = [];
   List<RewardModel> uniqueRewards = [];
+  bool _isLoading = true;
 
   @override
   void initState() {
@@ -54,6 +57,7 @@ class _SwitchAvatarScreenState extends State<SwitchAvatarScreen> {
 
     setState(() {
       redeemRewardId = userRewardList;
+      _isLoading = false;
     });
   }
 
@@ -85,86 +89,98 @@ class _SwitchAvatarScreenState extends State<SwitchAvatarScreen> {
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            AvatarFrame(
-              imagePath: widget.user!.avatarImg,
-              width: 72,
-              height: 72,
-            ),
             const Text(
-              'Redeemed Rewards',
+              'Avatar',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 16),
-            // Display the rewards once they are fetched
             Expanded(
               child:
-                  uniqueRewards.isEmpty
-                      ? const Center(child: CircularProgressIndicator())
-                      : GridView.builder(
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        itemCount: uniqueRewards.length,
-                        gridDelegate:
-                            const SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: 2,
-                              mainAxisSpacing: 20,
-                              crossAxisSpacing: 20,
-                              childAspectRatio: 0.8,
-                            ),
-                        itemBuilder: (context, index) {
-                          final reward = uniqueRewards[index];
-                          return GestureDetector(
-                            onTap: () async {
-                              final confirm = await showDialog<bool>(
-                                context: context,
-                                builder:
-                                    (context) => AlertDialog(
-                                      title: const Text('Switch Avatar'),
-                                      content: const Text(
-                                        'Are you sure you want to use this avatar?',
-                                      ),
-                                      actions: [
-                                        TextButton(
-                                          onPressed:
-                                              () => Navigator.of(
-                                                context,
-                                              ).pop(true),
-                                          child: const Text('Yes'),
-                                        ),
-                                        TextButton(
-                                          onPressed:
-                                              () => Navigator.of(
-                                                context,
-                                              ).pop(false),
-                                          child: const Text(
-                                            'Cancel',
-                                            style: TextStyle(color: Colors.red),
-                                          ),
-                                        ),
-                                      ],
+                  _isLoading
+                      ? const Center(
+                        child: CircularProgressIndicator(),
+                      ) // ✅ Show loader
+                      : uniqueRewards.isEmpty
+                      ? EmptyRewardsMessage(
+                        message: "You have not redeemed any rewards!",
+                      )
+                      : SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: Row(
+                          children:
+                              uniqueRewards.map((reward) {
+                                bool isCurrentAvatar =
+                                    widget.user?.avatarImg == reward.imageUrl;
+                                return Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8.0,
+                                  ),
+                                  child: GestureDetector(
+                                    onTap: () async {
+                                      final confirm = await showDialog<bool>(
+                                        context: context,
+                                        builder:
+                                            (context) => AlertDialog(
+                                              title: const Text(
+                                                'Switch Avatar',
+                                              ),
+                                              content: const Text(
+                                                'Are you sure you want to use this avatar?',
+                                              ),
+                                              actions: [
+                                                TextButton(
+                                                  onPressed:
+                                                      () => Navigator.of(
+                                                        context,
+                                                      ).pop(true),
+                                                  child: const Text('Yes'),
+                                                ),
+                                                TextButton(
+                                                  onPressed:
+                                                      () => Navigator.of(
+                                                        context,
+                                                      ).pop(false),
+                                                  child: const Text(
+                                                    'Cancel',
+                                                    style: TextStyle(
+                                                      color: Colors.red,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                      );
+
+                                      if (confirm == true) {
+                                        await FirebaseFirestore.instance
+                                            .collection('users')
+                                            .doc(widget.user!.userId)
+                                            .update({
+                                              'avatarImg': reward.imageUrl,
+                                            });
+
+                                        setState(() {
+                                          widget.user!.avatarImg =
+                                              reward.imageUrl ?? '';
+                                        });
+                                      }
+                                    },
+                                    child: NetworkImageBox(
+                                      imageUrl: reward.imageUrl,
+                                      title: reward.rewardTitle,
                                     ),
-                              );
-
-                              if (confirm == true) {
-                                await FirebaseFirestore.instance
-                                    .collection('users')
-                                    .doc(widget.user!.userId)
-                                    .update({'avatarImg': reward.imageUrl});
-
-                                setState(() {
-                                  widget.user!.avatarImg =
-                                      reward.imageUrl ?? '';
-                                });
-                              }
-                            },
-
-                            child: NetworkImageBox(
-                              imageUrl: reward.imageUrl,
-                              title: reward.rewardTitle,
-                            ),
-                          );
-                        },
+                                  ),
+                          //           CustomButton(
+                          // text: isCurrentAvatar ? 'Current' : 'Apply',
+                          // onPressed: isCurrentAvatar ? null : () {
+                          //   // Do nothing when the button is tapped (or you can update the UI, etc.)
+                          // },
+                          //         ),
+                                );
+                              }).toList(),
+                        ),
                       ),
             ),
           ],
