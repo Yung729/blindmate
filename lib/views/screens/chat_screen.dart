@@ -16,6 +16,7 @@ import '../../views/UIComponents/typing_bubble.dart';
 import '../../views/UIComponents/chat_bubble.dart';
 import 'mini_game_screen.dart';
 import '../../viewmodels/state/auth_state.dart';
+import '../../services/game_invitation_service.dart';
 
 class ChatScreen extends StatefulWidget {
   final String chatRoomId;
@@ -38,8 +39,12 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   bool _isDrawerVisible = false;
   bool _showStickers = false;
   final RewardService _rewardService = RewardService();
+  final GameInvitationService _gameInvitationService = GameInvitationService();
   int _localFlowerCount = 0;
   StreamSubscription? _flowerEventSubscription;
+  StreamSubscription? _gameInvitationSubscription;
+  StreamSubscription? _gameInvitationResponseSubscription;
+  StreamSubscription? _gameInvitationCancellationSubscription;
 
   @override
   void initState() {
@@ -137,6 +142,50 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
         }
       }
     });
+
+    // Listen for game invitations
+    _gameInvitationSubscription = _gameInvitationService
+        .listenForInvitations(widget.currentUserId)
+        .listen((snapshot) {
+      for (var doc in snapshot.docs) {
+        final data = doc.data() as Map<String, dynamic>;
+        _showGameInvitationDialog(doc.id, data);
+      }
+    });
+
+    // Listen for invitation responses
+    _gameInvitationResponseSubscription = _gameInvitationService
+        .listenForInvitationResponse(widget.currentUserId)
+        .listen((snapshot) {
+      for (var doc in snapshot.docs) {
+        final data = doc.data() as Map<String, dynamic>;
+        if (data['status'] == 'accepted') {
+          Navigator.pop(context); // Close any open dialogs
+          _navigateToGame(data['gameType'], data['chatRoomId']);
+          _gameInvitationService.deleteInvitation(doc.id);
+        } else if (data['status'] == 'declined') {
+          Navigator.pop(context); // Close any open dialogs
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("Your partner declined the game invitation")),
+          );
+          _gameInvitationService.deleteInvitation(doc.id);
+        }
+      }
+    });
+
+    // Listen for invitation cancellations
+    _gameInvitationCancellationSubscription = _gameInvitationService
+        .listenForInvitationCancellation(widget.currentUserId)
+        .listen((snapshot) {
+      for (var doc in snapshot.docs) {
+        // Close any open invitation dialogs
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Game invitation was cancelled")),
+        );
+        _gameInvitationService.deleteInvitation(doc.id);
+      }
+    });
   }
 
   @override
@@ -145,6 +194,9 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     _chatHandler.dispose();
     _messageController.dispose();
     _flowerEventSubscription?.cancel();
+    _gameInvitationSubscription?.cancel();
+    _gameInvitationResponseSubscription?.cancel();
+    _gameInvitationCancellationSubscription?.cancel();
     
     // Set music as stopped in the ChatState and close any active player
     if (_chatState.isMusicPlaying) {
@@ -593,62 +645,7 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                                     });
                                   },
                                   onPlayMiniGame: () {
-                                    showDialog(
-                                      context: context,
-                                      builder: (context) => AlertDialog(
-                                        title: Text("Select Game"),
-                                        content: Column(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            ListTile(
-                                              leading: Icon(Icons.draw, color: Colors.blue),
-                                              title: Text("Draw & Guess"),
-                                              subtitle: Text("Draw and let your partner guess"),
-                                              onTap: () {
-                                                Navigator.pop(context);
-                                                Navigator.push(
-                                                  context,
-                                                  MaterialPageRoute(
-                                                    builder: (context) => MiniGameScreen(
-                                                      chatRoomId: widget.chatRoomId,
-                                                      currentUserId: widget.currentUserId,
-                                                      opponentId: _chatState.otherUserId ?? '',
-                                                      isDrawer: true,
-                                                    ),
-                                                  ),
-                                                );
-                                              },
-                                            ),
-                                            Divider(),
-                                            ListTile(
-                                              leading: Icon(Icons.grid_on, color: Colors.green),
-                                              title: Text("Tic Tac Toe"),
-                                              subtitle: Text("Classic X and O game"),
-                                              onTap: () {
-                                                Navigator.pop(context);
-                                                Navigator.push(
-                                                  context,
-                                                  MaterialPageRoute(
-                                                    builder: (context) => MiniGame2Screen(
-                                                      chatRoomId: widget.chatRoomId,
-                                                      currentUserId: widget.currentUserId,
-                                                      opponentId: _chatState.otherUserId ?? '',
-                                                      isPlayerX: true,
-                                                    ),
-                                                  ),
-                                                );
-                                              },
-                                            ),
-                                          ],
-                                        ),
-                                        actions: [
-                                          TextButton(
-                                            onPressed: () => Navigator.pop(context),
-                                            child: Text("Cancel"),
-                                          ),
-                                        ],
-                                      ),
-                                    );
+                                    _showGameSelectionDialog();
                                   },
                                   onShareMusic: () {
                                     MusicSearchDialog.show(
@@ -837,6 +834,137 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  void _showGameInvitationDialog(String invitationId, Map<String, dynamic> data) {
+    final gameType = data['gameType'] as String;
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: Text("Game Invitation"),
+        content: Text("Your partner wants to play $gameType with you!"),
+        actions: [
+          TextButton(
+            onPressed: () async {
+              await _gameInvitationService.respondToInvitation(invitationId, false);
+              Navigator.pop(context); // Just close the dialog
+            },
+            child: Text("Decline"),
+          ),
+          TextButton(
+            onPressed: () async {
+              await _gameInvitationService.respondToInvitation(invitationId, true);
+              Navigator.pop(context); // Close the dialog
+              _navigateToGame(gameType, data['chatRoomId']);
+            },
+            child: Text("Accept"),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _navigateToGame(String gameType, String chatRoomId) {
+    if (gameType == 'Draw & Guess') {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => MiniGameScreen(
+            chatRoomId: chatRoomId,
+            currentUserId: widget.currentUserId,
+            opponentId: _chatState.otherUserId ?? '',
+            isDrawer: true,
+          ),
+        ),
+      );
+    } else if (gameType == 'Tic Tac Toe') {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => MiniGame2Screen(
+            chatRoomId: chatRoomId,
+            currentUserId: widget.currentUserId,
+            opponentId: _chatState.otherUserId ?? '',
+            isPlayerX: true,
+          ),
+        ),
+      );
+    }
+  }
+
+  void _handleGameSelection(String gameType) {
+    if (_chatState.otherUserId == null) return;
+
+    String? currentInvitationId;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: Text("Sending Invitation"),
+        content: Text("Waiting for your partner to accept the game invitation..."),
+        actions: [
+          TextButton(
+            onPressed: () async {
+              if (currentInvitationId != null) {
+                await _gameInvitationService.cancelInvitation(currentInvitationId!);
+              }
+              Navigator.pop(context);
+            },
+            child: Text("Cancel"),
+          ),
+        ],
+      ),
+    );
+
+    _gameInvitationService.sendInvitation(
+      chatRoomId: widget.chatRoomId,
+      senderId: widget.currentUserId,
+      receiverId: _chatState.otherUserId!,
+      gameType: gameType,
+    ).then((invitationId) {
+      currentInvitationId = invitationId;
+    });
+  }
+
+  void _showGameSelectionDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text("Select Game"),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: Icon(Icons.draw, color: Colors.blue),
+              title: Text("Draw & Guess"),
+              subtitle: Text("Draw and let your partner guess"),
+              onTap: () {
+                Navigator.pop(context);
+                _handleGameSelection("Draw & Guess");
+              },
+            ),
+            Divider(),
+            ListTile(
+              leading: Icon(Icons.grid_on, color: Colors.green),
+              title: Text("Tic Tac Toe"),
+              subtitle: Text("Classic X and O game"),
+              onTap: () {
+                Navigator.pop(context);
+                _handleGameSelection("Tic Tac Toe");
+              },
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text("Cancel"),
+          ),
+        ],
       ),
     );
   }

@@ -46,11 +46,28 @@ class _MiniGame2ScreenState extends State<MiniGame2Screen> {
     _gameSubscription = _gameService.listenToGame(widget.chatRoomId).listen((snapshot) {
       if (snapshot.exists) {
         final data = snapshot.data() as Map<String, dynamic>;
-        final board = List<String>.from(data['board'] ?? List.filled(9, ''));
-        _gameState.setBoard(board);
+        
+        if (data['board'] != null) {
+          _gameState.setBoard(List<String>.from(data['board']));
+        }
+        
+        if (data['roles'] != null) {
+          _gameState.setRoles(Map<String, String>.from(data['roles']));
+        }
+        
+        if (data.containsKey('winner')) {
+          _gameState.setWinner(data['winner']);
+          _gameState.setWinnerDialogShown(true);
+        }
+
+        if (data['currentPlayer'] != null) {
+          _gameState.setIsCurrentPlayer(data['currentPlayer'] == widget.currentUserId);
+        }
 
         // Role/leave check
         final roles = Map<String, String>.from(data['roles'] ?? {});
+
+        // Only check for opponent leaving if the game is already initialized
         if (_gameState.isInitialized && !roles.containsKey(widget.opponentId)) {
           _handleOpponentLeft();
         }
@@ -96,47 +113,30 @@ class _MiniGame2ScreenState extends State<MiniGame2Screen> {
     );
   }
 
-  void _showWinnerDialog(String winnerId) {
-    final isSelf = winnerId == widget.currentUserId;
-    final winnerName = isSelf ? "You" : "Opponent";
-    final loserName = isSelf ? "Opponent" : "You";
-
+  void _showInactivityDialog() {
+    if (_gameState.isInactiveWarningShown) return;
+    
+    _gameState.setInactiveWarningShown(true);
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
-        title: Text("🏁 Game Over"),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              winnerId == 'draw' 
-                ? "🤝 It's a draw!" 
-                : "🎉 $winnerName won the game!",
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            if (winnerId != 'draw') ...[
-              SizedBox(height: 8),
-              Text("😢 $loserName lost!", style: TextStyle(fontSize: 16)),
-            ],
-          ],
-        ),
+        title: Text("Game Inactive"),
+        content: Text("No moves were made for 2 minutes. The game will end."),
         actions: [
           TextButton(
             onPressed: () async {
               await _eventHandler.resetGame();
-              if (mounted) {
-                Navigator.of(context).pop();
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => ChatScreen(
-                      chatRoomId: widget.chatRoomId,
-                      currentUserId: widget.currentUserId,
-                    ),
+              Navigator.of(context).pop();
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => ChatScreen(
+                    chatRoomId: widget.chatRoomId,
+                    currentUserId: widget.currentUserId,
                   ),
-                );
-              }
+                ),
+              );
             },
             child: const Text("OK"),
           ),
@@ -161,12 +161,14 @@ class _MiniGame2ScreenState extends State<MiniGame2Screen> {
       opponentId: widget.opponentId,
     );
     _eventHandler.init(widget.isPlayerX);
+    _gameState.startInactivityTimer();
   }
 
   @override
   void dispose() {
     _gameSubscription?.cancel();
     _eventHandler.dispose();
+    _gameState.dispose();
     super.dispose();
   }
 
@@ -189,6 +191,12 @@ class _MiniGame2ScreenState extends State<MiniGame2Screen> {
           if (gameState.winner != null && gameState.winnerDialogShown) {
             WidgetsBinding.instance.addPostFrameCallback((_) {
               _showWinnerDialog(gameState.winner!);
+            });
+          }
+
+          if (gameState.isInactive && !gameState.isInactiveWarningShown) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              _showInactivityDialog();
             });
           }
 
@@ -267,7 +275,9 @@ class _MiniGame2ScreenState extends State<MiniGame2Screen> {
 
   Widget _buildGameInfo(GameState2 gameState) {
     return Text(
-      gameState.isPlayerX ? "You are X" : "You are O",
+      gameState.isCurrentPlayer
+          ? "Your turn (${gameState.isPlayerX ? 'X' : 'O'})"
+          : "Opponent's turn (${gameState.isPlayerX ? 'O' : 'X'})",
       style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
     );
   }
@@ -277,27 +287,27 @@ class _MiniGame2ScreenState extends State<MiniGame2Screen> {
       width: 300,
       height: 300,
       decoration: BoxDecoration(
-        border: Border.all(color: Colors.black, width: 2),
+        border: Border.all(color: Colors.black),
       ),
       child: GridView.builder(
         gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: 3,
-          mainAxisSpacing: 2,
-          crossAxisSpacing: 2,
+          crossAxisSpacing: 1,
+          mainAxisSpacing: 1,
         ),
         itemCount: 9,
         itemBuilder: (context, index) {
           return GestureDetector(
             onTap: () {
-              if (gameState.isCurrentPlayer && gameState.board[index].isEmpty) {
+              if (gameState.isCurrentPlayer &&
+                  gameState.board[index].isEmpty &&
+                  gameState.winner == null) {
                 _eventHandler.handleMove(index);
+                gameState.resetInactivityTimer();
               }
             },
             child: Container(
               decoration: BoxDecoration(
-                color: gameState.board[index].isEmpty && gameState.isCurrentPlayer
-                    ? Colors.grey[200]
-                    : Colors.white,
                 border: Border.all(color: Colors.black),
               ),
               child: Center(
@@ -306,7 +316,9 @@ class _MiniGame2ScreenState extends State<MiniGame2Screen> {
                   style: TextStyle(
                     fontSize: 40,
                     fontWeight: FontWeight.bold,
-                    color: gameState.board[index] == 'X' ? Colors.blue : Colors.red,
+                    color: gameState.board[index] == 'X'
+                        ? Colors.blue
+                        : Colors.red,
                   ),
                 ),
               ),
@@ -330,6 +342,55 @@ class _MiniGame2ScreenState extends State<MiniGame2Screen> {
           fontSize: 18,
           color: gameState.isCurrentPlayer ? Colors.green[900] : Colors.grey[700],
         ),
+      ),
+    );
+  }
+
+  void _showWinnerDialog(String winnerId) {
+    final isSelf = winnerId == widget.currentUserId;
+    final winnerName = isSelf ? "You" : "Opponent";
+    final loserName = isSelf ? "Opponent" : "You";
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: Text("🏁 Game Over"),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              winnerId == 'draw' 
+                ? "🤝 It's a draw!" 
+                : "🎉 $winnerName won the game!",
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            if (winnerId != 'draw') ...[
+              SizedBox(height: 8),
+              Text("😢 $loserName lost!", style: TextStyle(fontSize: 16)),
+            ],
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () async {
+              await _eventHandler.resetGame();
+              if (mounted) {
+                Navigator.of(context).pop();
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => ChatScreen(
+                      chatRoomId: widget.chatRoomId,
+                      currentUserId: widget.currentUserId,
+                    ),
+                  ),
+                );
+              }
+            },
+            child: const Text("OK"),
+          ),
+        ],
       ),
     );
   }
