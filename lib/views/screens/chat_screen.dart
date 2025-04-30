@@ -488,28 +488,54 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                                   ? _calculateDrawerHeight(context, _showStickers)
                                   : 0,
                         ),
-                        child: ListView.builder(
+                        child: ListView.custom(
                           reverse: true,
-                          itemCount:
-                              chatState.messages.length +
-                              (chatState.isOtherUserTyping ? 1 : 0),
-                          itemBuilder: (context, index) {
-                            if (chatState.isOtherUserTyping && index == 0) {
-                              return _buildTypingIndicatorBubble();
-                            }
+                          childrenDelegate: SliverChildBuilderDelegate(
+                            (context, index) {
+                              if (chatState.isOtherUserTyping && index == 0) {
+                                return _buildTypingIndicatorBubble();
+                              }
 
-                            final messageIndex =
-                                chatState.isOtherUserTyping ? index - 1 : index;
-                            final message = chatState.messages[messageIndex];
-                            final isMe =
-                                message.senderId == widget.currentUserId;
+                              final messageIndex =
+                                  chatState.isOtherUserTyping ? index - 1 : index;
+                              final message = chatState.messages[messageIndex];
+                              final isMe =
+                                  message.senderId == widget.currentUserId;
 
-                            return _buildChatBubble(
-                              message,
-                              isMe,
-                              authState.currentUser?.avatarImg,
-                            );
-                          },
+                              // Create a unique key based on sender and timestamp since MessageModel has no id field
+                              final uniqueKey = '${message.senderId}-${message.timestamp.millisecondsSinceEpoch}';
+                              return KeyedSubtree(
+                                key: ValueKey('message-$uniqueKey'), 
+                                child: _buildChatBubble(
+                                  message,
+                                  isMe,
+                                  authState.currentUser?.avatarImg,
+                                ),
+                              );
+                            },
+                            // This preserves state across rebuilds
+                            findChildIndexCallback: (key) {
+                              final ValueKey<String> valueKey = key as ValueKey<String>;
+                              final String keyString = valueKey.value;
+                              
+                              // Skip for typing indicator
+                              if (keyString == 'typing-indicator') return null;
+                              
+                              // Extract unique message key from the key string
+                              final String messageUniqueKey = keyString.replaceFirst('message-', '');
+                              
+                              // Find the index of the message with this unique key
+                              final int messageIndex = chatState.messages.indexWhere(
+                                (m) => '${m.senderId}-${m.timestamp.millisecondsSinceEpoch}' == messageUniqueKey
+                              );
+                              if (messageIndex < 0) return null;
+                              
+                              // Adjust for typing indicator if present
+                              return chatState.isOtherUserTyping ? messageIndex + 1 : messageIndex;
+                            },
+                            childCount: chatState.messages.length +
+                                (chatState.isOtherUserTyping ? 1 : 0),
+                          ),
                         ),
                       ),
                     ),
@@ -624,10 +650,13 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   }
 
   Widget _buildTypingIndicatorBubble() {
-    return ChatBubble(
-      isMe: false,
-      child: const TypingBubble(),
-      showAvatar: true,
+    return KeyedSubtree(
+      key: const ValueKey('typing-indicator'),
+      child: ChatBubble(
+        isMe: false,
+        child: const TypingBubble(),
+        showAvatar: true,
+      ),
     );
   }
 

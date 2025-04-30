@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import './inline_youtube_player.dart';
+import './persistent_youtube_player.dart';
 
 class ChatBubble extends StatefulWidget {
   final bool isMe;
@@ -296,11 +296,15 @@ class _ChatBubbleState extends State<ChatBubble> with SingleTickerProviderStateM
 
   Widget _buildMusicContent(BuildContext context) {
     if (widget.musicUrl != null && widget.musicUrl!.isNotEmpty) {
+      // Create a unique key based on the music URL
+      final playerKey = ValueKey('music-${widget.musicUrl}');
+      
       return Padding(
         padding: const EdgeInsets.only(bottom: 4),
-        child: InlineYoutubePlayer(
+        child: PersistentYoutubePlayer(
           youtubeUrl: widget.musicUrl!,
           title: widget.musicTitle,
+          playerKey: playerKey,
         ),
       );
     }
