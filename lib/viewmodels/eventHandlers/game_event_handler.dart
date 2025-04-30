@@ -12,10 +12,11 @@ class GameEventHandler {
   final String _chatRoomId;
   final String _currentUserId;
   final String _opponentId;
+  BuildContext? _context;
 
   Timer? _inactivityTimer;
   Timer? _gameOverTimer;
-  static const int _inactivityThreshold = 30; // 30 seconds of inactivity
+  static const int _inactivityThreshold = 60; // 30 seconds of inactivity
   static const int _gameOverThreshold = 10; // 10 seconds after warning
   static const int _winningScore = 2;
 
@@ -30,6 +31,10 @@ class GameEventHandler {
        _chatRoomId = chatRoomId,
        _currentUserId = currentUserId,
        _opponentId = opponentId;
+
+  void setContext(BuildContext context) {
+    _context = context;
+  }
 
   Future<void> init(bool isDrawer) async {
     await _dataBinding.initializeGame(
@@ -102,13 +107,14 @@ class GameEventHandler {
   }
 
   Future<void> handleGuess(String guess) async {
-    if (guess.isEmpty) return;
+    if (_gameState.isDrawer || _gameState.guessCorrect) return;
 
     _resetInactivityTimer(); // Reset timer on any user action
 
-    final correct = guess.toLowerCase() == _gameState.currentWord.toLowerCase();
+    final normalizedGuess = guess.trim().toLowerCase();
+    final normalizedWord = _gameState.currentWord.toLowerCase();
 
-    if (correct) {
+    if (normalizedGuess == normalizedWord) {
       _gameState.setGuessCorrect(true);
       _gameState.incrementScore(_currentUserId);
       await _dataBinding.updateScores(_chatRoomId, _gameState.scores);
@@ -117,14 +123,38 @@ class GameEventHandler {
         await _dataBinding.setWinner(_chatRoomId, _currentUserId);
         _gameState.setIsGameEnded(true);
       } else {
-        await _swapRoles(); // <<<<< use existing helper
+        await _swapRoles();
         await _prepareNewRound();
       }
     } else {
-      _gameState.setRemainingAttempts(_gameState.remainingAttempts - 1);
+      _gameState.decrementAttempts();
+
+      if (_context != null && _context!.mounted) {
+        ScaffoldMessenger.of(_context!).showSnackBar(
+          SnackBar(
+            content: Text(
+              "❌ Incorrect guess! ${_gameState.remainingAttempts} attempts remaining. Try again!",
+              style: TextStyle(color: Colors.white),
+            ),
+            backgroundColor: Colors.red,
+            duration: Duration(seconds: 2),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+
+      // Check if this was the final attempt
       if (_gameState.remainingAttempts <= 0) {
-        await _swapRoles(); // <<<<< use existing helper
-        await _prepareNewRound();
+        _gameState.incrementScore(_opponentId);
+        await _dataBinding.updateScores(_chatRoomId, _gameState.scores);
+
+        if (_gameState.scores[_opponentId]! >= _winningScore) {
+          await _dataBinding.setWinner(_chatRoomId, _opponentId);
+          _gameState.setIsGameEnded(true);
+        } else {
+          await _swapRoles();
+          await _prepareNewRound();
+        }
       }
     }
   }
@@ -191,23 +221,21 @@ class GameEventHandler {
   Future<void> handleExitGame() async {
     // First set the opponent as winner
     await _dataBinding.setWinner(_chatRoomId, _opponentId);
-    
+
     // Update local state to show winner dialog
     _gameState.setWinner(_opponentId);
     _gameState.setWinnerDialogShown(true);
-    
+
     // Update scores to reflect the win
-    _gameState.incrementScore(_opponentId);
+    // _gameState.incrementScore(_opponentId);
     await _dataBinding.updateScores(_chatRoomId, _gameState.scores);
-    
+
     // Clear the game state from Firestore
     await _dataBinding.clearGame(_chatRoomId);
-    
+
     // Reset local state
     _gameState.reset();
   }
-  
-  
 
   void dispose() {
     _inactivityTimer?.cancel();

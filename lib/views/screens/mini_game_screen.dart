@@ -46,6 +46,7 @@ class _MiniGameScreenState extends State<MiniGameScreen> {
     _lastIsDrawer = widget.isDrawer;
     _initializeGame();
     _setupGameListener();
+    _gameState.startInactivityTimer();
   }
 
   void _setupGameListener() {
@@ -177,13 +178,64 @@ class _MiniGameScreenState extends State<MiniGameScreen> {
     );
   }
 
+  void _showInactivityWarningDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: Text("Inactivity Warning"),
+        content: Text("You have been inactive for 1 minute. Please continue playing or the game will end."),
+        actions: [
+          TextButton(
+            onPressed: () {
+              _gameState.resetInactivityTimer();
+              Navigator.pop(context);
+            },
+            child: Text("Continue Playing"),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showGameOverDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: Text("Game Over"),
+        content: Text("The game has ended due to inactivity."),
+        actions: [
+          TextButton(
+            onPressed: () async {
+              await _eventHandler.resetGame();
+              if (mounted) {
+                Navigator.of(context).pop();
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => ChatScreen(
+                      chatRoomId: widget.chatRoomId,
+                      currentUserId: widget.currentUserId,
+                    ),
+                  ),
+                );
+              }
+            },
+            child: Text("OK"),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _initializeGame() {
     _gameState = GameState();
     _gameService = GameService();
     _dataBinding = GameDataBinding(
       gameService: _gameService,
       gameState: _gameState,
-      currentUserId: widget.currentUserId, // <-- add this
+      currentUserId: widget.currentUserId,
     );
     _eventHandler = GameEventHandler(
       gameState: _gameState,
@@ -211,6 +263,9 @@ class _MiniGameScreenState extends State<MiniGameScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Set the context for the event handler
+    _eventHandler.setContext(context);
+
     return ChangeNotifierProvider.value(
       value: _gameState,
       child: Consumer<GameState>(
@@ -225,15 +280,30 @@ class _MiniGameScreenState extends State<MiniGameScreen> {
             });
           }
 
+          if (gameState.isInactiveWarningShown) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              _showInactivityWarningDialog();
+            });
+          }
+
+          if (gameState.isGameOver) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              _showGameOverDialog();
+            });
+          }
+
           // Show role swap message only when roles actually change
           if (gameState.isDrawer != _lastIsDrawer) {
             _lastIsDrawer = gameState.isDrawer;
             WidgetsBinding.instance.addPostFrameCallback((_) {
-              _showSnackBar(
-                gameState.isDrawer
-                    ? "🎨 You are now the drawer! Draw: ${gameState.currentWord}"
-                    : "🔍 You are now the guesser! Guess the word!",
-              );
+              // Only show message to the relevant player
+              if (gameState.isDrawer == widget.isDrawer) {
+                _showSnackBar(
+                  gameState.isDrawer
+                      ? "🎨 You are now the drawer! Draw: ${gameState.currentWord}"
+                      : "🔍 You are now the guesser! Guess the word!",
+                );
+              }
             });
           }
 
@@ -309,11 +379,13 @@ class _MiniGameScreenState extends State<MiniGameScreen> {
             _buildGameInfo(gameState),
             const SizedBox(height: 20),
             _buildScoreDisplay(gameState),
+            if (!gameState.isDrawer) _buildAttemptsDisplay(gameState),
             _buildDrawingArea(gameState),
             const SizedBox(height: 20),
             if (!gameState.isDrawer && !gameState.guessCorrect)
               _buildGuessInput(gameState),
             if (gameState.guessCorrect) _buildCorrectGuessMessage(),
+            if (gameState.showIncorrectGuess) _buildIncorrectGuessMessage(gameState),
             if (gameState.isDrawer) _buildClearButton(),
           ],
         ),
@@ -335,6 +407,20 @@ class _MiniGameScreenState extends State<MiniGameScreen> {
     );
   }
 
+  Widget _buildAttemptsDisplay(GameState gameState) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Text(
+        "Attempts remaining: ${gameState.remainingAttempts}",
+        style: TextStyle(
+          fontSize: 16,
+          color: gameState.remainingAttempts == 1 ? Colors.red : Colors.black,
+          fontWeight: gameState.remainingAttempts == 1 ? FontWeight.bold : FontWeight.normal,
+        ),
+      ),
+    );
+  }
+
   Widget _buildDrawingArea(GameState gameState) {
     return Container(
       key: _paintKey,
@@ -353,6 +439,7 @@ class _MiniGameScreenState extends State<MiniGameScreen> {
 
                   if (GameValidator.isValidPoint(localPosition, 300, 300)) {
                     _eventHandler.handleDrawing(localPosition);
+                    _gameState.resetInactivityTimer();
                   }
                 }
                 : null,
@@ -380,6 +467,7 @@ class _MiniGameScreenState extends State<MiniGameScreen> {
               labelText: "Enter your guess",
               border: OutlineInputBorder(),
             ),
+            onChanged: (_) => _gameState.resetInactivityTimer(),
           ),
           const SizedBox(height: 10),
           ElevatedButton(
@@ -387,6 +475,7 @@ class _MiniGameScreenState extends State<MiniGameScreen> {
               if (GameValidator.isValidGuess(_guessController.text)) {
                 _eventHandler.handleGuess(_guessController.text);
                 _guessController.clear();
+                _gameState.resetInactivityTimer();
               }
             },
             child: Text("Submit Guess"),
@@ -402,6 +491,25 @@ class _MiniGameScreenState extends State<MiniGameScreen> {
       child: Text(
         "🎉 You guessed it right!",
         style: TextStyle(fontSize: 18, color: Colors.green),
+      ),
+    );
+  }
+
+  Widget _buildIncorrectGuessMessage(GameState gameState) {
+    return Padding(
+      padding: const EdgeInsets.all(10.0),
+      child: Column(
+        children: [
+          Text(
+            "❌ Incorrect guess!",
+            style: TextStyle(fontSize: 18, color: Colors.red),
+          ),
+          if (gameState.remainingAttempts > 0)
+            Text(
+              "Try again!",
+              style: TextStyle(fontSize: 16, color: Colors.orange),
+            ),
+        ],
       ),
     );
   }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:ui' show Offset;
+import 'dart:async';
 
 class GameState extends ChangeNotifier {
   List<Offset?> _points = [];
@@ -8,12 +9,17 @@ class GameState extends ChangeNotifier {
   bool _isInitialized = false;
   bool _winnerDialogShown = false;
   bool _isGameEnded = false;
-  int _remainingAttempts = 2;
+  int _remainingAttempts = 3;
   bool _isInactiveWarningShown = false;
   bool _isGameOver = false;
   String _currentWord = '';
   Map<String, int> _scores = {};
   String? _winner;
+  Timer? _inactivityTimer;
+  Timer? _gameOverTimer;
+  static const Duration _inactivityThreshold = Duration(minutes: 1);
+  static const Duration _gameOverThreshold = Duration(minutes: 2);
+  bool _showIncorrectGuess = false;
 
   List<Offset?> get points => _points;
   bool get isDrawer => _isDrawer;
@@ -27,6 +33,9 @@ class GameState extends ChangeNotifier {
   String get currentWord => _currentWord;
   Map<String, int> get scores => _scores;
   String? get winner => _winner;
+  Timer? get inactivityTimer => _inactivityTimer;
+  Timer? get gameOverTimer => _gameOverTimer;
+  bool get showIncorrectGuess => _showIncorrectGuess;
 
   void setPoints(List<Offset?> points) {
     _points = points;
@@ -108,6 +117,43 @@ class GameState extends ChangeNotifier {
     notifyListeners();
   }
 
+  void startInactivityTimer() {
+    _inactivityTimer?.cancel();
+    _gameOverTimer?.cancel();
+    
+    _inactivityTimer = Timer(_inactivityThreshold, () {
+      if (!_isInactiveWarningShown && !_isGameOver) {
+        _isInactiveWarningShown = true;
+        notifyListeners();
+      }
+    });
+
+    _gameOverTimer = Timer(_gameOverThreshold, () {
+      if (!_isGameOver) {
+        _isGameOver = true;
+        _isGameEnded = true;
+        notifyListeners();
+      }
+    });
+  }
+
+  void resetInactivityTimer() {
+    _isInactiveWarningShown = false;
+    startInactivityTimer();
+  }
+
+  void setShowIncorrectGuess(bool show) {
+    _showIncorrectGuess = show;
+    notifyListeners();
+  }
+
+  void decrementAttempts() {
+    if (_remainingAttempts > 0) {
+      _remainingAttempts--;
+      notifyListeners();
+    }
+  }
+
   void reset() {
     _points.clear();
     _isDrawer = false;
@@ -115,12 +161,24 @@ class GameState extends ChangeNotifier {
     _isInitialized = false;
     _winnerDialogShown = false;
     _isGameEnded = false;
-    _remainingAttempts = 2;
+    _remainingAttempts = 3;
     _isInactiveWarningShown = false;
     _isGameOver = false;
     _currentWord = '';
     _scores = {};
     _winner = null;
+    _showIncorrectGuess = false;
+    _inactivityTimer?.cancel();
+    _gameOverTimer?.cancel();
+    _inactivityTimer = null;
+    _gameOverTimer = null;
     notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    _inactivityTimer?.cancel();
+    _gameOverTimer?.cancel();
+    super.dispose();
   }
 } 
