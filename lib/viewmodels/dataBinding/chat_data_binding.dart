@@ -183,12 +183,20 @@ class ChatDataBinding {
   }
 
   Future<void> fetchChatPartner(String chatRoomId, String currentUserId) async {
-    final partnerId = await _chatService.fetchChatPartner(
+    final partnerData = await _chatService.fetchChatPartner(
       chatRoomId,
       currentUserId,
     );
-    if (partnerId != null) {
+    if (partnerData != null) {
+      final partnerId = partnerData['partnerId'] as String;
+      final avatarImg = partnerData['avatarImg'] as String?;
+      
       setOtherUserId(partnerId);
+      
+      // Set the other user's avatar
+      if (avatarImg != null && avatarImg.isNotEmpty) {
+        chatState.setOtherUserAvatarImg(avatarImg);
+      }
     }
   }
 

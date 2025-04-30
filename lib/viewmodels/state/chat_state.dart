@@ -5,6 +5,7 @@ class ChatState extends ChangeNotifier {
   List<MessageModel> messages = [];
   String? otherUserId;
   String? currentUserId; 
+  String? otherUserAvatarImg;
   bool isOtherUserTyping = false;
   bool partnerLeft = false;
   List<String> stickerList = [];
@@ -100,6 +101,11 @@ class ChatState extends ChangeNotifier {
     otherUserId = userId;
     notifyListeners();
   }
+  
+  void setOtherUserAvatarImg(String? avatarImg) {
+    otherUserAvatarImg = avatarImg;
+    notifyListeners();
+  }
 
   void setStickers(List<String> stickers) {
     stickerList = stickers;
@@ -136,6 +142,7 @@ class ChatState extends ChangeNotifier {
     stickerList.clear();
     isOtherUserTyping = false;
     otherUserId = null;
+    otherUserAvatarImg = null;
     partnerLeft = false;
     isTyping = false;
     isLoadingStickers = false;

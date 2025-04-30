@@ -156,7 +156,7 @@ class ChatService {
     return List<String>.from(chatDoc['users']);
   }
 
-  Future<String?> fetchChatPartner(
+  Future<Map<String, dynamic>?> fetchChatPartner(
     String chatRoomId,
     String currentUserId,
   ) async {
@@ -165,7 +165,24 @@ class ChatService {
 
     List<String> users = List<String>.from(chatDoc['users']);
     users.remove(currentUserId);
-    return users.isNotEmpty ? users.first : null;
+  
+    if (users.isEmpty) return null;
+  
+    // Get the partner's user ID
+    final partnerId = users.first;
+  
+    // Fetch the partner's user data to get their avatar
+    final partnerDoc = await _firestore.collection('users').doc(partnerId).get();
+    String? avatarImg;
+  
+    if (partnerDoc.exists && partnerDoc.data() != null) {
+      avatarImg = partnerDoc.data()!['avatarImg'] as String?;
+    }
+  
+    return {
+      'partnerId': partnerId,
+      'avatarImg': avatarImg ?? ''
+    };
   }
 
   Future<void> saveChatSummary(

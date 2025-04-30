@@ -678,7 +678,7 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
         stickerUrl: message.stickerUrl,
         musicUrl: message.musicUrl,
         musicTitle: message.musicTitle,
-        avatarUrl: isMe ? currentUserAvatarImg : null,
+        avatarUrl: isMe ? currentUserAvatarImg : _chatState.otherUserAvatarImg,
         timestamp: message.timestamp,
         showAvatar: showAvatar,
         moderationStatus: message.moderationStatus,

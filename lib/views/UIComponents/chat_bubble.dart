@@ -101,59 +101,6 @@ class _ChatBubbleState extends State<ChatBubble> with SingleTickerProviderStateM
           );
   }
 
-  Widget _buildModerationIndicator() {
-    if (widget.moderationStatus == 'UNSAFE') {
-      return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        margin: const EdgeInsets.only(bottom: 4),
-        decoration: BoxDecoration(
-          color: Colors.red[100],
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.warning_amber_rounded, size: 16, color: Colors.red[700]),
-            const SizedBox(width: 4),
-            Text(
-              'This message may be inappropriate',
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.red[700],
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ],
-        ),
-      );
-    } else if (widget.moderationStatus == 'WARNING') {
-      return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        margin: const EdgeInsets.only(bottom: 4),
-        decoration: BoxDecoration(
-          color: Colors.orange[100],
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.info_outline, size: 16, color: Colors.orange[700]),
-            const SizedBox(width: 4),
-            Text(
-              'Please be mindful of your language',
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.orange[700],
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-    return const SizedBox.shrink();
-  }
-
   @override
   Widget build(BuildContext context) {
     bool isMusicMessage = widget.musicUrl != null && widget.musicUrl!.isNotEmpty;
@@ -188,8 +135,7 @@ class _ChatBubbleState extends State<ChatBubble> with SingleTickerProviderStateM
                   child: Column(
                     crossAxisAlignment: widget.isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
                     children: [
-                      if (widget.moderationStatus == 'UNSAFE' || widget.moderationStatus == 'WARNING')
-                        _buildModerationIndicator(),
+                     
                       isMusicMessage
                           ? _buildMusicContent(context)
                           : Container(
@@ -219,12 +165,47 @@ class _ChatBubbleState extends State<ChatBubble> with SingleTickerProviderStateM
                       if (widget.timestamp != null)
                         Padding(
                           padding: const EdgeInsets.only(top: 4),
-                          child: Text(
-                            _formatTimestamp(widget.timestamp),
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: Colors.grey[600],
-                            ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                _formatTimestamp(widget.timestamp),
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: Colors.grey[600],
+                                ),
+                              ),
+                              if (widget.moderationStatus == 'UNSAFE' || widget.moderationStatus == 'WARNING')
+                                Padding(
+                                  padding: const EdgeInsets.only(left: 4),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: widget.moderationStatus == 'UNSAFE' ? Colors.red[100] : Colors.orange[100],
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(
+                                          widget.moderationStatus == 'UNSAFE' ? Icons.warning_amber_rounded : Icons.info_outline,
+                                          size: 10,
+                                          color: widget.moderationStatus == 'UNSAFE' ? Colors.red : Colors.orange,
+                                        ),
+                                        const SizedBox(width: 2),
+                                        Text(
+                                          widget.moderationStatus == 'UNSAFE' ? 'Flagged' : 'Warning',
+                                          style: TextStyle(
+                                            fontSize: 9,
+                                            fontWeight: FontWeight.bold,
+                                            color: widget.moderationStatus == 'UNSAFE' ? Colors.red : Colors.orange,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                            ],
                           ),
                         ),
                     ],
