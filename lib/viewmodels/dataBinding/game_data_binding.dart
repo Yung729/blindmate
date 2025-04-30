@@ -83,7 +83,6 @@ class GameDataBinding {
       if (data['scores'] != null) {
         _gameState.setScores(Map<String, int>.from(data['scores']));
       }
-      
       if (data.containsKey('winner')) {
         _gameState.setWinner(data['winner']);
         _gameState.setWinnerDialogShown(true);

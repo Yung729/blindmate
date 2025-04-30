@@ -267,36 +267,40 @@ class _MiniGameScreenState extends State<MiniGameScreen> {
             final shouldExit = await showDialog<bool>(
               context: context,
               barrierDismissible: false,
-              builder: (context) => AlertDialog(
-                title: Text("Exit Game"),
-                content: Text("Are you sure you want to exit the game?"),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.of(context).pop(false),
-                    child: Text("Cancel"),
+              builder:
+                  (context) => AlertDialog(
+                    title: Text("Exit Game"),
+                    content: Text("Are you sure you want to exit the game?"),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.of(context).pop(false),
+                        child: Text("Cancel"),
+                      ),
+                      TextButton(
+                        onPressed: () => Navigator.of(context).pop(true),
+                        child: Text("Exit"),
+                      ),
+                    ],
                   ),
-                  TextButton(
-                    onPressed: () => Navigator.of(context).pop(true),
-                    child: Text("Exit"),
-                  ),
-                ],
-              ),
             );
 
             if (shouldExit == true && mounted) {
               // Notify opponent and return to chat
               await _eventHandler.handleExitGame();
               if (mounted) {
-                Navigator.of(context).pop();
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => ChatScreen(
-                      chatRoomId: widget.chatRoomId,
-                      currentUserId: widget.currentUserId,
-                    ),
-                  ),
-                );
+                // WidgetsBinding.instance.addPostFrameCallback((_) {
+                //   _showWinnerDialog(gameState.winner!);
+                // });
+                // Navigator.of(context).pop(); // Pop the current screen
+                // Navigator.pushReplacement(
+                //   context,
+                //   MaterialPageRoute(
+                //     builder: (context) => ChatScreen(
+                //       chatRoomId: widget.chatRoomId,
+                //       currentUserId: widget.currentUserId,
+                //     ),
+                //   ),
+                // );
               }
             }
           },

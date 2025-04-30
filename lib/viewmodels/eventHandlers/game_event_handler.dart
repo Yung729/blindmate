@@ -189,25 +189,22 @@ class GameEventHandler {
   }
 
   Future<void> handleExitGame() async {
-    // First set the opponent as winner
-    await _dataBinding.setWinner(_chatRoomId, _opponentId);
-    
-    // Update local state to show winner dialog
-    _gameState.setWinner(_opponentId);
-    _gameState.setWinnerDialogShown(true);
-    
-    // Update scores to reflect the win
-    _gameState.incrementScore(_opponentId);
-    await _dataBinding.updateScores(_chatRoomId, _gameState.scores);
-    
-    // Clear the game state from Firestore
-    await _dataBinding.clearGame(_chatRoomId);
-    
+    // Clear the game state
+    // await _dataBinding.clearGame(_chatRoomId);
+    print('1');
+
+    // Set the opponent as winner since current user left
+    // await _dataBinding.setWinner(_chatRoomId, _opponentId);
+
     // Reset local state
-    _gameState.reset();
+    // _gameState.reset();
+    print('3');
+            _gameState.setWinnerDialogShown(true);
+
+    _gameState.setWinner(_opponentId);
+
+    print('4');
   }
-  
-  
 
   void dispose() {
     _inactivityTimer?.cancel();
