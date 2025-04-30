@@ -4,7 +4,7 @@ class GameUtils {
   static List<Offset?> pointsFromMap(List<dynamic>? points) {
     return points?.map((pt) {
       if (pt['dx'] == null || pt['dy'] == null) return null;
-      return Offset(pt['dx'], pt['dy']);
+      return Offset((pt['dx'] as num).toDouble(), (pt['dy'] as num).toDouble());
     }).toList() ?? [];
   }
 

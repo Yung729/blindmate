@@ -71,27 +71,34 @@ class GameDataBinding {
       if (!snapshot.exists) return;
 
       final data = snapshot.data() as Map<String, dynamic>;
+      
+      // Only update points if they've actually changed
       if (data['points'] != null) {
-        _gameState.setPoints(GameUtils.pointsFromMap(data['points'] as List));
+        final newPoints = GameUtils.pointsFromMap(data['points'] as List);
+        if (newPoints.length != _gameState.points.length) {
+          _gameState.setPoints(newPoints);
+        }
       }
+      
       if (data['scores'] != null) {
         _gameState.setScores(Map<String, int>.from(data['scores']));
       }
       if (data.containsKey('winner')) {
         _gameState.setWinner(data['winner']);
+        _gameState.setWinnerDialogShown(true);
       }
 
       if (data['roles'] != null) {
-      final roles = Map<String, String>.from(data['roles']);
-      final currentUserRole = roles[_currentUserId];
-      if (currentUserRole != null) {
-        _gameState.setIsDrawer(currentUserRole == 'drawer');
+        final roles = Map<String, String>.from(data['roles']);
+        final currentUserRole = roles[_currentUserId];
+        if (currentUserRole != null) {
+          _gameState.setIsDrawer(currentUserRole == 'drawer');
+        }
       }
-    }
 
       if (data['word'] != null) {
-      _gameState.setCurrentWord(data['word']);
-    }
+        _gameState.setCurrentWord(data['word']);
+      }
     });
   }
 
