@@ -23,10 +23,6 @@ class SurveyEventHandler {
   }
 
   Future<Map<String, dynamic>> onSubmitSurvey(String userId) async {
-    if (!areAllQuestionsAnswered()) {
-      return {'success': false, 'message': 'Please answer all questions'};
-    }
-
     final totalScore = calculateTotalScore();
     final numberOfQuestions = _surveyState.surveyModel.questions.length;
 

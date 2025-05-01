@@ -364,11 +364,7 @@ class _SurveyPageState extends State<SurveyPage> {
                                                   ],
                                                 ),
                                               );
-                                            } else {
-                                              ScaffoldMessenger.of(context).showSnackBar(
-                                                SnackBar(content: Text(result['message'])),
-                                              );
-                                            }
+                                            } 
                                           },
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: eventHandler.areAllQuestionsAnswered() && !surveyState.isSubmitting
