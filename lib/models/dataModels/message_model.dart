@@ -6,6 +6,7 @@ class MessageModel {
   final String? stickerUrl;
   final String? musicUrl;
   final String? musicTitle;
+  final List<Map<String, dynamic>>? tripJournals;
   final DateTime timestamp;
   final String? moderationStatus;
 
@@ -15,33 +16,55 @@ class MessageModel {
     this.stickerUrl,
     this.musicUrl,
     this.musicTitle,
+    this.tripJournals,
     required this.timestamp,
     this.moderationStatus,
   });
 
   /// 🔹 Convert Firestore Map to `MessageModel`
   factory MessageModel.fromMap(Map<String, dynamic> data) {
+    List<Map<String, dynamic>>? journals;
+    if (data['tripJournals'] != null) {
+      journals = List<Map<String, dynamic>>.from(data['tripJournals']);
+      print("🧳 Parsed ${journals.length} trip journals from Firestore");
+    }
+
     return MessageModel(
       senderId: data['senderId'] ?? 'Unknown',
       text: data['text'],
       stickerUrl: data['stickerUrl'],
       musicUrl: data['musicUrl'],
       musicTitle: data['musicTitle'],
-      timestamp: (data['timestamp'] is Timestamp)
-          ? (data['timestamp'] as Timestamp).toDate()
-          : DateTime.now(),
+      tripJournals: journals,
+      timestamp:
+          (data['timestamp'] is Timestamp)
+              ? (data['timestamp'] as Timestamp).toDate()
+              : DateTime.now(),
       moderationStatus: data['moderationStatus'] ?? 'SAFE',
     );
   }
 
   /// 🔹 Convert WebSocket JSON data to `MessageModel`
   factory MessageModel.fromWebSocket(Map<String, dynamic> data) {
+    print("PARSING WebSocket message: $data");
+
+    List<Map<String, dynamic>>? journals;
+    if (data['tripJournals'] != null) {
+      try {
+        journals = List<Map<String, dynamic>>.from(data['tripJournals']);
+        print("🧳 Parsed ${journals.length} trip journals from WebSocket");
+      } catch (e) {
+        print("❌ Error parsing tripJournals: $e");
+      }
+    }
+
     return MessageModel(
       senderId: data['senderId'] ?? 'Unknown',
       text: data['text'],
       stickerUrl: data['stickerUrl'],
       musicUrl: data['musicUrl'],
       musicTitle: data['musicTitle'],
+      tripJournals: journals,
       timestamp: DateTime.tryParse(data['timestamp'] ?? '') ?? DateTime.now(),
       moderationStatus: data['moderationStatus'] ?? 'SAFE',
     );
@@ -49,15 +72,25 @@ class MessageModel {
 
   /// 🔹 Convert to Firestore-friendly Map
   Map<String, dynamic> toMapForFirestore() {
-    return {
+    final Map<String, dynamic> result = {
       'senderId': senderId,
-      if (text != null) 'text': text,
-      if (stickerUrl != null) 'stickerUrl': stickerUrl,
-      if (musicUrl != null) 'musicUrl': musicUrl,
-      if (musicTitle != null) 'musicTitle': musicTitle,
-      'timestamp': FieldValue.serverTimestamp(), 
-      if (moderationStatus != null) 'moderationStatus': moderationStatus,
+      'timestamp': FieldValue.serverTimestamp(),
+      'moderationStatus': moderationStatus ?? 'SAFE',
     };
+
+    // Only add non-null fields
+    if (text != null) result['text'] = text;
+    if (stickerUrl != null) result['stickerUrl'] = stickerUrl;
+    if (musicUrl != null) result['musicUrl'] = musicUrl;
+    if (musicTitle != null) result['musicTitle'] = musicTitle;
+    
+    // Special handling for tripJournals
+    if (tripJournals != null && tripJournals!.isNotEmpty) {
+      result['tripJournals'] = tripJournals;
+      print("🧳 Added tripJournals to Firestore map: $tripJournals");
+    }
+
+    return result;
   }
 
   /// 🔹 Convert to WebSocket-friendly Map (JSON)
@@ -69,7 +102,8 @@ class MessageModel {
       'stickerUrl': stickerUrl,
       'musicUrl': musicUrl,
       'musicTitle': musicTitle,
-      'timestamp': timestamp.toIso8601String(), 
+      'tripJournals': tripJournals,
+      'timestamp': timestamp.toIso8601String(),
       if (moderationStatus != null) 'moderationStatus': moderationStatus,
     };
   }

@@ -15,6 +15,17 @@ class ChatService {
       StreamController.broadcast();
   String? _currentUserId; // Track current user ID
 
+  /// Helper to serialize tripJournals dates as strings
+  List<Map<String, dynamic>> serializeTripJournals(List<Map<String, dynamic>> journals) {
+    return journals.map((journal) {
+      final newJournal = Map<String, dynamic>.from(journal);
+      if (newJournal['date'] is DateTime) {
+        newJournal['date'] = (newJournal['date'] as DateTime).toIso8601String();
+      }
+      return newJournal;
+    }).toList();
+  }
+
   /// 🔹 Connect WebSocket after finding a match
   void connectWebSocket(String chatRoomId, String userId) {
     _currentUserId = userId; // Store current user ID
@@ -84,6 +95,9 @@ class ChatService {
       messageMap["musicTitle"] = message.musicTitle;
       print("🎵 Added musicTitle to WebSocket message: ${message.musicTitle}");
     }
+   if (message.tripJournals != null && message.tripJournals!.isNotEmpty) {
+  messageMap["tripJournals"] = serializeTripJournals(message.tripJournals!);
+}
     
     final messageData = jsonEncode(messageMap);
     _channel?.sink.add(messageData);

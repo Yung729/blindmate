@@ -26,6 +26,8 @@ class MyPostsList extends StatefulWidget {
   final void Function(List<String> selectedPostIds)? onDeleteSelected;
   final void Function(List<String> selectedPostIds, bool makePublic)?
   onToggleVisibility;
+  final bool isMusicPlaying;
+  final double musicPlayerHeight;
 
   const MyPostsList({
     Key? key,
@@ -43,6 +45,8 @@ class MyPostsList extends StatefulWidget {
     required this.onViewTripJournal,
     this.onDeleteSelected,
     this.onToggleVisibility,
+    required this.isMusicPlaying,
+    required this.musicPlayerHeight,
   }) : super(key: key);
 
   @override
@@ -370,7 +374,10 @@ class _MyPostsListState extends State<MyPostsList> {
           Positioned(
             left: 0,
             right: 0,
-            bottom: 16,
+            bottom:
+                widget.isMusicPlaying
+                    ? (widget.musicPlayerHeight + 24) // 24 for extra margin
+                    : 16,
             child: Center(
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,

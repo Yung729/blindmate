@@ -4,7 +4,7 @@ import '../../models/dataModels/message_model.dart';
 class ChatState extends ChangeNotifier {
   List<MessageModel> messages = [];
   String? otherUserId;
-  String? currentUserId; 
+  String? currentUserId;
   String? otherUserAvatarImg;
   bool isOtherUserTyping = false;
   bool partnerLeft = false;
@@ -24,9 +24,12 @@ class ChatState extends ChangeNotifier {
   bool _isMusicPlaying = false;
 
   bool get reportedUser => _reportedUser;
-  
+
   bool get isMusicPlaying => _isMusicPlaying;
-  
+
+  List<Map<String, dynamic>> _userTripJournals = [];
+  bool _isLoadingTripJournals = false;
+
   void setMusicPlaying(bool isPlaying) {
     if (_isMusicPlaying != isPlaying) {
       _isMusicPlaying = isPlaying;
@@ -101,7 +104,7 @@ class ChatState extends ChangeNotifier {
     otherUserId = userId;
     notifyListeners();
   }
-  
+
   void setOtherUserAvatarImg(String? avatarImg) {
     otherUserAvatarImg = avatarImg;
     notifyListeners();
@@ -154,7 +157,7 @@ class ChatState extends ChangeNotifier {
     isInactive = false;
     isBanned = false;
     _reportedUser = false;
-    isChatOpen = true; 
+    isChatOpen = true;
     notifyListeners();
   }
 

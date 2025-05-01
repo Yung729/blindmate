@@ -14,6 +14,7 @@ class MusicPlayerState extends ChangeNotifier {
   bool get hasMusicLoaded => _currentMusicUrl != null;
 
   // Play a new music track
+
   void playMusic(String url, String? title) {
     if (_currentMusicUrl != url) {
       _currentMusicUrl = url;

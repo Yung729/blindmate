@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../viewmodels/state/sharing_state.dart';
+import '../../viewmodels/state/music_player_state.dart';
 import '../../viewmodels/dataBinding/sharing_data_binding.dart';
 import '../../viewmodels/eventHandlers/sharing_event_handler.dart';
 import '../UIComponents/post_card.dart';
@@ -12,8 +13,9 @@ import '../UIComponents/custom_dialog.dart';
 import '../UIComponents/trip_journal_card.dart';
 import '../UIComponents/post_url_preview.dart';
 import '../UIComponents/trip_journal_preview.dart';
-import '../UIComponents/inline_youtube_player.dart';
+import '../UIComponents/floating_youtube_player.dart';
 import '../UIComponents/custom_button.dart';
+import '../UIComponents/post_music_preview.dart';
 
 class SharingScreen extends StatefulWidget {
   final String userId;
@@ -153,6 +155,8 @@ class _SharingScreenState extends State<SharingScreen> {
   Widget build(BuildContext context) {
     return Consumer<SharingState>(
       builder: (context, sharingState, child) {
+        final isMusicPlaying = context.watch<MusicPlayerState>().isPlaying;
+        const musicPlayerHeight = 80.0; 
         final displayedPosts = _eventHandler.getDisplayedPosts(
           userId: widget.userId,
           showMyPostsOnly: _showMyPostsOnly,
@@ -161,40 +165,74 @@ class _SharingScreenState extends State<SharingScreen> {
 
         return Scaffold(
           appBar: AppBar(title: const Text("Sharing Space")),
-          body: Column(
+          body: Stack(
             children: [
-              _buildCreatePostAndToggleRow(),
-              Expanded(
-                child:
-                    _showMyPostsOnly
-                        ? MyPostsList(
-                          posts: displayedPosts,
-                          userId: widget.userId,
-                          avatarUrl: widget.avatarImg,
-                          scrollController: _scrollController,
-                          expandedPosts: _expandedPosts,
-                          maxLinesCollapsed: _maxLinesCollapsed,
-                          onShowPostOptions:
-                              (post) => _showPostOptions(context, post),
-                          onPlayMusic:
-                              (post) =>
-                                  _eventHandler.playMusic(post['musicUrl']),
-                          getTimeAgo: getTimeAgo,
-                          onExpand: (postId) {
-                            WidgetsBinding.instance.addPostFrameCallback((_) {
-                              setState(() => _expandedPosts.add(postId));
-                            });
-                          },
-                          onCollapse: (postId) {
-                            WidgetsBinding.instance.addPostFrameCallback((_) {
-                              setState(() => _expandedPosts.remove(postId));
-                            });
-                          },
-                          onViewTripJournal: _showTripJournalDialog,
-                          onDeleteSelected: _handleDeleteSelected,
-                          onToggleVisibility: _handleToggleVisibility,
-                        )
-                        : _buildSharedContentList(displayedPosts),
+              Column(
+                children: [
+                  _buildCreatePostAndToggleRow(),
+                  Expanded(
+                    child:
+                        _showMyPostsOnly
+                            ? MyPostsList(
+                              posts: displayedPosts,
+                              userId: widget.userId,
+                              avatarUrl: widget.avatarImg,
+                              scrollController: _scrollController,
+                              expandedPosts: _expandedPosts,
+                              maxLinesCollapsed: _maxLinesCollapsed,
+                              onShowPostOptions:
+                                  (post) => _showPostOptions(context, post),
+                              onPlayMusic: (post) {
+                                // Use MusicPlayerState to play music globally
+                                final musicUrl = post['musicUrl'];
+                                final musicTitle = post['musicTitle'];
+                                if (musicUrl != null) {
+                                  context.read<MusicPlayerState>().playMusic(
+                                    musicUrl,
+                                    musicTitle,
+                                  );
+                                }
+                              },
+                              getTimeAgo: getTimeAgo,
+                              onExpand: (postId) {
+                                WidgetsBinding.instance.addPostFrameCallback((
+                                  _,
+                                ) {
+                                  setState(() => _expandedPosts.add(postId));
+                                });
+                              },
+                              onCollapse: (postId) {
+                                WidgetsBinding.instance.addPostFrameCallback((
+                                  _,
+                                ) {
+                                  setState(() => _expandedPosts.remove(postId));
+                                });
+                              },
+                              onViewTripJournal: _showTripJournalDialog,
+                              onDeleteSelected: _handleDeleteSelected,
+                              onToggleVisibility: _handleToggleVisibility,
+                              isMusicPlaying: isMusicPlaying,
+                              musicPlayerHeight: musicPlayerHeight,
+                            )
+                            : _buildSharedContentList(displayedPosts),
+                  ),
+                ],
+              ),
+              // Persistent player at the bottom
+              Consumer<MusicPlayerState>(
+                builder: (context, musicState, _) {
+                  if (musicState.currentMusicUrl == null)
+                    return const SizedBox.shrink();
+                  return Align(
+                    alignment: Alignment.bottomCenter,
+                    child: FloatingYoutubePlayer(
+                      key: ValueKey(musicState.currentMusicUrl),
+                      youtubeUrl: musicState.currentMusicUrl!,
+                      title: musicState.currentMusicTitle,
+                      playerKey: ValueKey(musicState.currentMusicUrl),
+                    ),
+                  );
+                },
               ),
             ],
           ),
@@ -300,7 +338,7 @@ class _SharingScreenState extends State<SharingScreen> {
         }
 
         return PostCard(
-          key: ValueKey(post['id']), 
+          key: ValueKey(post['id']),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -348,9 +386,9 @@ class _SharingScreenState extends State<SharingScreen> {
                   linkUrl: post['url'],
                 ),
               if (post['musicUrl'] != null)
-                InlineYoutubePlayer(
-                  youtubeUrl: post['musicUrl'],
-                  title: post['musicTitle'],
+                PostMusicPreview(
+                  musicUrl: post['musicUrl'],
+                  musicTitle: post['musicTitle'],
                 ),
               if (isTripJournal && (post['tripJournals']?.isNotEmpty ?? false))
                 Padding(
@@ -434,6 +472,7 @@ class _SharingScreenState extends State<SharingScreen> {
               child: TripJournalBookCard(
                 journals: journals,
                 padding: const EdgeInsets.all(0),
+                onClose: () => Navigator.of(context).pop(),
               ),
             ),
           ),

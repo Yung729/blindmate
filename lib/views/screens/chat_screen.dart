@@ -18,6 +18,8 @@ import '../../views/UIComponents/chat_bubble.dart';
 import 'mini_game_screen.dart';
 import '../../viewmodels/state/auth_state.dart';
 import '../../services/game_invitation_service.dart';
+import '../UIComponents/trip_journal_create_dialog.dart';
+import '../UIComponents/trip_journal_card.dart';
 
 class ChatScreen extends StatefulWidget {
   final String chatRoomId;
@@ -47,6 +49,21 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   StreamSubscription? _gameInvitationResponseSubscription;
   StreamSubscription? _gameInvitationCancellationSubscription;
   DateTime? _chatStartTime;
+
+  List<Map<String, dynamic>> _userTripJournals = [];
+  bool _isLoadingTripJournals = false;
+
+  Future<void> _fetchUserTripJournals() async {
+    setState(() => _isLoadingTripJournals = true);
+    final chatBinding = ChatDataBinding(chatState: _chatState);
+    final journals = await chatBinding.fetchUserTripJournals(
+      widget.currentUserId,
+    );
+    setState(() {
+      _userTripJournals = journals;
+      _isLoadingTripJournals = false;
+    });
+  }
 
   @override
   void initState() {
@@ -80,7 +97,7 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
 
     WidgetsBinding.instance.addObserver(this);
     _chatHandler.startInactivityTimer(context);
-    
+
     // Add post-frame callback to ensure UI is built before checking state
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _updateFlowerCount();
@@ -88,7 +105,8 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     });
 
     _chatState.addListener(() {
-      if (!mounted || _chatState.hasSummaryShown || _isSummaryBeingShown) return;
+      if (!mounted || _chatState.hasSummaryShown || _isSummaryBeingShown)
+        return;
 
       if (_chatState.isBanned) {
         _showBanDialog();
@@ -129,66 +147,68 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     _flowerEventSubscription = _rewardService
         .listenToFlowerEvents(widget.chatRoomId)
         .listen((snapshot) {
-      if (snapshot.docs.isNotEmpty) {
-        final event = snapshot.docs.first.data() as Map<String, dynamic>;
-        if (event['senderId'] != widget.currentUserId) {
-          // Use microtask for better performance
-          Future.microtask(() {
-            // Show flower animation for the other user
-            _chatState.setShowFlowerAnimation(true);
-            Future.delayed(const Duration(seconds: 2), () {
-              if (mounted) {
-                _chatState.setShowFlowerAnimation(false);
-              }
-            });
-          });
-        }
-      }
-    });
+          if (snapshot.docs.isNotEmpty) {
+            final event = snapshot.docs.first.data() as Map<String, dynamic>;
+            if (event['senderId'] != widget.currentUserId) {
+              // Use microtask for better performance
+              Future.microtask(() {
+                // Show flower animation for the other user
+                _chatState.setShowFlowerAnimation(true);
+                Future.delayed(const Duration(seconds: 2), () {
+                  if (mounted) {
+                    _chatState.setShowFlowerAnimation(false);
+                  }
+                });
+              });
+            }
+          }
+        });
 
     // Listen for game invitations
     _gameInvitationSubscription = _gameInvitationService
         .listenForInvitations(widget.currentUserId)
         .listen((snapshot) {
-      for (var doc in snapshot.docs) {
-        final data = doc.data() as Map<String, dynamic>;
-        _showGameInvitationDialog(doc.id, data);
-      }
-    });
+          for (var doc in snapshot.docs) {
+            final data = doc.data() as Map<String, dynamic>;
+            _showGameInvitationDialog(doc.id, data);
+          }
+        });
 
     // Listen for invitation responses
     _gameInvitationResponseSubscription = _gameInvitationService
         .listenForInvitationResponse(widget.currentUserId)
         .listen((snapshot) {
-      for (var doc in snapshot.docs) {
-        final data = doc.data() as Map<String, dynamic>;
-        if (data['status'] == 'accepted') {
-          Navigator.pop(context); // Close any open dialogs
-          _navigateToGame(data['gameType'], data['chatRoomId']);
-          _gameInvitationService.deleteInvitation(doc.id);
-        } else if (data['status'] == 'declined') {
-          Navigator.pop(context); // Close any open dialogs
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text("Your partner declined the game invitation")),
-          );
-          _gameInvitationService.deleteInvitation(doc.id);
-        }
-      }
-    });
+          for (var doc in snapshot.docs) {
+            final data = doc.data() as Map<String, dynamic>;
+            if (data['status'] == 'accepted') {
+              Navigator.pop(context); // Close any open dialogs
+              _navigateToGame(data['gameType'], data['chatRoomId']);
+              _gameInvitationService.deleteInvitation(doc.id);
+            } else if (data['status'] == 'declined') {
+              Navigator.pop(context); // Close any open dialogs
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text("Your partner declined the game invitation"),
+                ),
+              );
+              _gameInvitationService.deleteInvitation(doc.id);
+            }
+          }
+        });
 
     // Listen for invitation cancellations
     _gameInvitationCancellationSubscription = _gameInvitationService
         .listenForInvitationCancellation(widget.currentUserId)
         .listen((snapshot) {
-      for (var doc in snapshot.docs) {
-        // Close any open invitation dialogs
-        Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Game invitation was cancelled")),
-        );
-        _gameInvitationService.deleteInvitation(doc.id);
-      }
-    });
+          for (var doc in snapshot.docs) {
+            // Close any open invitation dialogs
+            Navigator.pop(context);
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text("Game invitation was cancelled")),
+            );
+            _gameInvitationService.deleteInvitation(doc.id);
+          }
+        });
   }
 
   @override
@@ -200,12 +220,12 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     _gameInvitationSubscription?.cancel();
     _gameInvitationResponseSubscription?.cancel();
     _gameInvitationCancellationSubscription?.cancel();
-    
+
     // Set music as stopped in the ChatState and close any active player
     if (_chatState.isMusicPlaying) {
       _chatState.setMusicPlaying(false);
     }
-    
+
     super.dispose();
   }
 
@@ -289,14 +309,14 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     );
     if (shouldEnd) {
       final durationInSeconds =
-      DateTime.now().difference(_chatStartTime!).inSeconds;
+          DateTime.now().difference(_chatStartTime!).inSeconds;
 
-  // ✅ Track chat time-based mission progress
-  await trackUserMissionProgress(
-    category: 'chat',
-    type: 'time',
-    actionTime: durationInSeconds,
-  );
+      // ✅ Track chat time-based mission progress
+      await trackUserMissionProgress(
+        category: 'chat',
+        type: 'time',
+        actionTime: durationInSeconds,
+      );
       await _showChatSummary();
       _chatState.markSummaryShown();
       // Reset the local flag after showing summary
@@ -314,7 +334,7 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   Future<void> _showChatSummary() async {
     // Check both the state flag and local flag to prevent multiple dialogs
     if (_chatState.hasSummaryShown || _isSummaryBeingShown) return;
-    
+
     // Set local flag to prevent concurrent calls
     _isSummaryBeingShown = true;
 
@@ -383,7 +403,8 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       context,
     );
 
-    if (updatedCount >= 0) { // Changed from > 0 to >= 0 to include when last flower is sent
+    if (updatedCount >= 0) {
+      // Changed from > 0 to >= 0 to include when last flower is sent
       setState(() {
         _localFlowerCount = updatedCount;
       });
@@ -415,7 +436,7 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     _updateFlowerCount();
     _handleErrorMessages();
   }
-  
+
   void _updateFlowerCount() {
     // Check for auth state changes outside of build
     final authState = Provider.of<AuthState>(context, listen: false);
@@ -425,7 +446,7 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       });
     }
   }
-  
+
   void _handleErrorMessages() {
     // Handle error messages outside of build
     final chatState = Provider.of<ChatState>(context, listen: false);
@@ -459,7 +480,8 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     final isKeyboardVisible = MediaQuery.of(context).viewInsets.bottom > 0;
 
     // Base heights for different states
-    double baseHeight = screenHeight * 0.38; // 40% of screen height for stickers
+    double baseHeight =
+        screenHeight * 0.38; // 40% of screen height for stickers
     double minHeight = screenHeight * 0.13; // 25% for normal drawer
 
     // Adjust for keyboard and bottom padding
@@ -479,7 +501,8 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     return Consumer2<ChatState, AuthState>(
       builder: (context, chatState, authState, child) {
         // Schedule state updates with microtask for better performance
-        if (authState.currentUser?.flower != _localFlowerCount || chatState.errorMessage != null) {
+        if (authState.currentUser?.flower != _localFlowerCount ||
+            chatState.errorMessage != null) {
           Future.microtask(() {
             if (!mounted) return;
             _updateFlowerCount();
@@ -500,11 +523,12 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                 children: [
                   CircleAvatar(
                     radius: 18,
-                    backgroundImage: (authState.currentUser?.avatarImg != null &&
-                            authState.currentUser!.avatarImg.isNotEmpty)
-                        ? NetworkImage(authState.currentUser!.avatarImg)
-                        : const AssetImage('assets/default_pic.jpg')
-                            as ImageProvider,
+                    backgroundImage:
+                        (authState.currentUser?.avatarImg != null &&
+                                authState.currentUser!.avatarImg.isNotEmpty)
+                            ? NetworkImage(authState.currentUser!.avatarImg)
+                            : const AssetImage('assets/default_pic.jpg')
+                                as ImageProvider,
                   ),
                   const SizedBox(width: 8),
                   const Text("Chat"),
@@ -550,7 +574,10 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                         padding: EdgeInsets.only(
                           bottom:
                               _isDrawerVisible
-                                  ? _calculateDrawerHeight(context, _showStickers)
+                                  ? _calculateDrawerHeight(
+                                    context,
+                                    _showStickers,
+                                  )
                                   : 0,
                         ),
                         child: ListView.custom(
@@ -562,15 +589,18 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                               }
 
                               final messageIndex =
-                                  chatState.isOtherUserTyping ? index - 1 : index;
+                                  chatState.isOtherUserTyping
+                                      ? index - 1
+                                      : index;
                               final message = chatState.messages[messageIndex];
                               final isMe =
                                   message.senderId == widget.currentUserId;
 
                               // Create a unique key based on sender and timestamp since MessageModel has no id field
-                              final uniqueKey = '${message.senderId}-${message.timestamp.millisecondsSinceEpoch}';
+                              final uniqueKey =
+                                  '${message.senderId}-${message.timestamp.millisecondsSinceEpoch}';
                               return KeyedSubtree(
-                                key: ValueKey('message-$uniqueKey'), 
+                                key: ValueKey('message-$uniqueKey'),
                                 child: _buildChatBubble(
                                   message,
                                   isMe,
@@ -580,25 +610,33 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                             },
                             // This preserves state across rebuilds
                             findChildIndexCallback: (key) {
-                              final ValueKey<String> valueKey = key as ValueKey<String>;
+                              final ValueKey<String> valueKey =
+                                  key as ValueKey<String>;
                               final String keyString = valueKey.value;
-                              
+
                               // Skip for typing indicator
                               if (keyString == 'typing-indicator') return null;
-                              
+
                               // Extract unique message key from the key string
-                              final String messageUniqueKey = keyString.replaceFirst('message-', '');
-                              
+                              final String messageUniqueKey = keyString
+                                  .replaceFirst('message-', '');
+
                               // Find the index of the message with this unique key
-                              final int messageIndex = chatState.messages.indexWhere(
-                                (m) => '${m.senderId}-${m.timestamp.millisecondsSinceEpoch}' == messageUniqueKey
+                              final int
+                              messageIndex = chatState.messages.indexWhere(
+                                (m) =>
+                                    '${m.senderId}-${m.timestamp.millisecondsSinceEpoch}' ==
+                                    messageUniqueKey,
                               );
                               if (messageIndex < 0) return null;
-                              
+
                               // Adjust for typing indicator if present
-                              return chatState.isOtherUserTyping ? messageIndex + 1 : messageIndex;
+                              return chatState.isOtherUserTyping
+                                  ? messageIndex + 1
+                                  : messageIndex;
                             },
-                            childCount: chatState.messages.length +
+                            childCount:
+                                chatState.messages.length +
                                 (chatState.isOtherUserTyping ? 1 : 0),
                           ),
                         ),
@@ -621,7 +659,10 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                           _buildMessageInput(),
                           AnimatedContainer(
                             duration: const Duration(milliseconds: 300),
-                            height: _calculateDrawerHeight(context, _showStickers),
+                            height: _calculateDrawerHeight(
+                              context,
+                              _showStickers,
+                            ),
                             decoration: const BoxDecoration(
                               color: Colors.white,
                               borderRadius: BorderRadius.only(
@@ -638,7 +679,10 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                             ),
                             child: SingleChildScrollView(
                               child: SizedBox(
-                                height: _calculateDrawerHeight(context, _showStickers),
+                                height: _calculateDrawerHeight(
+                                  context,
+                                  _showStickers,
+                                ),
                                 child: BottomDrawer(
                                   onFlowerSelected: (_) async {
                                     await _sendFlower();
@@ -674,8 +718,27 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                                       },
                                     );
                                   },
-                                  onTripJournal: () {
-                                    // Add your trip journal logic here
+                                  onTripJournal: () async {
+                                    await _fetchUserTripJournals();
+                                    TripJournalDialog.show(
+                                      context,
+                                      initialEntries: [],
+                                      onJournalsAdded: (entries) async {
+                                        if (entries != null &&
+                                            entries.isNotEmpty) {
+                                          await _chatHandler
+                                              .sendTripJournalMessage(
+                                                context,
+                                                entries,
+                                              );
+                                          setState(() {
+                                            _isDrawerVisible = false;
+                                          });
+                                        }
+                                      },
+                                      pastJournals: _userTripJournals,
+                                      actionButtonText: 'Send Journal',
+                                    );
                                   },
                                   onStickerSearch: (query) {
                                     _chatHandler.searchStickers(query);
@@ -718,13 +781,31 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   Widget _buildChatBubble(message, bool isMe, String? currentUserAvatarImg) {
     // Determine if this message should show avatar based on the next message
     final messageIndex = _chatState.messages.indexOf(message);
-    final nextMessage = messageIndex < _chatState.messages.length - 1 
-        ? _chatState.messages[messageIndex + 1]
-        : null;
-    
+    final nextMessage =
+        messageIndex < _chatState.messages.length - 1
+            ? _chatState.messages[messageIndex + 1]
+            : null;
+
     // Show avatar if it's the last message from this sender
-    final showAvatar = nextMessage == null || nextMessage.senderId != message.senderId;
-    
+    final showAvatar =
+        nextMessage == null || nextMessage.senderId != message.senderId;
+
+    // --- Trip Journal Support ---
+    if (message.tripJournals != null && message.tripJournals!.isNotEmpty) {
+      // Show trip journal card in chat bubble
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 6.0, horizontal: 8.0),
+        child: ChatBubble(
+          isMe: isMe,
+          avatarUrl:
+              isMe ? currentUserAvatarImg : _chatState.otherUserAvatarImg,
+          timestamp: message.timestamp,
+          showAvatar: showAvatar,
+          child: TripJournalBookCard(journals: message.tripJournals!),
+        ),
+      );
+    }
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 1.0),
       child: ChatBubble(
@@ -743,7 +824,7 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
 
   Widget _buildMessageInput() {
     final bool hasText = _messageController.text.isNotEmpty;
-    
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 8.0),
       decoration: BoxDecoration(
@@ -786,10 +867,7 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                 decoration: BoxDecoration(
                   color: Colors.grey[50],
                   borderRadius: BorderRadius.circular(24.0),
-                  border: Border.all(
-                    color: Colors.grey[200]!,
-                    width: 1,
-                  ),
+                  border: Border.all(color: Colors.grey[200]!, width: 1),
                 ),
                 child: Row(
                   children: [
@@ -801,7 +879,9 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                         textCapitalization: TextCapitalization.sentences,
                         style: const TextStyle(fontSize: 16),
                         onChanged: (text) {
-                          setState(() {}); // Rebuild to update send button color
+                          setState(
+                            () {},
+                          ); // Rebuild to update send button color
                           if (text.isNotEmpty) {
                             _chatHandler.updateTyping(true);
                           } else {
@@ -828,16 +908,17 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                           color: hasText ? Colors.blue[400] : Colors.grey[300],
                           size: 24,
                         ),
-                        onPressed: hasText
-                            ? () {
-                                _chatHandler.sendMessage(
-                                  context,
-                                  text: _messageController.text,
-                                );
-                                _messageController.clear();
-                                setState(() {}); // Update send button state
-                              }
-                            : null,
+                        onPressed:
+                            hasText
+                                ? () {
+                                  _chatHandler.sendMessage(
+                                    context,
+                                    text: _messageController.text,
+                                  );
+                                  _messageController.clear();
+                                  setState(() {}); // Update send button state
+                                }
+                                : null,
                       ),
                     ),
                   ],
@@ -850,32 +931,42 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     );
   }
 
-  void _showGameInvitationDialog(String invitationId, Map<String, dynamic> data) {
+  void _showGameInvitationDialog(
+    String invitationId,
+    Map<String, dynamic> data,
+  ) {
     final gameType = data['gameType'] as String;
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        title: Text("Game Invitation"),
-        content: Text("Your partner wants to play $gameType with you!"),
-        actions: [
-          TextButton(
-            onPressed: () async {
-              await _gameInvitationService.respondToInvitation(invitationId, false);
-              Navigator.pop(context); // Just close the dialog
-            },
-            child: Text("Decline"),
+      builder:
+          (context) => AlertDialog(
+            title: Text("Game Invitation"),
+            content: Text("Your partner wants to play $gameType with you!"),
+            actions: [
+              TextButton(
+                onPressed: () async {
+                  await _gameInvitationService.respondToInvitation(
+                    invitationId,
+                    false,
+                  );
+                  Navigator.pop(context); // Just close the dialog
+                },
+                child: Text("Decline"),
+              ),
+              TextButton(
+                onPressed: () async {
+                  await _gameInvitationService.respondToInvitation(
+                    invitationId,
+                    true,
+                  );
+                  Navigator.pop(context); // Close the dialog
+                  _navigateToGame(gameType, data['chatRoomId']);
+                },
+                child: Text("Accept"),
+              ),
+            ],
           ),
-          TextButton(
-            onPressed: () async {
-              await _gameInvitationService.respondToInvitation(invitationId, true);
-              Navigator.pop(context); // Close the dialog
-              _navigateToGame(gameType, data['chatRoomId']);
-            },
-            child: Text("Accept"),
-          ),
-        ],
-      ),
     );
   }
 
@@ -884,24 +975,26 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => MiniGameScreen(
-            chatRoomId: chatRoomId,
-            currentUserId: widget.currentUserId,
-            opponentId: _chatState.otherUserId ?? '',
-            isDrawer: true,
-          ),
+          builder:
+              (context) => MiniGameScreen(
+                chatRoomId: chatRoomId,
+                currentUserId: widget.currentUserId,
+                opponentId: _chatState.otherUserId ?? '',
+                isDrawer: true,
+              ),
         ),
       );
     } else if (gameType == 'Tic Tac Toe') {
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => MiniGame2Screen(
-            chatRoomId: chatRoomId,
-            currentUserId: widget.currentUserId,
-            opponentId: _chatState.otherUserId ?? '',
-            isPlayerX: true,
-          ),
+          builder:
+              (context) => MiniGame2Screen(
+                chatRoomId: chatRoomId,
+                currentUserId: widget.currentUserId,
+                opponentId: _chatState.otherUserId ?? '',
+                isPlayerX: true,
+              ),
         ),
       );
     }
@@ -915,69 +1008,77 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        title: Text("Sending Invitation"),
-        content: Text("Waiting for your partner to accept the game invitation..."),
-        actions: [
-          TextButton(
-            onPressed: () async {
-              if (currentInvitationId != null) {
-                await _gameInvitationService.cancelInvitation(currentInvitationId!);
-              }
-              Navigator.pop(context);
-            },
-            child: Text("Cancel"),
+      builder:
+          (context) => AlertDialog(
+            title: Text("Sending Invitation"),
+            content: Text(
+              "Waiting for your partner to accept the game invitation...",
+            ),
+            actions: [
+              TextButton(
+                onPressed: () async {
+                  if (currentInvitationId != null) {
+                    await _gameInvitationService.cancelInvitation(
+                      currentInvitationId!,
+                    );
+                  }
+                  Navigator.pop(context);
+                },
+                child: Text("Cancel"),
+              ),
+            ],
           ),
-        ],
-      ),
     );
 
-    _gameInvitationService.sendInvitation(
-      chatRoomId: widget.chatRoomId,
-      senderId: widget.currentUserId,
-      receiverId: _chatState.otherUserId!,
-      gameType: gameType,
-    ).then((invitationId) {
-      currentInvitationId = invitationId;
-    });
+    _gameInvitationService
+        .sendInvitation(
+          chatRoomId: widget.chatRoomId,
+          senderId: widget.currentUserId,
+          receiverId: _chatState.otherUserId!,
+          gameType: gameType,
+        )
+        .then((invitationId) {
+          currentInvitationId = invitationId;
+        });
   }
 
   void _showGameSelectionDialog() {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text("Select Game"),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: Icon(Icons.draw, color: Colors.blue),
-              title: Text("Draw & Guess"),
-              subtitle: Text("Draw and let your partner guess"),
-              onTap: () {
-                Navigator.pop(context);
-                _handleGameSelection("Draw & Guess");
-              },
+      builder:
+          (context) => AlertDialog(
+            title: Text("Select Game"),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ListTile(
+                  leading: Icon(Icons.draw, color: Colors.blue),
+                  title: Text("Draw & Guess"),
+                  subtitle: Text("Draw and let your partner guess"),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _handleGameSelection("Draw & Guess");
+                  },
+                ),
+                Divider(),
+                ListTile(
+                  leading: Icon(Icons.grid_on, color: Colors.green),
+                  title: Text("Tic Tac Toe"),
+                  subtitle: Text("Classic X and O game"),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _handleGameSelection("Tic Tac Toe");
+                  },
+                ),
+              ],
             ),
-            Divider(),
-            ListTile(
-              leading: Icon(Icons.grid_on, color: Colors.green),
-              title: Text("Tic Tac Toe"),
-              subtitle: Text("Classic X and O game"),
-              onTap: () {
-                Navigator.pop(context);
-                _handleGameSelection("Tic Tac Toe");
-              },
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text("Cancel"),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: Text("Cancel"),
+              ),
+            ],
           ),
-        ],
-      ),
     );
   }
 }
