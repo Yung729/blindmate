@@ -28,7 +28,6 @@ class SharingEventHandler {
       builder: (context) => CreatePostScreen(
         userId: userId,
         userName: userName,
-        userAvatar: avatarImg, // Note: parameter name is userAvatar, not avatarImg
       ),
     ),
   );

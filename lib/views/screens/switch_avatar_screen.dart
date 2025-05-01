@@ -8,6 +8,8 @@ import 'package:blindmate/models/dataModels/user_model.dart';
 import 'package:blindmate/models/dataModels/user_reward_model.dart';
 import 'package:blindmate/views/UIComponents/image_frame.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:blindmate/viewmodels/state/auth_state.dart';
 
 class SwitchAvatarScreen extends StatefulWidget {
   final UserModel? user;
@@ -117,8 +119,7 @@ class _SwitchAvatarScreenState extends State<SwitchAvatarScreen> {
                                   padding: const EdgeInsets.symmetric(
                                     horizontal: 8.0,
                                   ),
-                                  child:
-                                  GestureDetector(
+                                  child: GestureDetector(
                                     onTap:
                                         isCurrentAvatar
                                             ? null
@@ -172,6 +173,16 @@ class _SwitchAvatarScreenState extends State<SwitchAvatarScreen> {
                                                           reward.imageUrl,
                                                     });
 
+                                                // Update global AuthState so all screens react
+                                                if (mounted) {
+                                                  Provider.of<AuthState>(
+                                                    context,
+                                                    listen: false,
+                                                  ).updateAvatar(
+                                                    reward.imageUrl ?? '',
+                                                  );
+                                                }
+
                                                 setState(() {
                                                   widget.user!.avatarImg =
                                                       reward.imageUrl ?? '';
@@ -185,18 +196,18 @@ class _SwitchAvatarScreenState extends State<SwitchAvatarScreen> {
                                           title: reward.rewardTitle,
                                         ),
                                         CustomButton(
-                                        text:
-                                            isCurrentAvatar
-                                                ? 'Current'
-                                                : 'Apply',
-                                        onPressed:
-                                            isCurrentAvatar ? null : () {},
-                                        horizontalPadding: 12,
-                                        verticalPadding: 8,
-                                        fontSize: 12,
-                                        borderRadius: 20,
-                                        width: 80,
-                                      ),
+                                          text:
+                                              isCurrentAvatar
+                                                  ? 'Current'
+                                                  : 'Apply',
+                                          onPressed:
+                                              isCurrentAvatar ? null : () {},
+                                          horizontalPadding: 12,
+                                          verticalPadding: 8,
+                                          fontSize: 12,
+                                          borderRadius: 20,
+                                          width: 80,
+                                        ),
                                       ],
                                     ),
                                   ),

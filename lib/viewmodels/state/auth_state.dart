@@ -50,4 +50,11 @@ class AuthState with ChangeNotifier {
     userName = null;
     notifyListeners();
   }
+
+  void updateAvatar(String newAvatarUrl) {
+  if (_currentUser != null) {
+    _currentUser!.avatarImg = newAvatarUrl;
+    notifyListeners();
+  }
+}
 }

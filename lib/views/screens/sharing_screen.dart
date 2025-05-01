@@ -156,7 +156,7 @@ class _SharingScreenState extends State<SharingScreen> {
     return Consumer<SharingState>(
       builder: (context, sharingState, child) {
         final isMusicPlaying = context.watch<MusicPlayerState>().isPlaying;
-        const musicPlayerHeight = 80.0; 
+        const musicPlayerHeight = 80.0;
         final displayedPosts = _eventHandler.getDisplayedPosts(
           userId: widget.userId,
           showMyPostsOnly: _showMyPostsOnly,
@@ -246,23 +246,34 @@ class _SharingScreenState extends State<SharingScreen> {
       padding: const EdgeInsets.all(10.0),
       child: Row(
         children: [
-          CircleAvatar(
-            backgroundImage:
-                widget.avatarImg.isNotEmpty
-                    ? NetworkImage(widget.avatarImg)
-                    : const AssetImage('assets/default_pic.jpg')
-                        as ImageProvider,
+          Consumer<SharingState>(
+            builder: (context, sharingState, _) {
+              final avatarUrl = sharingState.currentUser?.avatarImg ?? '';
+              return CircleAvatar(
+                backgroundImage:
+                    avatarUrl.isNotEmpty
+                        ? NetworkImage(avatarUrl)
+                        : const AssetImage('assets/default_pic.jpg')
+                            as ImageProvider,
+              );
+            },
           ),
           const SizedBox(width: 10),
           Expanded(
             child: GestureDetector(
-              onTap:
-                  () => _eventHandler.navigateToCreatePost(
-                    context,
-                    userId: widget.userId,
-                    userName: widget.userName,
-                    avatarImg: widget.avatarImg,
-                  ),
+              onTap: () {
+                final sharingState = Provider.of<SharingState>(
+                  context,
+                  listen: false,
+                );
+                final avatarUrl = sharingState.currentUser?.avatarImg ?? '';
+                _eventHandler.navigateToCreatePost(
+                  context,
+                  userId: widget.userId,
+                  userName: widget.userName,
+                  avatarImg: avatarUrl, // <-- Use latest from state!
+                );
+              },
               child: Container(
                 padding: const EdgeInsets.symmetric(
                   vertical: 10,

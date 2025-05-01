@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../viewmodels/dataBinding/create_post_data_binding.dart';
 import '../../viewmodels/eventHandlers/create_post_event_handler.dart';
 import '../../viewmodels/state/create_post_state.dart';
+import '../../viewmodels/state/auth_state.dart';
 import '../../viewmodels/uiValidation/post_validator.dart';
 import '../UIComponents/loading_indicator.dart';
 import '../UIComponents/url_input_dialog.dart';
@@ -15,13 +16,11 @@ import '../UIComponents/custom_snackbar.dart';
 class CreatePostScreen extends StatefulWidget {
   final String userId;
   final String userName;
-  final String userAvatar;
 
   const CreatePostScreen({
     super.key,
     required this.userId,
     required this.userName,
-    required this.userAvatar,
   });
 
   @override
@@ -64,12 +63,16 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
     );
     final dataBinding = CreatePostDataBinding(createPostState: createPostState);
 
+    // Fetch avatar from AuthState for event handler
+    final authState = Provider.of<AuthState>(context, listen: false);
+    final userAvatar = authState.currentUser?.avatarImg ?? '';
+
     _eventHandler = CreatePostEventHandler(
       createPostState: createPostState,
       dataBinding: dataBinding,
       userId: widget.userId,
       userName: widget.userName,
-      userAvatar: widget.userAvatar,
+      userAvatar: userAvatar,
     );
 
     _fetchPastJournals();
@@ -338,24 +341,30 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                   // User info section
                   Row(
                     children: [
-                      Container(
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: Colors.grey.shade200,
-                            width: 2,
-                          ),
-                        ),
-                        child: CircleAvatar(
-                          radius: 24,
-                          backgroundImage:
-                              (widget.userAvatar.isNotEmpty)
-                                  ? NetworkImage(widget.userAvatar)
-                                  : const AssetImage(
-                                        'assets/default_profile.png',
-                                      )
-                                      as ImageProvider,
-                        ),
+                      Consumer<AuthState>(
+                        builder: (context, authState, _) {
+                          final avatarUrl =
+                              authState.currentUser?.avatarImg ?? '';
+                          return Container(
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: Colors.grey.shade200,
+                                width: 2,
+                              ),
+                            ),
+                            child: CircleAvatar(
+                              radius: 24,
+                              backgroundImage:
+                                  avatarUrl.isNotEmpty
+                                      ? NetworkImage(avatarUrl)
+                                      : const AssetImage(
+                                            'assets/default_profile.png',
+                                          )
+                                          as ImageProvider,
+                            ),
+                          );
+                        },
                       ),
                       const SizedBox(width: 12),
                       Column(
@@ -656,7 +665,6 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                     onTap:
                         urlDisabled
                             ? () {
-                          
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
                                   content: const Text(
