@@ -50,7 +50,9 @@ class _SharingScreenState extends State<SharingScreen> {
       dataBinding: dataBinding,
     );
 
-    _eventHandler.init();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _eventHandler.init();
+    });
   }
 
   @override
@@ -178,12 +180,16 @@ class _SharingScreenState extends State<SharingScreen> {
                               (post) =>
                                   _eventHandler.playMusic(post['musicUrl']),
                           getTimeAgo: getTimeAgo,
-                          onExpand:
-                              (postId) =>
-                                  setState(() => _expandedPosts.add(postId)),
-                          onCollapse:
-                              (postId) =>
-                                  setState(() => _expandedPosts.remove(postId)),
+                          onExpand: (postId) {
+                            WidgetsBinding.instance.addPostFrameCallback((_) {
+                              setState(() => _expandedPosts.add(postId));
+                            });
+                          },
+                          onCollapse: (postId) {
+                            WidgetsBinding.instance.addPostFrameCallback((_) {
+                              setState(() => _expandedPosts.remove(postId));
+                            });
+                          },
                           onViewTripJournal: _showTripJournalDialog,
                           onDeleteSelected: _handleDeleteSelected,
                           onToggleVisibility: _handleToggleVisibility,
@@ -324,10 +330,16 @@ class _SharingScreenState extends State<SharingScreen> {
                   content: post['content'],
                   isExpanded: _expandedPosts.contains(post['id']),
                   maxLinesCollapsed: _maxLinesCollapsed,
-                  onExpand:
-                      () => setState(() => _expandedPosts.add(post['id'])),
-                  onCollapse:
-                      () => setState(() => _expandedPosts.remove(post['id'])),
+                  onExpand: () {
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      setState(() => _expandedPosts.add(post['id']));
+                    });
+                  },
+                  onCollapse: () {
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      setState(() => _expandedPosts.remove(post['id']));
+                    });
+                  },
                 ),
               if (post['url'] != null)
                 PostUrlPreview(
