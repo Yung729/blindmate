@@ -4,6 +4,7 @@ import 'package:blindmate/views/UIComponents/crystal_box.dart';
 import 'package:blindmate/views/UIComponents/custom_button.dart';
 import 'package:blindmate/views/UIComponents/mission_field.dart';
 import 'package:blindmate/views/screens/redeem_reward_screen.dart';
+import 'package:blindmate/views/screens/mission_detail_screen.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -52,8 +53,10 @@ class _DoMissionScreenState extends State<DoMissionScreen> {
       });
     }
     if (user != null) {
-     final missions = await MissionEventHandler.handleFetchStatusTrueMissions(limit: 3);
-     
+      final missions = await MissionEventHandler.handleFetchStatusTrueMissions(
+        limit: 3,
+      );
+
       if (mounted) {
         setState(() {
           _missions = missions;
@@ -92,9 +95,20 @@ class _DoMissionScreenState extends State<DoMissionScreen> {
                     ),
                     SizedBox(height: 20),
                     ..._missions.map(
-                      (mission) => MissionField(
-                        mission: mission,
-                        isCurrentMission: false,
+                      (mission) => GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder:
+                                  (_) => MissionDetailScreen(mission: mission),
+                            ),
+                          );
+                        },
+                        child: MissionField(
+                          mission: mission,
+                          isCurrentMission: false,
+                        ),
                       ),
                     ),
                     SizedBox(height: 20),
