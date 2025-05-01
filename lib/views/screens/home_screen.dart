@@ -20,7 +20,7 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen>
     with SingleTickerProviderStateMixin {
   late final AuthState authState;
-  late final SurveyDialogEventHandler _surveyDialogEventHandler; // Replaced _dialogService
+  late final SurveyDialogEventHandler _surveyDialogEventHandler; 
   late AnimationController _animationController;
   late Animation<double> _swingAnimation;
 
@@ -29,7 +29,6 @@ class _HomeScreenState extends State<HomeScreen>
     super.initState();
     authState = context.read<AuthState>();
 
-    // Initialize survey dialog handler
     final surveyDialogState = SurveyDialogState();
     _surveyDialogEventHandler = SurveyDialogEventHandler(
       surveyDialogState: surveyDialogState,
@@ -48,12 +47,9 @@ class _HomeScreenState extends State<HomeScreen>
       CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
     );
 
-    // Check survey dialog status after the first frame
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      // Replaced survey dialog check with event handler
       await _surveyDialogEventHandler.init(context);
 
-      // Unchanged mission-related code
       if ((await fetchMissionsFromFirebase(limit: 1)).isEmpty) {
         await generateAndStoreMissions();
       }
