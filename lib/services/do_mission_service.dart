@@ -25,10 +25,11 @@ Future<bool> isDateAfterCreated() async {
   final currentUser = FirebaseAuth.instance.currentUser;
   if (currentUser == null) throw Exception("No user is logged in.");
 
-  final missions = await FirebaseFirestore.instance
-      .collection('mission')
-      .where('assignedUser', isEqualTo: currentUser.uid)
-      .get();
+  final missions =
+      await FirebaseFirestore.instance
+          .collection('mission')
+          .where('assignedUser', isEqualTo: currentUser.uid)
+          .get();
 
   final now = DateTime.now();
   final today = DateTime(now.year, now.month, now.day);
@@ -37,7 +38,11 @@ Future<bool> isDateAfterCreated() async {
     final createdAt = (doc.data()['createdAt'] as Timestamp?)?.toDate();
     if (createdAt == null) continue;
 
-    final createdDate = DateTime(createdAt.year, createdAt.month, createdAt.day);
+    final createdDate = DateTime(
+      createdAt.year,
+      createdAt.month,
+      createdAt.day,
+    );
     if (today.isAtSameMomentAs(createdDate)) {
       print("Found a mission already created today. Skip regeneration.");
       return false;
@@ -48,17 +53,17 @@ Future<bool> isDateAfterCreated() async {
   return true;
 }
 
-
 Future<void> clearMissionList() async {
   final currentUser = FirebaseAuth.instance.currentUser;
   if (currentUser == null) {
     throw Exception("No user is logged in.");
   }
 
-  final missions = await FirebaseFirestore.instance
-      .collection('mission')
-      .where('assignedUser', isEqualTo: currentUser.uid)
-      .get();
+  final missions =
+      await FirebaseFirestore.instance
+          .collection('mission')
+          .where('assignedUser', isEqualTo: currentUser.uid)
+          .get();
 
   for (var doc in missions.docs) {
     final data = doc.data();
@@ -73,7 +78,11 @@ Future<void> clearMissionList() async {
     final now = DateTime.now();
 
     // Compare only date (ignoring time)
-    final createdDateOnly = DateTime(createdAt.year, createdAt.month, createdAt.day);
+    final createdDateOnly = DateTime(
+      createdAt.year,
+      createdAt.month,
+      createdAt.day,
+    );
     final nowDateOnly = DateTime(now.year, now.month, now.day);
 
     if (nowDateOnly.isAfter(createdDateOnly)) {
@@ -180,12 +189,14 @@ Future<void> generateAndStoreMissions() async {
   }
 }
 
-  // Function to award XP to the user when the mission is finished
+// Function to award XP to the user when the mission is finished
 Future<void> awardUserXP(String userId, int xp) async {
   try {
     // Update the user's fragmentNumber (XP) in Firestore
     await FirebaseFirestore.instance.collection('users').doc(userId).update({
-      'fragmentNumber': FieldValue.increment(xp), // Add XP to user's fragmentNumber
+      'fragmentNumber': FieldValue.increment(
+        xp,
+      ), // Add XP to user's fragmentNumber
     });
     print("Awarded $xp XP to user: $userId");
   } catch (e) {
@@ -211,7 +222,8 @@ Future<void> trackUserMissionProgress({
           .where('assignedUser', isEqualTo: currentUser.uid)
           .where('category', isEqualTo: category)
           .where('type', isEqualTo: type)
-           .where('status', isEqualTo: true)
+          .where('status', isEqualTo: true)
+          .where('finished', isEqualTo: false)
           .get();
 
   if (missions.docs.isEmpty) {
@@ -222,14 +234,14 @@ Future<void> trackUserMissionProgress({
   }
 
   for (var mission in missions.docs) {
-
     // Get mission data
     final missionData = mission.data();
     final currentProgress = missionData['progress'] ?? 0;
     final target = missionData['requirements']['target'] ?? 0;
     final rewardXp = missionData['rewards']['xp'] ?? 0;
 
-    if (currentProgress + (type == 'time' ? actionTime : actionCount) >= target) {
+    if (currentProgress + (type == 'time' ? actionTime : actionCount) >=
+        target) {
       // Mark mission as finished
       await missionsRef.doc(mission.id).update({
         'progress': target, // Set progress to target value
@@ -243,7 +255,9 @@ Future<void> trackUserMissionProgress({
     } else {
       // Update progress incrementally
       await missionsRef.doc(mission.id).update({
-        'progress': FieldValue.increment(type == 'time' ? actionTime : actionCount),
+        'progress': FieldValue.increment(
+          type == 'time' ? actionTime : actionCount,
+        ),
       });
       print("Updated mission progress for mission ID: ${mission.id}");
     }
@@ -261,5 +275,4 @@ Future<void> trackUserMissionProgress({
   //     print("Updated mission progress (action) for mission ID: ${mission.id}");
   //   }
   // }
-
 }
