@@ -4,7 +4,9 @@ import 'dart:convert';
 import 'package:google_generative_ai/google_generative_ai.dart';
 
 class GeminiModerationService {
-  final String apiKey = 'AIzaSyCpduqdv3nfhxOZ4bF99Mm2YEuYc3OLAgs';
+  final String apiKey = 'AIzaSyCtfncRITsFxG7ywTaylhkZKx4E8EcEH-M';
+  // new key: 'AIzaSyCtfncRITsFxG7ywTaylhkZKx4E8EcEH-M';
+  // old key: 'AIzaSyCpduqdv3nfhxOZ4bF99Mm2YEuYc3OLAgs';
 
   Future<String?> checkContentLevel(String message) async {
     final model = GenerativeModel(model: 'gemini-1.5-flash', apiKey: apiKey);
@@ -62,7 +64,7 @@ Query:
     }
   }
 
-Future<List<Map<String, dynamic>>> generateSurveyQuestions() async {
+  Future<List<Map<String, dynamic>>> generateSurveyQuestions() async {
     final model = GenerativeModel(model: 'gemini-1.5-flash', apiKey: apiKey);
 
     final prompt = '''
@@ -104,7 +106,6 @@ Future<List<Map<String, dynamic>>> generateSurveyQuestions() async {
 
       final List<dynamic> questions = json.decode(cleanedJson);
       return questions.cast<Map<String, dynamic>>();
-
     } catch (e) {
       print('Error generating survey: $e');
       rethrow;
@@ -113,8 +114,7 @@ Future<List<Map<String, dynamic>>> generateSurveyQuestions() async {
 
   Future<String> generateMissionJsonFromPrompt() async {
     final model = GenerativeModel(model: 'gemini-1.5-flash', apiKey: apiKey);
-    final prompt = 
-    '''
+    final prompt = '''
   Generate 5 missions for a social app focusing ONLY on time-based OR action-based achievements.
   Each mission should use these existing tracked metrics and features:
 
@@ -179,7 +179,7 @@ Future<List<Map<String, dynamic>>> generateSurveyQuestions() async {
 
   Generate ONLY valid JSON without any additional text or explanations.
   ''';
-    
+
     final response = await model.generateContent([Content.text(prompt)]);
     var jsonResult = response.text?.trim();
 
