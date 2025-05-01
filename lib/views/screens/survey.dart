@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:blindmate/models/dataModels/survey_model.dart';
+import 'package:blindmate/viewmodels/dataBinding/survey_data_binding.dart';
+import 'package:blindmate/viewmodels/eventHandlers/survey_event_handler.dart';
 
 class SurveyPage extends StatelessWidget {
   final String userId;
@@ -16,7 +17,7 @@ class SurveyPage extends StatelessWidget {
   void _showSurveyGuidanceDialog(BuildContext context) {
     showDialog(
       context: context,
-      barrierDismissible: false, // Prevent dismissing by tapping outside
+      barrierDismissible: false,
       builder: (_) => AlertDialog(
         backgroundColor: Colors.grey[100],
         shape: RoundedRectangleBorder(
@@ -152,7 +153,7 @@ class SurveyPage extends StatelessWidget {
           Center(
             child: ElevatedButton(
               onPressed: () {
-                Navigator.pop(context); // Close the guidance dialog
+                Navigator.pop(context);
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.blue,
@@ -180,193 +181,205 @@ class SurveyPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (_) => SurveyModel()..fetchQuestions(),
-      child: Consumer<SurveyModel>(
-        builder: (context, model, child) {
-          return Theme(
-            // Customize Radio button theme
-            data: Theme.of(context).copyWith(
-              radioTheme: RadioThemeData(
-                fillColor: WidgetStateProperty.resolveWith<Color?>((states) {
-                  if (states.contains(WidgetState.selected)) {
-                    return Colors.blue; // Selected radio button color
-                  }
-                  return Colors.grey[400]; // Unselected radio button color
-                }),
-                overlayColor: WidgetStateProperty.all(Colors.blue.withOpacity(0.1)), // Ripple effect
-              ),
-            ),
-            child: Scaffold(
-              appBar: AppBar(
-                title: const Text('Weekly Mental Health Survey'),
-                actions: [
-                  IconButton(
-                    icon: const Icon(
-                      question_circle_fill,
-                      color: Colors.black,
-                      size: 24,
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => SurveyDataBinding()),
+        // Use ChangeNotifierProvider.value to provide SurveyEventHandler
+        Consumer<SurveyDataBinding>(
+          builder: (context, dataBinding, _) => ChangeNotifierProvider(
+            create: (_) => SurveyEventHandler(dataBinding),
+            child: Consumer2<SurveyDataBinding, SurveyEventHandler>(
+              builder: (context, dataBinding, eventHandler, child) {
+                final surveyModel = dataBinding.surveyModel;
+                return Theme(
+                  data: Theme.of(context).copyWith(
+                    radioTheme: RadioThemeData(
+                      fillColor: WidgetStateProperty.resolveWith<Color?>((states) {
+                        if (states.contains(WidgetState.selected)) {
+                          return Colors.blue;
+                        }
+                        return Colors.grey[400];
+                      }),
+                      overlayColor: WidgetStateProperty.all(Colors.blue.withOpacity(0.1)),
                     ),
-                    onPressed: () => _showSurveyGuidanceDialog(context),
-                    tooltip: 'Survey Guidance',
                   ),
-                ],
-              ),
-              body: model.isLoading
-                  ? const Center(child: CircularProgressIndicator())
-                  : model.hasError || model.questions.isEmpty
-                      ? Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Text(
-                                model.hasError
-                                    ? 'Failed to load survey question: ${model.errorMessage}'
-                                    : 'No question generated.',
-                                style: const TextStyle(fontSize: 16),
-                                textAlign: TextAlign.center,
-                              ),
-                              const SizedBox(height: 16),
-                              ElevatedButton(
-                                onPressed: model.fetchQuestions,
-                                child: const Text('Retry'),
-                              ),
-                              const SizedBox(height: 8),
-                              ElevatedButton(
-                                onPressed: () => Navigator.pop(context),
-                                child: const Text('Go Back'),
-                              ),
-                            ],
+                  child: Scaffold(
+                    appBar: AppBar(
+                      title: const Text('Weekly Mental Health Survey'),
+                      actions: [
+                        IconButton(
+                          icon: const Icon(
+                            question_circle_fill,
+                            color: Colors.black,
+                            size: 24,
                           ),
-                        )
-                      : Padding(
-                          padding: const EdgeInsets.all(16.0),
-                          child: Form(
-                            key: GlobalKey<FormState>(),
-                            child: ListView(
-                              children: [
-                                ...model.questions.asMap().entries.map((entry) {
-                                  final index = entry.key;
-                                  final question = entry.value;
-                                  final questionId = question.id.toString();
-                                  final options = question.options;
-
-                                  return Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                          onPressed: () => _showSurveyGuidanceDialog(context),
+                          tooltip: 'Survey Guidance',
+                        ),
+                      ],
+                    ),
+                    body: dataBinding.isLoading
+                        ? const Center(child: CircularProgressIndicator())
+                        : dataBinding.hasError || surveyModel.questions.isEmpty
+                            ? Center(
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Text(
+                                      dataBinding.hasError
+                                          ? 'Failed to load survey question: ${dataBinding.errorMessage}'
+                                          : 'No question generated.',
+                                      style: const TextStyle(fontSize: 16),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                    const SizedBox(height: 16),
+                                    ElevatedButton(
+                                      onPressed: dataBinding.fetchQuestions,
+                                      child: const Text('Retry'),
+                                    ),
+                                    const SizedBox(height: 8),
+                                    ElevatedButton(
+                                      onPressed: () => Navigator.pop(context),
+                                      child: const Text('Go Back'),
+                                    ),
+                                  ],
+                                ),
+                              )
+                            : Padding(
+                                padding: const EdgeInsets.all(16.0),
+                                child: Form(
+                                  key: GlobalKey<FormState>(),
+                                  child: ListView(
                                     children: [
-                                      Text(
-                                        "${index + 1}. ${question.question}",
-                                        style: const TextStyle(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 8),
-                                      ...options.map((option) {
-                                        return Container(
-                                          margin: const EdgeInsets.symmetric(vertical: 4),
-                                          decoration: BoxDecoration(
-                                            color: model.selectedOptions[questionId] == option.text
-                                                ? Colors.blue.withOpacity(0.1) // Selected background
-                                                : Colors.grey[100], // Unselected background
-                                            borderRadius: BorderRadius.circular(12),
-                                          ),
-                                          child: RadioListTile<String>(
-                                            value: option.text,
-                                            groupValue: model.selectedOptions[questionId],
-                                            onChanged: (value) {
-                                              model.selectOption(questionId, value!, option.score);
-                                            },
-                                            title: Text(
-                                              option.text,
-                                              style: TextStyle(
-                                                fontSize: 14,
-                                                fontWeight: model.selectedOptions[questionId] == option.text
-                                                    ? FontWeight.bold
-                                                    : FontWeight.normal,
-                                                color: model.selectedOptions[questionId] == option.text
-                                                    ? Colors.blue
-                                                    : Colors.black,
+                                      ...surveyModel.questions.asMap().entries.map((entry) {
+                                        final index = entry.key;
+                                        final question = entry.value;
+                                        final questionId = question.id.toString();
+                                        final options = question.options;
+
+                                        return Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              "${index + 1}. ${question.question}",
+                                              style: const TextStyle(
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.bold,
                                               ),
                                             ),
-                                            contentPadding: const EdgeInsets.symmetric(
-                                              horizontal: 18,
-                                              vertical: 10,
-                                            ),
-                                            dense: true,
-                                            activeColor: Colors.blue,
-                                            toggleable: false,
-                                          ),
-                                        );
-                                      }),
-                                      const SizedBox(height: 16),
-                                    ],
-                                  );
-                                }),
-                                const SizedBox(height: 20),
-                                Center(
-                                  child: ElevatedButton(
-                                    onPressed: model.areAllQuestionsAnswered()
-                                        ? () async {
-                                            final result = await model.submitSurvey(userId);
-                                            if (result['success'] == true) {
-                                              showDialog(
-                                                context: context,
-                                                builder: (_) => AlertDialog(
-                                                  title: const Text('Thank you!'),
-                                                  content: Text(
-                                                    'Survey submitted successfully.\n'
-                                                    'Score: ${result['totalScore']}\n'
-                                                    '${result['message']}\n\n'
-                                                    '${result['scoreComparisonMessage']}\n\n'
-                                                    'Chat Score: ${result['scores']['chatScore']!.toStringAsFixed(2)}\n'
-                                                    'Survey Score: ${result['scores']['surveyScore']!.toStringAsFixed(2)}\n'
-                                                    'Score Difference: ${result['scores']['scoreDifference']!.toStringAsFixed(2)}',
-                                                  ),
-                                                  actions: [
-                                                    TextButton(
-                                                      onPressed: () {
-                                                        Navigator.pop(context);
-                                                        Navigator.pop(context);
-                                                      },
-                                                      child: const Text('OK'),
+                                            const SizedBox(height: 8),
+                                            ...options.map((option) {
+                                              return Container(
+                                                margin: const EdgeInsets.symmetric(vertical: 4),
+                                                decoration: BoxDecoration(
+                                                  color: surveyModel.selectedOptions[questionId] == option.text
+                                                      ? Colors.blue.withOpacity(0.1)
+                                                      : Colors.grey[100],
+                                                  borderRadius: BorderRadius.circular(12),
+                                                ),
+                                                child: RadioListTile<String>(
+                                                  value: option.text,
+                                                  groupValue: surveyModel.selectedOptions[questionId],
+                                                  onChanged: (value) {
+                                                    eventHandler.onOptionSelected(
+                                                      questionId,
+                                                      value!,
+                                                      option.score,
+                                                    );
+                                                  },
+                                                  title: Text(
+                                                    option.text,
+                                                    style: TextStyle(
+                                                      fontSize: 14,
+                                                      fontWeight: surveyModel.selectedOptions[questionId] == option.text
+                                                          ? FontWeight.bold
+                                                          : FontWeight.normal,
+                                                      color: surveyModel.selectedOptions[questionId] == option.text
+                                                          ? Colors.blue
+                                                          : Colors.black,
                                                     ),
-                                                  ],
+                                                  ),
+                                                  contentPadding: const EdgeInsets.symmetric(
+                                                    horizontal: 18,
+                                                    vertical: 10,
+                                                  ),
+                                                  dense: true,
+                                                  activeColor: Colors.blue,
+                                                  toggleable: false,
                                                 ),
                                               );
-                                            } else {
-                                              ScaffoldMessenger.of(context).showSnackBar(
-                                                SnackBar(content: Text(result['message'])),
-                                              );
-                                            }
-                                          }
-                                        : () {
-                                            ScaffoldMessenger.of(context).showSnackBar(
-                                              const SnackBar(
-                                                content: Text('Please answer the question before submitting.'),
-                                                duration: Duration(seconds: 2),
-                                              ),
-                                            );
-                                          },
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: model.areAllQuestionsAnswered()
-                                          ? Colors.blue
-                                          : Colors.grey[400],
-                                    ),
-                                    child: const Text(
-                                      'Submit',
-                                      style: TextStyle(color: Colors.white),
-                                    ),
+                                            }),
+                                            const SizedBox(height: 16),
+                                          ],
+                                        );
+                                      }),
+                                      const SizedBox(height: 20),
+                                      Center(
+                                        child: ElevatedButton(
+                                          onPressed: eventHandler.areAllQuestionsAnswered()
+                                              ? () async {
+                                                  final result = await eventHandler.onSubmitSurvey(userId);
+                                                  if (result['success'] == true) {
+                                                    showDialog(
+                                                      context: context,
+                                                      builder: (_) => AlertDialog(
+                                                        title: const Text('Thank you!'),
+                                                        content: Text(
+                                                          'Survey submitted successfully.\n'
+                                                          'Score: ${result['totalScore']}\n'
+                                                          '${result['message']}\n\n'
+                                                          '${result['scoreComparisonMessage']}\n\n'
+                                                          'Chat Score: ${result['scores']['chatScore']!.toStringAsFixed(2)}\n'
+                                                          'Survey Score: ${result['scores']['surveyScore']!.toStringAsFixed(2)}\n'
+                                                          'Score Difference: ${result['scores']['scoreDifference']!.toStringAsFixed(2)}',
+                                                        ),
+                                                        actions: [
+                                                          TextButton(
+                                                            onPressed: () {
+                                                              Navigator.pop(context);
+                                                              Navigator.pop(context);
+                                                            },
+                                                            child: const Text('OK'),
+                                                          ),
+                                                        ],
+                                                      ),
+                                                    );
+                                                  } else {
+                                                    ScaffoldMessenger.of(context).showSnackBar(
+                                                      SnackBar(content: Text(result['message'])),
+                                                    );
+                                                  }
+                                                }
+                                              : () {
+                                                  ScaffoldMessenger.of(context).showSnackBar(
+                                                    const SnackBar(
+                                                      content: Text('Please answer the question before submitting.'),
+                                                      duration: Duration(seconds: 2),
+                                                    ),
+                                                  );
+                                                },
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: eventHandler.areAllQuestionsAnswered()
+                                                ? Colors.blue
+                                                : Colors.grey[400],
+                                          ),
+                                          child: const Text(
+                                            'Submit',
+                                            style: TextStyle(color: Colors.white),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ),
-                              ],
-                            ),
-                          ),
-                        ),
+                              ),
+                  ),
+                );
+              },
             ),
-          );
-        },
-      ),
+          ),
+        ),
+      ],
     );
   }
 }

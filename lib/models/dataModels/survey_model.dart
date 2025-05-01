@@ -1,108 +1,70 @@
-import 'package:flutter/material.dart';
-import 'package:blindmate/services/gemini_moderation_service.dart';
 import 'package:blindmate/models/dataModels/survey_question_model.dart';
-import 'package:blindmate/services/level_progression_service.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 
-class SurveyModel extends ChangeNotifier {
-  final GeminiModerationService _surveyService = GeminiModerationService();
-  final LevelProgressionService _levelService = LevelProgressionService();
-  List<SurveyQuestion> _questions = [];
-  bool _isLoading = true;
-  bool _hasError = false;
-  String? _errorMessage;
-  Map<String, String?> _selectedOptions = {};
-  Map<String, int> _optionScores = {};
+class SurveyModel {
+  final List<SurveyQuestion> questions;
+  final Map<String, String?> selectedOptions;
+  final Map<String, int> optionScores;
 
-  List<SurveyQuestion> get questions => _questions;
-  bool get isLoading => _isLoading;
-  bool get hasError => _hasError;
-  String? get errorMessage => _errorMessage;
-  Map<String, String?> get selectedOptions => _selectedOptions;
+  SurveyModel({
+    required this.questions,
+    required this.selectedOptions,
+    required this.optionScores,
+  });
 
-  Future<void> fetchQuestions() async {
-    _isLoading = true;
-    _hasError = false;
-    _errorMessage = null;
-    _questions = [];
-    _selectedOptions = {};
-    _optionScores = {};
-    notifyListeners();
-
-    try {
-      final response = await _surveyService.generateSurveyQuestions();
-      if (response is List) {
-        _questions = response.map((json) => SurveyQuestion.fromJson(json)).toList();
-        for (var question in _questions) {
-          _selectedOptions[question.id.toString()] = null;
-          _optionScores[question.id.toString()] = 0;
-        }
-        _isLoading = false;
-      } else {
-        _isLoading = false;
-        _hasError = true;
-        _errorMessage = 'Unexpected response format: Not a list';
-      }
-    } catch (e) {
-      _isLoading = false;
-      _hasError = true;
-      _errorMessage = e.toString();
-    }
-    notifyListeners();
+  /// 🔹 Create an empty SurveyModel
+  factory SurveyModel.empty() {
+    return SurveyModel(
+      questions: [],
+      selectedOptions: {},
+      optionScores: {},
+    );
   }
 
-  void selectOption(String questionId, String optionText, int score) {
-    _selectedOptions[questionId] = optionText;
-    _optionScores[questionId] = score;
-    notifyListeners();
-  }
+  /// 🔹 Create SurveyModel from JSON (e.g., from GeminiModerationService)
+  factory SurveyModel.fromJson(List<dynamic> json) {
+    final questions = json.map((item) => SurveyQuestion.fromJson(item)).toList();
+    final selectedOptions = <String, String?>{};
+    final optionScores = <String, int>{};
 
-  bool areAllQuestionsAnswered() {
-    return _selectedOptions.values.every((option) => option != null);
-  }
-
-  Future<Map<String, dynamic>> submitSurvey(String userId) async {
-    if (!areAllQuestionsAnswered()) {
-      return {'success': false, 'message': 'Please answer all questions'};
+    for (var question in questions) {
+      selectedOptions[question.id.toString()] = null;
+      optionScores[question.id.toString()] = 0;
     }
 
-    try {
-      final totalScore = _optionScores.values.reduce((a, b) => a + b);
-      final numberOfQuestions = _questions.length;
-      String message;
-      if (totalScore >= numberOfQuestions) {
-        message = 'You seem to be doing great! Keep it up!';
-      } else if (totalScore > 0) {
-        message = 'You’re doing okay, but consider checking in with yourself.';
-      } else {
-        message = 'It looks like you might need support. Consider reaching out.';
-      }
+    return SurveyModel(
+      questions: questions,
+      selectedOptions: selectedOptions,
+      optionScores: optionScores,
+    );
+  }
 
-      // Update user level and get scores
-      final scores = await _levelService.updateUserLevel(userId, totalScore, numberOfQuestions);
+  /// 🔹 Create a copy with updated fields
+  SurveyModel copyWith({
+    List<SurveyQuestion>? questions,
+    Map<String, String?>? selectedOptions,
+    Map<String, int>? optionScores,
+  }) {
+    return SurveyModel(
+      questions: questions ?? this.questions,
+      selectedOptions: selectedOptions ?? this.selectedOptions,
+      optionScores: optionScores ?? this.optionScores,
+    );
+  }
 
-      // Update surveyDate in Firebase
-      await FirebaseFirestore.instance.collection('users').doc(userId).update({
-        'surveyDate': Timestamp.fromDate(DateTime.now()),
-      });
-
-      // Determine score comparison message
-      String scoreComparisonMessage;
-      if (scores['scoreDifference']! < 0.3) {
-        scoreComparisonMessage = 'Both chat score and survey score are close. Your level will be increased.';
-      } else {
-        scoreComparisonMessage = 'Both chat score and survey score are differed too much. Your level will be remained.';
-      }
-
-      return {
-        'success': true,
-        'totalScore': totalScore,
-        'message': message,
-        'scoreComparisonMessage': scoreComparisonMessage,
-        'scores': scores,
-      };
-    } catch (e) {
-      return {'success': false, 'message': 'Error updating level: $e'};
-    }
+  /// 🔹 Convert to JSON for serialization
+  Map<String, dynamic> toJson() {
+    return {
+      'questions': questions.map((q) => {
+            'id': q.id,
+            'question': q.question,
+            'options': q.options.map((o) => {
+                  'text': o.text,
+                  'level': o.level,
+                  'score': o.score,
+                }).toList(),
+          }).toList(),
+      'selectedOptions': selectedOptions,
+      'optionScores': optionScores,
+    };
   }
 }
