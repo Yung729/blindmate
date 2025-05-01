@@ -158,4 +158,31 @@ class ChatEventHandler {
       }
     });
   }
+
+  Future<void> sendTripJournalMessage(
+    BuildContext context,
+    List<Map<String, dynamic>> tripJournals,
+  ) async {
+    print("SENDING trip journal message: $tripJournals");
+    if (tripJournals.isEmpty) return;
+
+    final message = MessageModel(
+      senderId: currentUserId,
+      tripJournals: tripJournals,
+      timestamp: DateTime.now(),
+      moderationStatus: 'SAFE', // Trip journals are considered safe by default
+    );
+    try {
+      print("🧳 Adding trip journal message to local state");
+      dataBinding.addMessage(message);
+      
+      print("🧳 Sending trip journal message via WebSocket/Firestore");
+      await dataBinding.sendMessage(currentUserId, chatRoomId, message);
+
+      resetInactivityTimer();
+      print("✅ Trip journal message sent successfully");
+    } catch (e) {
+      print("❌ Error sending trip journal message: $e");// Handle error if needed
+    }
+  }
 }

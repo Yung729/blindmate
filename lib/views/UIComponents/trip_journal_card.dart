@@ -1,12 +1,18 @@
+
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class TripJournalBookCard extends StatefulWidget {
   final List<Map<String, dynamic>> journals;
   final EdgeInsetsGeometry? padding;
+  final VoidCallback? onClose; // <-- Optional close button callback
 
-  const TripJournalBookCard({Key? key, required this.journals, this.padding})
-    : super(key: key);
+  const TripJournalBookCard({
+    Key? key,
+    required this.journals,
+    this.padding,
+    this.onClose, // <-- Add to constructor
+  }) : super(key: key);
 
   @override
   State<TripJournalBookCard> createState() => _TripJournalBookCardState();
@@ -28,6 +34,33 @@ class _TripJournalBookCardState extends State<TripJournalBookCard> {
     super.dispose();
   }
 
+  IconData _getActivityIcon(String activity) {
+    switch (activity) {
+      case 'Food & Dining':
+        return Icons.restaurant;
+      case 'Sunset View':
+        return Icons.wb_sunny;
+      case 'Swimming':
+        return Icons.pool;
+      case 'Beach':
+        return Icons.beach_access;
+      case 'Hiking':
+        return Icons.hiking;
+      case 'Shopping':
+        return Icons.shopping_bag;
+      case 'Sightseeing':
+        return Icons.photo_camera;
+      case 'Water Sports':
+        return Icons.surfing;
+      case 'Nature':
+        return Icons.park;
+      case 'Cultural':
+        return Icons.museum;
+      default:
+        return Icons.local_activity;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final journals = widget.journals;
@@ -38,34 +71,6 @@ class _TripJournalBookCardState extends State<TripJournalBookCard> {
           style: TextStyle(color: Colors.grey, fontSize: 18),
         ),
       );
-    }
-
-    // Add this inside the _TripJournalBookCardState class
-    IconData _getActivityIcon(String activity) {
-      switch (activity) {
-        case 'Food & Dining':
-          return Icons.restaurant;
-        case 'Sunset View':
-          return Icons.wb_sunny;
-        case 'Swimming':
-          return Icons.pool;
-        case 'Beach':
-          return Icons.beach_access;
-        case 'Hiking':
-          return Icons.hiking;
-        case 'Shopping':
-          return Icons.shopping_bag;
-        case 'Sightseeing':
-          return Icons.photo_camera;
-        case 'Water Sports':
-          return Icons.surfing;
-        case 'Nature':
-          return Icons.park;
-        case 'Cultural':
-          return Icons.museum;
-        default:
-          return Icons.local_activity;
-      }
     }
 
     return Padding(
@@ -85,8 +90,7 @@ class _TripJournalBookCardState extends State<TripJournalBookCard> {
                     onPageChanged: (i) => setState(() => _currentPage = i),
                     itemBuilder: (context, index) {
                       final journal = journals[index];
-                      final location =
-                          journal['location'] ?? 'Unknown location';
+                      final location = journal['location'] ?? 'Unknown location';
                       final dateRaw = journal['date'];
                       DateTime? date;
                       if (dateRaw is Timestamp) {
@@ -96,10 +100,9 @@ class _TripJournalBookCardState extends State<TripJournalBookCard> {
                       } else if (dateRaw is DateTime) {
                         date = dateRaw;
                       }
-                      final dateStr =
-                          date != null
-                              ? '${date.day}/${date.month}/${date.year}'
-                              : 'Unknown date';
+                      final dateStr = date != null
+                          ? '${date.day}/${date.month}/${date.year}'
+                          : 'Unknown date';
                       final description = journal['description'] ?? '';
                       final note = journal['note'] ?? '';
 
@@ -153,29 +156,24 @@ class _TripJournalBookCardState extends State<TripJournalBookCard> {
                                       vertical: 16,
                                     ),
                                     child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
+                                      crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
-                                        // Top bar with Day indicator and Close button
+                                        // Top bar with Day indicator and optional Close button
                                         Row(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.spaceBetween,
+                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                           children: [
                                             // Day Ribbon (moved to left)
                                             Container(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                    horizontal: 14,
-                                                    vertical: 4,
-                                                  ),
+                                              padding: const EdgeInsets.symmetric(
+                                                horizontal: 14,
+                                                vertical: 4,
+                                              ),
                                               decoration: BoxDecoration(
                                                 color: Colors.teal[400],
-                                                borderRadius:
-                                                    BorderRadius.circular(12),
+                                                borderRadius: BorderRadius.circular(12),
                                                 boxShadow: [
                                                   BoxShadow(
-                                                    color: Colors.teal
-                                                        .withOpacity(0.15),
+                                                    color: Colors.teal.withOpacity(0.15),
                                                     blurRadius: 6,
                                                     offset: const Offset(0, 2),
                                                   ),
@@ -191,24 +189,20 @@ class _TripJournalBookCardState extends State<TripJournalBookCard> {
                                                 ),
                                               ),
                                             ),
-                                            // Close button (new)
-                                            IconButton(
-                                              onPressed: () {
-                                                Navigator.of(context).pop();
-                                              },
-                                              style: IconButton.styleFrom(
-                                                backgroundColor: Colors.white
-                                                    .withOpacity(0.9),
-                                                padding: const EdgeInsets.all(
-                                                  8,
+                                            // Optional Close button
+                                            if (widget.onClose != null)
+                                              IconButton(
+                                                onPressed: widget.onClose,
+                                                style: IconButton.styleFrom(
+                                                  backgroundColor: Colors.white.withOpacity(0.9),
+                                                  padding: const EdgeInsets.all(8),
+                                                ),
+                                                icon: const Icon(
+                                                  Icons.close,
+                                                  color: Colors.grey,
+                                                  size: 20,
                                                 ),
                                               ),
-                                              icon: const Icon(
-                                                Icons.close,
-                                                color: Colors.grey,
-                                                size: 20,
-                                              ),
-                                            ),
                                           ],
                                         ),
                                         const SizedBox(height: 10),
@@ -273,17 +267,14 @@ class _TripJournalBookCardState extends State<TripJournalBookCard> {
                                         if (description.isNotEmpty) ...[
                                           const SizedBox(height: 8),
                                           Row(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.start,
+                                            crossAxisAlignment: CrossAxisAlignment.start,
                                             children: [
                                               Container(
                                                 decoration: BoxDecoration(
                                                   color: Colors.indigo[50],
                                                   shape: BoxShape.circle,
                                                 ),
-                                                padding: const EdgeInsets.all(
-                                                  6,
-                                                ),
+                                                padding: const EdgeInsets.all(6),
                                                 child: const Icon(
                                                   Icons.short_text,
                                                   color: Colors.indigo,
@@ -304,23 +295,17 @@ class _TripJournalBookCardState extends State<TripJournalBookCard> {
                                             ],
                                           ),
                                         ],
-                                        if ((journal['activities']
-                                                    as List<dynamic>?)
-                                                ?.isNotEmpty ??
-                                            false) ...[
+                                        if ((journal['activities'] as List<dynamic>?)?.isNotEmpty ?? false) ...[
                                           const SizedBox(height: 12),
                                           Row(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.start,
+                                            crossAxisAlignment: CrossAxisAlignment.start,
                                             children: [
                                               Container(
                                                 decoration: BoxDecoration(
                                                   color: Colors.amber[50],
                                                   shape: BoxShape.circle,
                                                 ),
-                                                padding: const EdgeInsets.all(
-                                                  6,
-                                                ),
+                                                padding: const EdgeInsets.all(6),
                                                 child: const Icon(
                                                   Icons.local_activity,
                                                   color: Colors.amber,
@@ -332,67 +317,35 @@ class _TripJournalBookCardState extends State<TripJournalBookCard> {
                                                 child: Wrap(
                                                   spacing: 6,
                                                   runSpacing: 6,
-                                                  children:
-                                                      (journal['activities']
-                                                              as List<dynamic>?)
+                                                  children: (journal['activities'] as List<dynamic>?)
                                                           ?.map(
-                                                            (
-                                                              activity,
-                                                            ) => Container(
-                                                              padding:
-                                                                  const EdgeInsets.symmetric(
-                                                                    horizontal:
-                                                                        10,
-                                                                    vertical: 4,
-                                                                  ),
+                                                            (activity) => Container(
+                                                              padding: const EdgeInsets.symmetric(
+                                                                horizontal: 10,
+                                                                vertical: 4,
+                                                              ),
                                                               decoration: BoxDecoration(
-                                                                color: Colors
-                                                                    .white
-                                                                    .withOpacity(
-                                                                      0.7,
-                                                                    ),
-                                                                borderRadius:
-                                                                    BorderRadius.circular(
-                                                                      12,
-                                                                    ),
+                                                                color: Colors.white.withOpacity(0.7),
+                                                                borderRadius: BorderRadius.circular(12),
                                                                 border: Border.all(
-                                                                  color: Colors
-                                                                      .amber
-                                                                      .withOpacity(
-                                                                        0.3,
-                                                                      ),
+                                                                  color: Colors.amber.withOpacity(0.3),
                                                                 ),
                                                               ),
                                                               child: Row(
-                                                                mainAxisSize:
-                                                                    MainAxisSize
-                                                                        .min,
+                                                                mainAxisSize: MainAxisSize.min,
                                                                 children: [
                                                                   Icon(
-                                                                    _getActivityIcon(
-                                                                      activity
-                                                                          .toString(),
-                                                                    ),
+                                                                    _getActivityIcon(activity.toString()),
                                                                     size: 14,
-                                                                    color:
-                                                                        Colors
-                                                                            .amber[700],
+                                                                    color: Colors.amber[700],
                                                                   ),
-                                                                  const SizedBox(
-                                                                    width: 4,
-                                                                  ),
+                                                                  const SizedBox(width: 4),
                                                                   Text(
-                                                                    activity
-                                                                        .toString(),
+                                                                    activity.toString(),
                                                                     style: TextStyle(
-                                                                      fontSize:
-                                                                          12,
-                                                                      color:
-                                                                          Colors
-                                                                              .amber[900],
-                                                                      fontWeight:
-                                                                          FontWeight
-                                                                              .w500,
+                                                                      fontSize: 12,
+                                                                      color: Colors.amber[900],
+                                                                      fontWeight: FontWeight.w500,
                                                                     ),
                                                                   ),
                                                                 ],
@@ -410,17 +363,14 @@ class _TripJournalBookCardState extends State<TripJournalBookCard> {
                                         if (note.isNotEmpty) ...[
                                           const SizedBox(height: 10),
                                           Row(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.start,
+                                            crossAxisAlignment: CrossAxisAlignment.start,
                                             children: [
                                               Container(
                                                 decoration: BoxDecoration(
                                                   color: Colors.lightBlue[50],
                                                   shape: BoxShape.circle,
                                                 ),
-                                                padding: const EdgeInsets.all(
-                                                  6,
-                                                ),
+                                                padding: const EdgeInsets.all(6),
                                                 child: const Icon(
                                                   Icons.notes,
                                                   color: Colors.lightBlue,
@@ -453,8 +403,7 @@ class _TripJournalBookCardState extends State<TripJournalBookCard> {
                                             ),
                                             decoration: BoxDecoration(
                                               color: Colors.teal[50],
-                                              borderRadius:
-                                                  BorderRadius.circular(8),
+                                              borderRadius: BorderRadius.circular(8),
                                             ),
                                             child: Text(
                                               'Page ${index + 1} of ${journals.length}',
@@ -491,21 +440,19 @@ class _TripJournalBookCardState extends State<TripJournalBookCard> {
                           width: _currentPage == i ? 18 : 8,
                           height: 8,
                           decoration: BoxDecoration(
-                            color:
-                                _currentPage == i
-                                    ? Colors.teal[400]
-                                    : Colors.cyan[200],
+                            color: _currentPage == i
+                                ? Colors.teal[400]
+                                : Colors.cyan[200],
                             borderRadius: BorderRadius.circular(4),
-                            boxShadow:
-                                _currentPage == i
-                                    ? [
-                                      BoxShadow(
-                                        color: Colors.teal.withOpacity(0.18),
-                                        blurRadius: 6,
-                                        offset: const Offset(0, 2),
-                                      ),
-                                    ]
-                                    : [],
+                            boxShadow: _currentPage == i
+                                ? [
+                                    BoxShadow(
+                                      color: Colors.teal.withOpacity(0.18),
+                                      blurRadius: 6,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                  ]
+                                : [],
                           ),
                         );
                       }),

@@ -44,12 +44,14 @@ class TripJournalDialog extends StatefulWidget {
   final List<Map<String, dynamic>>? initialEntries;
   final Function(List<Map<String, dynamic>> entries) onJournalsAdded;
   final List<Map<String, dynamic>> pastJournals;
+  final String actionButtonText;
 
   const TripJournalDialog({
     Key? key,
     this.initialEntries,
     required this.onJournalsAdded,
     required this.pastJournals,
+    this.actionButtonText = 'Save Journal',
   }) : super(key: key);
 
   static Future<void> show(
@@ -57,6 +59,7 @@ class TripJournalDialog extends StatefulWidget {
     List<Map<String, dynamic>>? initialEntries,
     required Function(List<Map<String, dynamic>> entries) onJournalsAdded,
     required List<Map<String, dynamic>> pastJournals,
+    String actionButtonText = 'Save Journal',
   }) {
     return showModalBottomSheet(
       context: context,
@@ -74,6 +77,7 @@ class TripJournalDialog extends StatefulWidget {
             initialEntries: initialEntries,
             onJournalsAdded: onJournalsAdded,
             pastJournals: pastJournals,
+            actionButtonText: actionButtonText, 
           ),
         );
       },
@@ -386,7 +390,7 @@ class _TripJournalDialogState extends State<TripJournalDialog> {
                   const SizedBox(width: 12),
                   Expanded(
                     child: CustomButton(
-                      text: 'Save Journal',
+                      text: widget.actionButtonText,
                       icon: const Icon(
                         Icons.check_circle_outline,
                         color: Colors.white,
