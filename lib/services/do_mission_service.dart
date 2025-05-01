@@ -8,31 +8,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/dataModels/mission_model.dart';
 import 'package:intl/intl.dart';
 
-/// Loads prompt from assets and sends it to Gemini API.
-// Future<String> callGeminiToGenerateMissions() async {
-//   const apiKey =
-//       'AIzaSyCpduqdv3nfhxOZ4bF99Mm2YEuYc3OLAgs'; // 🔐 Replace securely in production
-//   final model = GenerativeModel(model: 'gemini-1.5-flash', apiKey: apiKey);
-
-//   final promptFilePath = 'assets/MissionGenerationPrompt.txt';
-//   final prompt = await rootBundle.loadString(
-//     'assets/MissionGenerationPrompt.txt',
-//   );
-//   final response = await model.generateContent([Content.text(prompt)]);
-
-//   var jsonResult = response.text?.trim();
-
-//   print('Gemini Response: $jsonResult');
-
-//   jsonResult = jsonResult?.replaceAll(RegExp(r'^```json|\n|```'), '');
-
-//   if (jsonResult == null || jsonResult.isEmpty) {
-//     throw Exception('Gemini returned an empty result');
-//   }
-
-//   return jsonResult;
-// }
-
 /// Saves a list of generated missions to Firestore.
 Future<void> saveGeneratedMissionsToFirebase(
   List<MissionModel> missions,
@@ -46,51 +21,6 @@ Future<void> saveGeneratedMissionsToFirebase(
   }
 }
 
-// Future<bool> isDateAfterCreated() async {
-//   final currentUser = FirebaseAuth.instance.currentUser;
-//   if (currentUser == null) {
-//     throw Exception("No user is logged in.");
-//   }
-
-//   final missions =
-//       await FirebaseFirestore.instance
-//           .collection('mission')
-//           .where('assignedUser', isEqualTo: currentUser.uid)
-//           .limit(1)
-//           .get();
-
-//   if (missions.docs.isEmpty) {
-//     print("No missions found. Need to generate.");
-//     return true;
-//   }
-
-//   final createdAtTimestamp =
-//       missions.docs.first.data()['createdAt'] as Timestamp?;
-//   if (createdAtTimestamp == null) {
-//     print("Mission has no createdAt. Need to generate.");
-//     return true;
-//   }
-
-//   final createdAt = createdAtTimestamp.toDate();
-//   final now = DateTime.now();
-
-//   final createdDateOnly = DateTime(
-//     createdAt.year,
-//     createdAt.month,
-//     createdAt.day,
-//   );
-//   final nowDateOnly = DateTime(now.year, now.month, now.day);
-
-//   if (nowDateOnly.isAfter(createdDateOnly)) {
-//     print(
-//       "Today's date is after createdAt date. Need to clear and regenerate.",
-//     );
-//     return true;
-//   } else {
-//     print("Today's date is the same as createdAt date. No need to regenerate.");
-//     return false;
-//   }
-// }
 Future<bool> isDateAfterCreated() async {
   final currentUser = FirebaseAuth.instance.currentUser;
   if (currentUser == null) throw Exception("No user is logged in.");
@@ -250,6 +180,19 @@ Future<void> generateAndStoreMissions() async {
   }
 }
 
+  // Function to award XP to the user when the mission is finished
+Future<void> _awardUserXP(String userId, int xp) async {
+  try {
+    // Update the user's fragmentNumber (XP) in Firestore
+    await FirebaseFirestore.instance.collection('users').doc(userId).update({
+      'fragmentNumber': FieldValue.increment(xp), // Add XP to user's fragmentNumber
+    });
+    print("Awarded $xp XP to user: $userId");
+  } catch (e) {
+    print("Error awarding XP to the user: $e");
+  }
+}
+
 Future<void> trackUserMissionProgress({
   required String category,
   required String type,
@@ -268,7 +211,7 @@ Future<void> trackUserMissionProgress({
           .where('assignedUser', isEqualTo: currentUser.uid)
           .where('category', isEqualTo: category)
           .where('type', isEqualTo: type)
-          .where('expiredDate', isGreaterThanOrEqualTo: DateTime.now())
+           .where('status', isEqualTo: true)
           .get();
 
   if (missions.docs.isEmpty) {
@@ -279,16 +222,44 @@ Future<void> trackUserMissionProgress({
   }
 
   for (var mission in missions.docs) {
-    if (type == 'time') {
+
+    // Get mission data
+    final missionData = mission.data();
+    final currentProgress = missionData['progress'] ?? 0;
+    final target = missionData['requirements']['target'] ?? 0;
+    final rewardXp = missionData['rewards']['xp'] ?? 0;
+
+    if (currentProgress + (type == 'time' ? actionTime : actionCount) >= target) {
+      // Mark mission as finished
       await missionsRef.doc(mission.id).update({
-        'progress': FieldValue.increment(actionTime),
+        'progress': target, // Set progress to target value
+        'finished': true, // Mark as finished
       });
-      print("Updated mission progress (time) for mission ID: ${mission.id}");
-    } else if (type == 'action') {
+
+      // Award the user XP (e.g., increment their 'fragmentNumber' field in the user document)
+      await _awardUserXP(currentUser.uid, rewardXp);
+
+      print("Mission completed: ${mission.id}, XP awarded: $rewardXp");
+    } else {
+      // Update progress incrementally
       await missionsRef.doc(mission.id).update({
-        'progress': FieldValue.increment(actionCount),
+        'progress': FieldValue.increment(type == 'time' ? actionTime : actionCount),
       });
-      print("Updated mission progress (action) for mission ID: ${mission.id}");
+      print("Updated mission progress for mission ID: ${mission.id}");
     }
   }
+
+  //   if (type == 'time') {
+  //     await missionsRef.doc(mission.id).update({
+  //       'progress': FieldValue.increment(actionTime),
+  //     });
+  //     print("Updated mission progress (time) for mission ID: ${mission.id}");
+  //   } else if (type == 'action') {
+  //     await missionsRef.doc(mission.id).update({
+  //       'progress': FieldValue.increment(actionCount),
+  //     });
+  //     print("Updated mission progress (action) for mission ID: ${mission.id}");
+  //   }
+  // }
+
 }

@@ -1,3 +1,4 @@
+import 'package:blindmate/services/do_mission_service.dart';
 import 'package:blindmate/viewmodels/state/auth_state.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -76,6 +77,15 @@ class _SendBottleNoteScreenState extends State<SendBottleNoteScreen>
         content: widget.content!,
         userId: user.userId,
       );
+
+      //track mission if have and note not blocked
+      if (_eventHandler.state.lastNoteStatus != 'UNSAFE') {
+        await trackUserMissionProgress(
+          category: 'note',
+          type: 'action',
+          actionCount: 1,
+        );
+      }
 
       if (mounted) {
         String message;

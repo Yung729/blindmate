@@ -1,3 +1,4 @@
+import 'package:blindmate/services/do_mission_service.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../viewmodels/dataBinding/create_post_data_binding.dart';
@@ -211,6 +212,14 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
 
       // Pass the list of trip journals to your event handler (update your handler if needed)
       await _eventHandler.sharePost(tripJournals: _tripJournals);
+
+      if (moderationResult != 'UNSAFE') {
+        await trackUserMissionProgress(
+          category: 'post',
+          type: 'action',
+          actionCount: 1,
+        );
+      }
 
       createPostState.reset();
       _textController.clear();

@@ -5,6 +5,8 @@ import '../../models/dataModels/message_model.dart';
 import '../state/chat_state.dart';
 import '../dataBinding/chat_data_binding.dart';
 import '../uiValidation/chat_validator.dart';
+import 'package:blindmate/services/do_mission_service.dart';
+
 
 class ChatEventHandler {
   final ChatState chatState;
@@ -76,6 +78,16 @@ class ChatEventHandler {
       dataBinding.addMessage(message);
       await dataBinding.sendMessage(currentUserId, chatRoomId, message);
       resetInactivityTimer();
+
+      // ✅ Track mission progress (safe messages)
+    // ✅ Track mission progress for valid (safe) text messages
+  if (text != null && MessageValidator.isValid(text)) {
+    await trackUserMissionProgress(
+  category: "chat",
+  type: "action",
+  actionCount: 1,
+);
+  }
     } catch (e) {
       if (e.toString().contains("BANNED")) {
         chatState.setBanned(true);

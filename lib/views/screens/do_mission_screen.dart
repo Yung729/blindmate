@@ -36,7 +36,6 @@ class _DoMissionScreenState extends State<DoMissionScreen> {
   UserModel? _currentUser;
   List<MissionModel> _missions = [];
   late DoMissionHandler _doMissionHandler;
-  // MissionModel? _currentMissionModel;
 
   @override
   void initState() {
@@ -55,30 +54,9 @@ class _DoMissionScreenState extends State<DoMissionScreen> {
     }
     if (user != null) {
       _doMissionHandler = DoMissionHandler(user: user);
-      // if (user.currentMission != null) {
-      //   final doc =
-      //       await FirebaseFirestore.instance
-      //           .collection('missions')
-      //           .doc(user.currentMission)
-      //           .get();
-      //   if (doc.exists) {
-      //     setState(() {
-      //       _currentMissionModel = MissionModel.fromMap(doc.data()!, doc.id);
-      //     });
-      //   }
-      // } else {
-      //   _currentMissionModel = null; // No current mission
-      // }
+
       var missions = await fetchStatusTrueMissions(limit: 3);
       // 👈 use your service
-
-      // if (missions.isEmpty) {
-      //   print("Missions empty, generating new ones...");
-      //   await generateAndStoreMissions();
-      //   missions = await fetchMissionsFromFirebase(
-      //     limit: 3,
-      //   ); // Fetch again after generating
-      // }
 
       if (mounted) {
         setState(() {
@@ -108,30 +86,6 @@ class _DoMissionScreenState extends State<DoMissionScreen> {
                     SizedBox(height: 48),
                     buildCrystalBox('${_currentUser!.fragmentNumber}'),
                     SizedBox(height: 24),
-                    // Center(
-                    //   child: Column(
-                    //     children: [
-                    //       Text(
-                    //         "Current Mission",
-                    //         style: TextStyle(
-                    //           fontSize: 28,
-                    //           fontWeight: FontWeight.w900,
-                    //         ),
-                    //       ),
-                    //       SizedBox(height: 24),
-                    //       _currentMissionModel == null
-                    //           ? Text(
-                    //             "No mission selected currently",
-                    //             style: TextStyle(color: Colors.grey.shade600),
-                    //           )
-                    //           : MissionField(
-                    //             mission: _currentMissionModel!,
-                    //             isCurrentMission:
-                    //                 true, // ✅ Mark it as "current"
-                    //           ),
-                    //     ],
-                    //   ),
-                    // ),
                     SizedBox(height: 60),
                     Text(
                       "Daily Mission",
@@ -141,24 +95,10 @@ class _DoMissionScreenState extends State<DoMissionScreen> {
                       ),
                     ),
                     SizedBox(height: 20),
-                    // _buildMissionField('Mission 1'),
-                    // SizedBox(height: 25),
-                    // // _buildMissionField('Mission 2'),
-                    // // SizedBox(height: 20),
-                    // // _buildMissionField('Mission 3'),
                     ..._missions.map(
                       (mission) => MissionField(
                         mission: mission,
                         isCurrentMission: false,
-                        // onTap: () async {
-                        //   if (_currentUser != null) {
-                        //     await _doMissionHandler.assignMissionToUser(
-                        //       context,
-                        //       mission,
-                        //     );
-                        //     await _loadUserData();
-                        //   }
-                        // },
                       ),
                     ),
                     SizedBox(height: 20),

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:blindmate/services/do_mission_service.dart';
 import 'package:blindmate/services/reward_service.dart';
 import 'package:blindmate/viewmodels/dataBinding/matching_data_binding.dart';
 import 'package:blindmate/viewmodels/eventHandlers/matching_event_handler.dart';
@@ -45,12 +46,14 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   StreamSubscription? _gameInvitationSubscription;
   StreamSubscription? _gameInvitationResponseSubscription;
   StreamSubscription? _gameInvitationCancellationSubscription;
+  DateTime? _chatStartTime;
 
   @override
   void initState() {
     super.initState();
     _messageController = TextEditingController();
     _localFlowerCount = context.read<AuthState>().currentUser?.flower ?? 0;
+    _chatStartTime = DateTime.now();
 
     _chatState = context.read<ChatState>();
     final chatBinding = ChatDataBinding(chatState: _chatState);
@@ -285,6 +288,15 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       "Are you sure you want to leave this chat? This action cannot be undone.",
     );
     if (shouldEnd) {
+      final durationInSeconds =
+      DateTime.now().difference(_chatStartTime!).inSeconds;
+
+  // ✅ Track chat time-based mission progress
+  await trackUserMissionProgress(
+    category: 'chat',
+    type: 'time',
+    actionTime: durationInSeconds,
+  );
       await _showChatSummary();
       _chatState.markSummaryShown();
       // Reset the local flag after showing summary

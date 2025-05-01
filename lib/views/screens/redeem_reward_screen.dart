@@ -57,23 +57,6 @@ Future<void> _initializeScreen() async {
     });
   }
 
-  // Future<void> _loadRewards() async {
-  //   try {
-  //     final rewards = await RewardService().getAvailableRewards();
-  //     print("Fetched rewards: ${rewards.map((e) => e.rewardTitle).toList()}");
-  //     setState(() {
-  //       _rewards = rewards;
-  //       _isLoading = false;
-  //     });
-  //   } catch (e) {
-  //     setState(() {
-  //       _isLoading = false;
-  //     });
-  //     ScaffoldMessenger.of(
-  //       context,
-  //     ).showSnackBar(SnackBar(content: Text('Error fetching rewards: $e')));
-  //   }
-  // }
   Future<void> _loadRewards() async {
   try {
     // Set loading state
