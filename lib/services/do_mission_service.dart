@@ -63,12 +63,17 @@ Future<void> clearMissionList() async {
       await FirebaseFirestore.instance
           .collection('mission')
           .where('assignedUser', isEqualTo: currentUser.uid)
-          .where('finished', isEqualTo: false)
           .get();
 
+  final now = DateTime.now();
+  final today = DateTime(now.year, now.month, now.day);
+
+  int updatedCount = 0;
+  List<String> expiredMissionIds = [];
+
   for (var doc in missions.docs) {
-    final data = doc.data();
-    final createdAtTimestamp = data['createdAt'] as Timestamp?;
+    // final data = doc.data();
+    final createdAtTimestamp = doc.data()['createdAt'] as Timestamp?;
     if (createdAtTimestamp == null) {
       // If no createdAt, expire it by default
       await doc.reference.update({'status': false});
@@ -88,7 +93,14 @@ Future<void> clearMissionList() async {
 
     if (nowDateOnly.isAfter(createdDateOnly)) {
       await doc.reference.update({'status': false});
+      expiredMissionIds.add(doc.id);
+      updatedCount++;
     }
+  }
+
+  print("✅ Expired ${updatedCount} missions created before today.");
+  if (expiredMissionIds.isNotEmpty) {
+    print("🗂️ Updated mission IDs: ${expiredMissionIds.join(', ')}");
   }
 
   print("Expired outdated missions for user ${currentUser.uid}.");
