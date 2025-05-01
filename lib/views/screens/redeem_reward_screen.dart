@@ -1,7 +1,7 @@
 import 'package:blindmate/models/dataModels/rewards_model.dart';
-import 'package:blindmate/services/reward_service.dart';
+// import 'package:blindmate/services/reward_service.dart';
 import 'package:blindmate/viewmodels/eventHandlers/redeem_reward_event_handler.dart';
-import 'package:blindmate/views/UIComponents/avatar_frame.dart';
+// import 'package:blindmate/views/UIComponents/avatar_frame.dart';
 import 'package:blindmate/views/UIComponents/custom_button.dart';
 import 'package:blindmate/views/UIComponents/empty_message.dart';
 import 'package:blindmate/views/UIComponents/reward_click.dart';
@@ -38,10 +38,12 @@ class _RedeemRewardScreenState extends State<RedeemRewardScreen> {
   UserModel? _currentUser;
   List<RewardModel> _rewards = [];
   bool _isLoading = true;
+  late RedeemRewardEventHandler _rewardEventHandler;
 
   @override
   void initState() {
     super.initState();
+    _rewardEventHandler = RedeemRewardEventHandler(user: widget.user);
     _initializeScreen();
 }
 
@@ -64,8 +66,7 @@ Future<void> _initializeScreen() async {
       _isLoading = true;
     });
 
-    // Fetch all available rewards
-    final allFetchedRewards = await RewardService().getAvailableRewards();
+    
     
     // Make sure we have a current user
     if (_currentUser == null) {
@@ -75,8 +76,9 @@ Future<void> _initializeScreen() async {
       }
     }
 
-    // Get the user's redeemed rewards
-    final userReward = await RewardService().fetchUserRewards(_currentUser!.userId);
+    // Fetch all available rewards
+    final allFetchedRewards = await _rewardEventHandler.getAvailableRewards();
+    final userReward = await _rewardEventHandler.fetchUserRewards(_currentUser!.userId);
     final redeemedRewardIds = userReward?.redeemedRewards?.toSet() ?? <dynamic>{};
 
     print("Redeemed reward IDs: $redeemedRewardIds");

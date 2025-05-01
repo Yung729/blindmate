@@ -181,7 +181,7 @@ Future<void> generateAndStoreMissions() async {
 }
 
   // Function to award XP to the user when the mission is finished
-Future<void> _awardUserXP(String userId, int xp) async {
+Future<void> awardUserXP(String userId, int xp) async {
   try {
     // Update the user's fragmentNumber (XP) in Firestore
     await FirebaseFirestore.instance.collection('users').doc(userId).update({
@@ -237,7 +237,7 @@ Future<void> trackUserMissionProgress({
       });
 
       // Award the user XP (e.g., increment their 'fragmentNumber' field in the user document)
-      await _awardUserXP(currentUser.uid, rewardXp);
+      await awardUserXP(currentUser.uid, rewardXp);
 
       print("Mission completed: ${mission.id}, XP awarded: $rewardXp");
     } else {

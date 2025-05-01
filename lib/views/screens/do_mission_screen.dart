@@ -1,5 +1,4 @@
 import 'package:blindmate/models/dataModels/mission_model.dart';
-import 'package:blindmate/services/do_mission_service.dart';
 import 'package:blindmate/viewmodels/eventHandlers/do_mission_event_handler.dart';
 import 'package:blindmate/views/UIComponents/crystal_box.dart';
 import 'package:blindmate/views/UIComponents/custom_button.dart';
@@ -35,7 +34,7 @@ class DoMissionScreen extends StatefulWidget {
 class _DoMissionScreenState extends State<DoMissionScreen> {
   UserModel? _currentUser;
   List<MissionModel> _missions = [];
-  late DoMissionHandler _doMissionHandler;
+  late MissionEventHandler _doMissionHandler;
 
   @override
   void initState() {
@@ -53,11 +52,8 @@ class _DoMissionScreenState extends State<DoMissionScreen> {
       });
     }
     if (user != null) {
-      _doMissionHandler = DoMissionHandler(user: user);
-
-      var missions = await fetchStatusTrueMissions(limit: 3);
-      // 👈 use your service
-
+     final missions = await MissionEventHandler.handleFetchStatusTrueMissions(limit: 3);
+     
       if (mounted) {
         setState(() {
           _missions = missions;

@@ -1,5 +1,7 @@
 import 'package:blindmate/models/dataModels/rewards_model.dart';
+import 'package:blindmate/models/dataModels/user_model.dart';
 import 'package:blindmate/models/dataModels/user_reward_model.dart';
+import 'package:blindmate/views/screens/redeem_reward_screen.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter/material.dart';
@@ -38,43 +40,6 @@ class RewardService {
       throw Exception("Failed to fetch user rewards: $e");
     }
   }
-
-  // Redeem the reward
-  // Future<int> redeemReward(
-  //   String userId,
-  //   int fragmentCost,
-  //   String rewardId,
-  // ) async {
-  //   try {
-
-      
-  //     // 🔻 Step 1: Update the user's fragmentNumber in Firestore (atomic)
-  //     final userRef = _firestore.collection('users').doc(userId);
-  //     await userRef.update({
-  //       'fragmentNumber': FieldValue.increment(-fragmentCost),
-  //     });
-
-  //     // 🔻 Step 2: Fetch updated user data (so all screens get the same number)
-  //     final updatedUserDoc = await userRef.get();
-  //     final updatedFragmentNumber =
-  //         updatedUserDoc.data()?['fragmentNumber'] ?? 0;
-
-  //     // Fetch the current redeemed rewards
-  //     final userReward = await fetchUserRewards(userId);
-  //     List<dynamic> redeemedRewards = userReward?.redeemedRewards ?? [];
-
-  //     redeemedRewards.add(rewardId);
-
-  //     // Update the user_rewards collection with the new list of redeemed rewards
-  //     await _firestore.collection('user_reward').doc(userId).set({
-  //       'userId': userId,
-  //       'redeemedReward': redeemedRewards,
-  //     }, SetOptions(merge: true));
-  //     return updatedFragmentNumber;
-  //   } catch (e) {
-  //     throw Exception("Failed to redeem reward: $e");
-  //   }
-  // }
 
   Future<int> redeemReward(
   String userId,
@@ -134,7 +99,6 @@ class RewardService {
     throw Exception("Failed to redeem reward: $e");
   }
 }
-
 
   Future<int> sendFlower(String userId, String chatRoomId, BuildContext context) async {
     // Check cooldown

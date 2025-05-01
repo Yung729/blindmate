@@ -1,57 +1,55 @@
-import 'package:blindmate/models/dataModels/user_model.dart';
-import 'package:blindmate/models/dataModels/mission_model.dart'; // Make sure MissionModel is imported
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/material.dart';
+// event_handler.dart
+import 'package:blindmate/services/do_mission_service.dart';
+import 'package:blindmate/services/do_mission_service.dart';
+import 'package:blindmate/models/dataModels/mission_model.dart';
 
-class DoMissionHandler {
-  final UserModel user; // The user who is performing the mission
-  // final MissionService missionService; // Service to fetch or assign missions
+class MissionEventHandler {
+  static Future<void> handleGenerateAndStoreMissions() async {
+    await generateAndStoreMissions();
+  }
 
-  DoMissionHandler({required this.user});
+  static Future<List<MissionModel>> handleFetchMissions({int limit = 3}) async {
+    return await fetchMissionsFromFirebase(limit: limit);
+  }
 
-  // Assign the selected mission to the user's current mission
-  Future<void> assignMissionToUser(
-    BuildContext context,
-    MissionModel selectedMission,
-  ) async {
-    try {
-      // Check if the mission is valid and the user can proceed with it
-      if (selectedMission != null) {
-        print("Assigning mission '${selectedMission.title}' to user...");
+  static Future<List<MissionModel>> handleFetchStatusTrueMissions({int limit = 3}) async {
+    return await fetchStatusTrueMissions(limit: limit);
+  }
 
-        // Update Firestore with the new current mission
-        await FirebaseFirestore.instance
-            .collection('users')
-            .doc(user.userId)
-            .update({
-              'currentMission': selectedMission.id, // Convert mission to map
-            });
+  static Future<List<MissionModel>> handleFetchFinishedTrueMissions({int limit = 3}) async {
+    return await fetchFinishedTrueMissions(limit: limit);
+  }
 
-        // 2. Update the selected mission's 'selected' field to true
-        await FirebaseFirestore.instance
-            .collection('missions')
-            .doc(selectedMission.id)
-            .update({'selected': true});
+  static Future<void> handleClearMissionList() async {
+    await clearMissionList();
+  }
 
-        // Show success message
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Mission "${selectedMission.title}" assigned successfully!',
-            ),
-          ),
-        );
-      } else {
-        print("Invalid mission selected.");
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Mission selection failed. Try again.')),
-        );
-      }
-    } catch (e) {
-      print("Error assigning mission: $e");
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Error assigning mission: $e')));
-    }
+  static Future<bool> handleCheckDateAfterCreated() async {
+    return await isDateAfterCreated();
+  }
+
+  static Future<void> handleSaveMissions(List<MissionModel> missions) async {
+    await saveGeneratedMissionsToFirebase(missions);
+  }
+
+  static Future<void> handleTrackMissionProgress({
+    required String category,
+    required String type,
+    int actionCount = 1,
+    int actionTime = 0,
+  }) async {
+    await trackUserMissionProgress(
+      category: category,
+      type: type,
+      actionCount: actionCount,
+      actionTime: actionTime,
+    );
+  }
+
+  static Future<void> handleAwardXP(String userId, int xp) async {
+    await awardUserXP(userId, xp);
   }
 }
+
+// Note: _awardUserXP is private in mission_service.dart.
+// If you want to call it from here, expose it publicly or move it to a shared service.

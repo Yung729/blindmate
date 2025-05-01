@@ -44,27 +44,23 @@ class RedeemRewardEventHandler {
     }
   }
 
-  // Fetch the available rewards
-  Future<void> fetchRewards(BuildContext context) async {
+    // Fetch the available rewards from RewardService
+  Future<List<RewardModel>> getAvailableRewards() async {
     try {
-      final availableRewards = await rewardService.getAvailableRewards();
-      if (availableRewards.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('No rewards available at the moment.')),
-        );
-      } else {
-        // Pass the fetched rewards to the UI to display them
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => RedeemRewardScreen(user: user),
-          ),
-        );
-      }
+      final rewards = await rewardService.getAvailableRewards();
+      return rewards;
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error fetching rewards: $e')),
-      );
+      throw Exception("Failed to fetch available rewards: $e");
+    }
+  }
+
+  // Fetch user rewards (redeemed rewards)
+  Future<UserReward?> fetchUserRewards(String userId) async {
+    try {
+      final userReward = await rewardService.fetchUserRewards(userId);
+      return userReward;
+    } catch (e) {
+      throw Exception("Failed to fetch user rewards: $e");
     }
   }
 }
