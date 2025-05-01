@@ -300,6 +300,7 @@ class _SharingScreenState extends State<SharingScreen> {
         }
 
         return PostCard(
+          key: ValueKey(post['id']), 
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
