@@ -1,6 +1,4 @@
-// File: survey_data_binding.txt
-import 'dart:async'; // Add this import for TimeoutException
-import 'package:flutter/material.dart';
+import 'dart:async'; 
 import 'package:blindmate/services/gemini_moderation_service.dart';
 import 'package:blindmate/services/level_progression_service.dart';
 import 'package:blindmate/models/dataModels/survey_model.dart';
