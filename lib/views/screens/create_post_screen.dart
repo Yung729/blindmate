@@ -213,14 +213,6 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
       // Pass the list of trip journals to your event handler (update your handler if needed)
       await _eventHandler.sharePost(tripJournals: _tripJournals);
 
-      if (moderationResult != 'UNSAFE') {
-        await trackUserMissionProgress(
-          category: 'post',
-          type: 'action',
-          actionCount: 1,
-        );
-      }
-
       createPostState.reset();
       _textController.clear();
       setState(() {
