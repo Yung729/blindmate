@@ -50,9 +50,8 @@ class _HomeScreenState extends State<HomeScreen>
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await _surveyDialogEventHandler.init(context);
 
-      if ((await fetchMissionsFromFirebase(limit: 1)).isEmpty) {
-        await generateAndStoreMissions();
-      }
+      await generateAndStoreMissions();
+
     });
   }
 

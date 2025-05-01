@@ -16,8 +16,8 @@ Future<void> saveGeneratedMissionsToFirebase(
 
   for (final mission in missions) {
     final missionData = mission.toMap();
-    missionData['createdAt'] = FieldValue.serverTimestamp();
-    await missionsRef.doc(mission.id).set(mission.toMap());
+    missionData['createdAt'] = DateTime.now();
+    await missionsRef.add(missionData);
   }
 }
 
@@ -63,6 +63,7 @@ Future<void> clearMissionList() async {
       await FirebaseFirestore.instance
           .collection('mission')
           .where('assignedUser', isEqualTo: currentUser.uid)
+          .where('finished', isEqualTo: false)
           .get();
 
   for (var doc in missions.docs) {
@@ -150,14 +151,54 @@ Future<List<MissionModel>> fetchFinishedTrueMissions({
       .toList();
 }
 
+Future<bool> alreadyGeneratedToday() async {
+  final currentUser = FirebaseAuth.instance.currentUser;
+  if (currentUser == null) return true;
+
+  final doc =
+      await FirebaseFirestore.instance
+          .collection('generationLog')
+          .doc(currentUser.uid)
+          .get();
+
+  if (!doc.exists) return false;
+
+  final lastGenerated = (doc.data()?['date'] as Timestamp?)?.toDate();
+  if (lastGenerated == null) return false;
+
+  final today = DateTime.now();
+  final isSameDay =
+      today.year == lastGenerated.year &&
+      today.month == lastGenerated.month &&
+      today.day == lastGenerated.day;
+
+  return isSameDay;
+}
+
+Future<void> updateGenerationLog() async {
+  final currentUser = FirebaseAuth.instance.currentUser;
+  if (currentUser == null) return;
+
+  await FirebaseFirestore.instance
+      .collection('generationLog')
+      .doc(currentUser.uid)
+      .set({'date': DateTime.now()});
+}
+
 /// Main function to generate missions, store in Firebase, and update app state.
 Future<void> generateAndStoreMissions() async {
   try {
     bool shouldRegenerate = await isDateAfterCreated();
+    final alreadyGenerated = await alreadyGeneratedToday();
+    if (alreadyGenerated) {
+      print('🛑 Missions already generated today. Skipping.');
+      return;
+    }
 
     if (shouldRegenerate) {
       await clearMissionList();
     }
+    print("Should regenerate missions today? $shouldRegenerate");
 
     // 1. Generate missions with Gemini
     final geminiService = GeminiModerationService();
@@ -179,7 +220,7 @@ Future<void> generateAndStoreMissions() async {
     final missions =
         (parsed['missions'] as List).map((e) {
           e['status'] = true;
-          e['finished'] = false;
+          // e['finished'] = false;
           e['assignedUser'] = assignedUserId;
           e['progress'] = 0;
           // e['createdAt'] = FieldValue.serverTimestamp();
@@ -193,8 +234,7 @@ Future<void> generateAndStoreMissions() async {
     final missionsFromFirebase = await fetchMissionsFromFirebase(limit: 3);
     print('Fetched missions from Firebase: $missionsFromFirebase');
 
-    // 4. Update state
-    //   missionListState.setMissionList(missionsFromFirebase);
+    await updateGenerationLog(); // ✅ Mark generation done for today
   } catch (e) {
     print('❌ Error during mission generation: $e');
     rethrow;

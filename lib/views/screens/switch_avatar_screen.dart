@@ -201,7 +201,82 @@ class _SwitchAvatarScreenState extends State<SwitchAvatarScreen> {
                                                   ? 'Current'
                                                   : 'Apply',
                                           onPressed:
-                                              isCurrentAvatar ? null : () {},
+                                              isCurrentAvatar
+                                                  ? null
+                                                  : () async {
+                                                    final confirm = await showDialog<
+                                                      bool
+                                                    >(
+                                                      context: context,
+                                                      builder:
+                                                          (
+                                                            context,
+                                                          ) => AlertDialog(
+                                                            title: const Text(
+                                                              'Switch Avatar',
+                                                            ),
+                                                            content: const Text(
+                                                              'Are you sure you want to use this avatar?',
+                                                            ),
+                                                            actions: [
+                                                              TextButton(
+                                                                onPressed:
+                                                                    () => Navigator.of(
+                                                                      context,
+                                                                    ).pop(true),
+                                                                child:
+                                                                    const Text(
+                                                                      'Yes',
+                                                                    ),
+                                                              ),
+                                                              TextButton(
+                                                                onPressed:
+                                                                    () => Navigator.of(
+                                                                      context,
+                                                                    ).pop(
+                                                                      false,
+                                                                    ),
+                                                                child: const Text(
+                                                                  'Cancel',
+                                                                  style: TextStyle(
+                                                                    color:
+                                                                        Colors
+                                                                            .red,
+                                                                  ),
+                                                                ),
+                                                              ),
+                                                            ],
+                                                          ),
+                                                    );
+
+                                                    if (confirm == true) {
+                                                      await FirebaseFirestore
+                                                          .instance
+                                                          .collection('users')
+                                                          .doc(
+                                                            widget.user!.userId,
+                                                          )
+                                                          .update({
+                                                            'avatarImg':
+                                                                reward.imageUrl,
+                                                          });
+
+                                                      if (mounted) {
+                                                        Provider.of<AuthState>(
+                                                          context,
+                                                          listen: false,
+                                                        ).updateAvatar(
+                                                          reward.imageUrl ?? '',
+                                                        );
+                                                      }
+
+                                                      setState(() {
+                                                        widget.user!.avatarImg =
+                                                            reward.imageUrl ??
+                                                            '';
+                                                      });
+                                                    }
+                                                  },
                                           horizontalPadding: 12,
                                           verticalPadding: 8,
                                           fontSize: 12,
