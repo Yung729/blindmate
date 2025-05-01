@@ -130,12 +130,24 @@ Future<List<MissionModel>> fetchStatusTrueMissions({int limit = 3}) async {
   return filtered;
 }
 
-Future<List<MissionModel>> fetchFinishedTrueMissions({int limit = 3}) async {
-  final allMissions = await fetchMissionsFromFirebase(limit: limit);
-  final filtered = allMissions.where((m) => m.finished == true).toList();
+Future<List<MissionModel>> fetchFinishedTrueMissions({
+  int limit = 100,
+  required String userId,
+}) async {
+  print('Fetching missions for user: $userId');
+  final snapshot =
+      await FirebaseFirestore.instance
+          .collection('mission')
+          .where('assignedUser', isEqualTo: userId) // ✅ filter by userId
+          .where('finished', isEqualTo: true)
+          .limit(limit)
+          .get();
 
-  print("Filtered missions with finished == true: ${filtered.length}");
-  return filtered;
+  print('Query completed. Found ${snapshot.docs.length} finished missions.');
+
+  return snapshot.docs
+      .map((doc) => MissionModel.fromMap(doc.data(), doc.id))
+      .toList();
 }
 
 /// Main function to generate missions, store in Firebase, and update app state.

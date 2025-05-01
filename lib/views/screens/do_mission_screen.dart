@@ -3,6 +3,7 @@ import 'package:blindmate/viewmodels/eventHandlers/do_mission_event_handler.dart
 import 'package:blindmate/views/UIComponents/crystal_box.dart';
 import 'package:blindmate/views/UIComponents/custom_button.dart';
 import 'package:blindmate/views/UIComponents/mission_field.dart';
+import 'package:blindmate/views/screens/mission_history_screen.dart';
 import 'package:blindmate/views/screens/redeem_reward_screen.dart';
 import 'package:blindmate/views/screens/mission_detail_screen.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -83,7 +84,32 @@ class _DoMissionScreenState extends State<DoMissionScreen> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     SizedBox(height: 48),
-                    buildCrystalBox('${_currentUser!.fragmentNumber}'),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        IconButton(
+                          icon: const Text(
+                            '三',
+                            style: TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder:
+                                    (_) => MissionHistoryScreen(
+                                      user: _currentUser!,
+                                    ),
+                              ),
+                            );
+                          },
+                        ),
+                        buildCrystalBox('${_currentUser!.fragmentNumber}'),
+                      ],
+                    ),
                     SizedBox(height: 24),
                     SizedBox(height: 60),
                     Text(

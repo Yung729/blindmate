@@ -47,19 +47,6 @@ class _MissionDetailScreenState extends State<MissionDetailScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // Title row with badge
-                          // Row(
-                          //   mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          //   children: [
-                          //     Text(
-                          //       "Mission",
-                          //       style: const TextStyle(
-                          //         fontSize: 18,
-                          //         fontWeight: FontWeight.bold,
-                          //       ),
-                          //     ),
-                          //   ],
-                          // ),
                           const SizedBox(height: 50),
 
                           // Mission name

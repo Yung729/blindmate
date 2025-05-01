@@ -16,9 +16,13 @@ class MissionEventHandler {
     return await fetchStatusTrueMissions(limit: limit);
   }
 
-  static Future<List<MissionModel>> handleFetchFinishedTrueMissions({int limit = 3}) async {
-    return await fetchFinishedTrueMissions(limit: limit);
-  }
+  static Future<List<MissionModel>> handleFetchFinishedTrueMissions({
+  int limit = 100,
+  required String userId,
+}) async {
+  return await fetchFinishedTrueMissions(limit: limit, userId: userId);
+}
+
 
   static Future<void> handleClearMissionList() async {
     await clearMissionList();
