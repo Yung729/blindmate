@@ -1,49 +1,58 @@
-import 'package:flutter/material.dart';
+import 'dart:async'; 
 import 'package:blindmate/services/gemini_moderation_service.dart';
 import 'package:blindmate/services/level_progression_service.dart';
 import 'package:blindmate/models/dataModels/survey_model.dart';
+import 'package:blindmate/viewmodels/state/survey_state.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-class SurveyDataBinding extends ChangeNotifier {
+class SurveyDataBinding {
   final GeminiModerationService _surveyService = GeminiModerationService();
   final LevelProgressionService _levelService = LevelProgressionService();
-  SurveyModel _surveyModel = SurveyModel.empty(); 
-  bool _isLoading = true;
-  bool _hasError = false;
-  String? _errorMessage;
+  final SurveyState _surveyState;
 
-  SurveyModel get surveyModel => _surveyModel;
-
-  set surveyModel(SurveyModel newModel) {
-    _surveyModel = newModel;
-    notifyListeners();
-  }
-
-  bool get isLoading => _isLoading;
-  bool get hasError => _hasError;
-  String? get errorMessage => _errorMessage;
-
-  SurveyDataBinding() {
+  SurveyDataBinding({required SurveyState surveyState}) : _surveyState = surveyState {
     fetchQuestions();
   }
 
   Future<void> fetchQuestions() async {
-    _isLoading = true;
-    _hasError = false;
-    _errorMessage = null;
-    _surveyModel = SurveyModel.empty();
-    notifyListeners();
+    print('🔍 SurveyDataBinding: Starting fetchQuestions');
+    _surveyState.setLoading(true);
+    _surveyState.setError(null);
+    _surveyState.setSurveyModel(SurveyModel.empty());
 
     try {
-      final response = await _surveyService.generateSurveyQuestions();
-      _surveyModel = SurveyModel.fromJson(response);
-      _isLoading = false;
-    } catch (e) {
-      _isLoading = false;
-      _hasError = true;
-      _errorMessage = 'Error fetching survey questions: $e';
+      // Add a timeout to prevent indefinite hanging
+      final response = await _surveyService.generateSurveyQuestions().timeout(
+        const Duration(seconds: 10),
+        onTimeout: () {
+          print('⏳ SurveyDataBinding: generateSurveyQuestions timed out after 10 seconds');
+          throw TimeoutException('Failed to fetch survey questions: Request timed out');
+        },
+      );
+      print('✅ SurveyDataBinding: Successfully fetched questions: $response');
+      final surveyModel = SurveyModel.fromJson(response);
+      _surveyState.setSurveyModel(surveyModel);
+    } catch (e, stackTrace) {
+      print('❌ SurveyDataBinding: Error fetching survey questions: $e');
+      print('Stack trace: $stackTrace');
+      _surveyState.setError('Error fetching survey questions: $e');
+    } finally {
+      print('🏁 SurveyDataBinding: fetchQuestions completed, setting isLoading to false');
+      _surveyState.setLoading(false);
     }
-    notifyListeners();
+  }
+
+  void updateOptionSelection(String questionId, String optionText, int score) {
+    final surveyModel = _surveyState.surveyModel;
+    final updatedSelectedOptions = Map<String, String?>.from(surveyModel.selectedOptions)
+      ..[questionId] = optionText;
+    final updatedOptionScores = Map<String, int>.from(surveyModel.optionScores)
+      ..[questionId] = score;
+
+    _surveyState.setSurveyModel(surveyModel.copyWith(
+      selectedOptions: updatedSelectedOptions,
+      optionScores: updatedOptionScores,
+    ));
   }
 
   Future<Map<String, dynamic>> submitSurvey({
@@ -52,6 +61,7 @@ class SurveyDataBinding extends ChangeNotifier {
     required int numberOfQuestions,
   }) async {
     try {
+      _surveyState.setSubmitting(true);
       String message;
       if (totalScore >= numberOfQuestions) {
         message = 'You seem to be doing great! Keep it up!';
@@ -88,7 +98,10 @@ class SurveyDataBinding extends ChangeNotifier {
         'scores': scores,
       };
     } catch (e) {
+      _surveyState.setError('Error updating level: $e');
       return {'success': false, 'message': 'Error updating level: $e'};
+    } finally {
+      _surveyState.setSubmitting(false);
     }
   }
 }

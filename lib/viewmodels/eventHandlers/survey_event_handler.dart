@@ -1,33 +1,25 @@
-import 'package:flutter/material.dart';
-import 'package:blindmate/models/dataModels/survey_model.dart';
 import 'package:blindmate/viewmodels/dataBinding/survey_data_binding.dart';
+import 'package:blindmate/viewmodels/state/survey_state.dart';
 
-class SurveyEventHandler extends ChangeNotifier {
-  SurveyDataBinding _dataBinding;
+class SurveyEventHandler {
+  final SurveyDataBinding _dataBinding;
+  final SurveyState _surveyState;
 
-  SurveyEventHandler(this._dataBinding);
-
-  SurveyModel get surveyModel => _dataBinding.surveyModel;
+  SurveyEventHandler({
+    required SurveyDataBinding dataBinding,
+    required SurveyState surveyState,
+  }) : _dataBinding = dataBinding, _surveyState = surveyState;
 
   bool areAllQuestionsAnswered() {
-    return surveyModel.selectedOptions.values.every((option) => option != null);
+    return _surveyState.surveyModel.selectedOptions.values.every((option) => option != null);
   }
 
   int calculateTotalScore() {
-    return surveyModel.optionScores.values.reduce((a, b) => a + b);
+    return _surveyState.surveyModel.optionScores.values.reduce((a, b) => a + b);
   }
 
   void onOptionSelected(String questionId, String optionText, int score) {
-    final updatedSelectedOptions = Map<String, String?>.from(surveyModel.selectedOptions)
-      ..[questionId] = optionText;
-    final updatedOptionScores = Map<String, int>.from(surveyModel.optionScores)
-      ..[questionId] = score;
-
-    _dataBinding.surveyModel = surveyModel.copyWith(
-      selectedOptions: updatedSelectedOptions,
-      optionScores: updatedOptionScores,
-    );
-    notifyListeners();
+    _dataBinding.updateOptionSelection(questionId, optionText, score);
   }
 
   Future<Map<String, dynamic>> onSubmitSurvey(String userId) async {
@@ -36,12 +28,16 @@ class SurveyEventHandler extends ChangeNotifier {
     }
 
     final totalScore = calculateTotalScore();
-    final numberOfQuestions = surveyModel.questions.length;
+    final numberOfQuestions = _surveyState.surveyModel.questions.length;
 
     return await _dataBinding.submitSurvey(
       userId: userId,
       totalScore: totalScore,
       numberOfQuestions: numberOfQuestions,
     );
+  }
+
+  void fetchQuestions() {
+    _dataBinding.fetchQuestions();
   }
 }
