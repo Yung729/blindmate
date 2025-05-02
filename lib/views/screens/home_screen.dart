@@ -1,14 +1,17 @@
 import 'package:blindmate/models/dataModels/user_model.dart';
 import 'package:blindmate/services/do_mission_service.dart';
 import 'package:blindmate/viewmodels/state/auth_state.dart';
-import 'package:blindmate/viewmodels/state/survey_dialog_state.dart'; 
-import 'package:blindmate/viewmodels/eventHandlers/survey_dialog_event_handler.dart';
-import 'package:blindmate/viewmodels/dataBinding/survey_dialog_data_binding.dart'; 
+import 'package:blindmate/viewmodels/state/survey_dialog_state.dart';
+import 'package:blindmate/viewmodels/dataBinding/survey_dialog_data_binding.dart';
+import 'package:blindmate/viewmodels/eventHandlers/auth_event_handler.dart';
+import 'package:blindmate/viewmodels/dataBinding/auth_data_binding.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'matching_screen.dart';
 import 'bottle_note_home_screen.dart';
 import '../UIComponents/custom_button.dart';
+import '../UIComponents/custom_dialog.dart';
+import 'survey.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -20,7 +23,8 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen>
     with SingleTickerProviderStateMixin {
   late final AuthState authState;
-  late final SurveyDialogEventHandler _surveyDialogEventHandler; 
+  late final SurveyDialogState _surveyDialogState;
+  late final SurveyDialogDataBinding _dataBinding;
   late AnimationController _animationController;
   late Animation<double> _swingAnimation;
 
@@ -28,13 +32,8 @@ class _HomeScreenState extends State<HomeScreen>
   void initState() {
     super.initState();
     authState = context.read<AuthState>();
-
-    final surveyDialogState = SurveyDialogState();
-    _surveyDialogEventHandler = SurveyDialogEventHandler(
-      surveyDialogState: surveyDialogState,
-      dataBinding: SurveyDialogDataBinding(surveyDialogState: surveyDialogState),
-      authState: authState,
-    );
+    _surveyDialogState = SurveyDialogState();
+    _dataBinding = SurveyDialogDataBinding(surveyDialogState: _surveyDialogState);
 
     // Initialize animation controller
     _animationController = AnimationController(
@@ -48,10 +47,8 @@ class _HomeScreenState extends State<HomeScreen>
     );
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      await _surveyDialogEventHandler.init(context);
-
+      await init(context);
       await generateAndStoreMissions();
-
     });
   }
 
@@ -59,6 +56,68 @@ class _HomeScreenState extends State<HomeScreen>
   void dispose() {
     _animationController.dispose();
     super.dispose();
+  }
+
+  Future<void> init(BuildContext context) async {
+    if (!_surveyDialogState.hasShownSurveyDialog && authState.currentUser != null) {
+      bool shouldShowDialog =
+          await _dataBinding.shouldShowSurveyDialog(authState.currentUser!.userId);
+      if (shouldShowDialog) {
+        showSurveyDialog(context);
+      }
+    }
+  }
+
+  void goToSurvey(BuildContext context) {
+    final UserModel? user = authState.currentUser;
+    if (user != null) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => SurveyPage(userId: user.userId),
+        ),
+      ).then((_) async {
+        // Refresh user data after survey
+        final eventHandler = AuthEventHandler(authState, AuthDataBinding());
+        await eventHandler.fetchUserData(context);
+      });
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('User not logged in')),
+      );
+    }
+  }
+
+  void showSurveyDialog(BuildContext context) {
+    final UserModel? user = authState.currentUser;
+    if (user != null) {
+      _dataBinding.updatePopDialogTimestamp(user.userId);
+      showCustomDialog(
+        context: context,
+        title: 'Survey Invitation',
+        content: const Text(
+          'Would you like to answer survey question?\nNote: It may increase your level.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+            },
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              goToSurvey(context);
+            },
+            child: const Text(
+              'Yes',
+              style: TextStyle(color: Colors.red),
+            ),
+          ),
+        ],
+      );
+    }
   }
 
   void _startRandomMatching() {
@@ -77,7 +136,7 @@ class _HomeScreenState extends State<HomeScreen>
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => SurveyDialogState()), // Provide SurveyDialogState
+        ChangeNotifierProvider(create: (_) => SurveyDialogState()),
       ],
       child: Scaffold(
         body: Stack(
@@ -124,7 +183,7 @@ class _HomeScreenState extends State<HomeScreen>
                                   )
                                 : Image.asset('assets/default_pic.jpg', height: 100),
                             const SizedBox(height: 20),
-                            
+
                             // Welcome text
                             if (authState.currentUser != null)
                               Text(
@@ -134,14 +193,16 @@ class _HomeScreenState extends State<HomeScreen>
                                   fontWeight: FontWeight.bold,
                                   color: Color.fromARGB(255, 97, 95, 95),
                                   shadows: [
-                                    Shadow(blurRadius: 2, color: Color.fromARGB(255, 135, 90, 90)),
+                                    Shadow(
+                                        blurRadius: 2,
+                                        color: Color.fromARGB(255, 135, 90, 90)),
                                   ],
                                 ),
                               )
                             else
                               const CircularProgressIndicator(),
                             const SizedBox(height: 20),
-                            
+
                             // Matching button
                             CustomButton(
                               text: "Start Matching",

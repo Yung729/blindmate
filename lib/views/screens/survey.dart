@@ -1,4 +1,3 @@
-// File: survey_screen.txt
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:blindmate/viewmodels/dataBinding/survey_data_binding.dart';
