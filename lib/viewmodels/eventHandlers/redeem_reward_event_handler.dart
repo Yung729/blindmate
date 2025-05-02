@@ -1,66 +1,73 @@
-import 'package:blindmate/views/screens/redeem_reward_screen.dart';
+import 'package:blindmate/viewmodels/dataBinding/redeem_reward_data_binding.dart';
 import 'package:flutter/material.dart';
 import 'package:blindmate/models/dataModels/user_model.dart';
 import 'package:blindmate/models/dataModels/rewards_model.dart';
-import 'package:blindmate/services/reward_service.dart';
-import 'package:blindmate/models/dataModels/user_reward_model.dart'; // Assuming you have this model
+import 'package:blindmate/models/dataModels/user_reward_model.dart';
 
 class RedeemRewardEventHandler {
   final UserModel user;
-  final RewardService rewardService;
+  final RedeemRewardDataBinding dataBinding;
 
-  RedeemRewardEventHandler({required this.user}) : rewardService = RewardService();
+  // Constructor
+  RedeemRewardEventHandler({required this.user})
+      : dataBinding = RedeemRewardDataBinding(user: user);
 
-  // Redeem the reward
-  Future<void> redeemReward(BuildContext context, int rewardCost, String rewardId,
-    {
-      Function(int updatedFragmentNumber)? onSuccess,
-    }
-  ) async {
+  // Handle the redeem reward event
+  Future<void> handleRedeemReward(BuildContext context, int rewardCost, String rewardId, {
+    Function(int updatedFragmentNumber)? onSuccess,
+  }) async {
     try {
-      if (user.fragmentNumber >= rewardCost) {
-        print("User has enough fragments. Proceeding with redemption...");
-        final updatedFragmentNumber = await rewardService.redeemReward(
-        user.userId,
+      // Call redeemReward method from DataBinding
+      await dataBinding.redeemReward(
+        context,
         rewardCost,
         rewardId,
+        onSuccess: onSuccess,
       );
-      user.fragmentNumber = updatedFragmentNumber;
-      if (onSuccess != null) onSuccess(updatedFragmentNumber);
-      print("Reward redeemed successfully! Updated fragment number: $updatedFragmentNumber");
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Reward redeemed successfully!')),
-        );
-      } else {
-        print("Not enough fragments to redeem reward.");
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Not enough fragments!')),
-        );
-      }
     } catch (e) {
+      // Handle any errors that might have occurred
+      print("Error in redeeming reward: $e");
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error redeeming reward: $e')),
+        SnackBar(content: Text('Error: $e')),
       );
     }
   }
 
-    // Fetch the available rewards from RewardService
-  Future<List<RewardModel>> getAvailableRewards() async {
+  // Handle fetching available rewards (calling DataBinding method)
+  Future<List<RewardModel>> handleFetchAvailableRewards(BuildContext context) async {
     try {
-      final rewards = await rewardService.getAvailableRewards();
+      final rewards = await dataBinding.getAvailableRewards();
+      // Use the rewards list in your UI or pass it to other parts of your app
+      // print('Available rewards: $rewards');
+      // ScaffoldMessenger.of(context).showSnackBar(
+      //   const SnackBar(content: Text('Rewards fetched successfully!')),
+      // );
       return rewards;
     } catch (e) {
-      throw Exception("Failed to fetch available rewards: $e");
+      print("Error in fetching rewards: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to fetch rewards: $e')),
+      );
+      rethrow;
     }
   }
 
-  // Fetch user rewards (redeemed rewards)
-  Future<UserReward?> fetchUserRewards(String userId) async {
+  // Handle fetching user rewards (calling DataBinding method)
+  Future<UserReward?> handleFetchUserRewards(BuildContext context, String userId) async {
     try {
-      final userReward = await rewardService.fetchUserRewards(userId);
+      final userReward = await dataBinding.fetchUserRewards(userId);
+      // Use the fetched user rewards in your UI
+      print('User rewards: $userReward');
+      // ScaffoldMessenger.of(context).showSnackBar(
+      //   const SnackBar(content: Text('User rewards fetched successfully!')),
+      // );
       return userReward;
     } catch (e) {
-      throw Exception("Failed to fetch user rewards: $e");
+      print("Error in fetching user rewards: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to fetch user rewards: $e')),
+      );
+      return null;
     }
   }
 }

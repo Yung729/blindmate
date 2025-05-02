@@ -35,7 +35,7 @@ class DoMissionScreen extends StatefulWidget {
 class _DoMissionScreenState extends State<DoMissionScreen> {
   UserModel? _currentUser;
   List<MissionModel> _missions = [];
-  late MissionEventHandler _doMissionHandler;
+  MissionEventHandler _doMissionHandler = MissionEventHandler();
 
   @override
   void initState() {

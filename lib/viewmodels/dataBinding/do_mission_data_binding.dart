@@ -112,19 +112,26 @@ class DoMissionDataBinding {
 
   Future<bool> isDateAfterCreated() async {
     try {
-      return await missionService.isDateAfterCreated(); // Calling the service function here
+      return await missionService
+          .isDateAfterCreated(); // Calling the service function here
     } catch (e) {
       debugPrint("❌ Failed to check date: $e");
       return false;
     }
   }
 
- void setCurrentUser(UserModel? user) {
+  void setCurrentUser(UserModel? user) {
     missionService.assignCurrentUserId(user);
   }
 
-  Future<List<RewardModel>> getUserRewards(String userId) {
-    Future<UserReward?> userReward = missionService.fetchUserRewards(userId);
-    return missionService.fetchUniqueRedeemedRewards(userReward as UserReward);
+  Future<List<RewardModel>> getUserRewards(String userId) async {
+    UserReward? userReward = await missionService.fetchUserRewards(
+      userId,
+    );
+    if (userReward != null) {
+      return missionService.fetchUniqueRedeemedRewards(userReward);
+    } else {
+      return []; // or throw an exception if null is unacceptable
+    }
   }
 }
