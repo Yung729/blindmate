@@ -5,7 +5,6 @@ import '../../viewmodels/eventHandlers/game_event_handler.dart';
 import '../../viewmodels/dataBinding/game_data_binding.dart';
 import '../../services/game_service.dart';
 import '../../viewmodels/uiValidation/game_validator.dart';
-import 'chat_screen.dart';
 import 'dart:ui';
 import 'dart:async';
 
@@ -104,16 +103,7 @@ class _MiniGameScreenState extends State<MiniGameScreen> {
                 onPressed: () async {
                   await _eventHandler.resetGame(); // <-- Add this
                   Navigator.of(context).pop();
-                  Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(
-                      builder:
-                          (context) => ChatScreen(
-                            chatRoomId: widget.chatRoomId,
-                            currentUserId: widget.currentUserId,
-                          ),
-                    ),
-                  );
+                  Navigator.pop(context);
                 },
                 child: const Text("OK"),
               ),
@@ -159,16 +149,7 @@ class _MiniGameScreenState extends State<MiniGameScreen> {
                   await _eventHandler.resetGame();
                   if (mounted) {
                     Navigator.of(context).pop();
-                    Navigator.pushReplacement(
-                      context,
-                      MaterialPageRoute(
-                        builder:
-                            (context) => ChatScreen(
-                              chatRoomId: widget.chatRoomId,
-                              currentUserId: widget.currentUserId,
-                            ),
-                      ),
-                    );
+                    Navigator.pop(context);
                   }
                 },
                 child: const Text("OK"),
@@ -182,19 +163,22 @@ class _MiniGameScreenState extends State<MiniGameScreen> {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        title: Text("Inactivity Warning"),
-        content: Text("You have been inactive for 1 minute. Please continue playing or the game will end."),
-        actions: [
-          TextButton(
-            onPressed: () {
-              _gameState.resetInactivityTimer();
-              Navigator.pop(context);
-            },
-            child: Text("Continue Playing"),
+      builder:
+          (context) => AlertDialog(
+            title: Text("Inactivity Warning"),
+            content: Text(
+              "You have been inactive for 1 minute. Please continue playing or the game will end.",
+            ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  _gameState.resetInactivityTimer();
+                  Navigator.pop(context);
+                },
+                child: Text("Continue Playing"),
+              ),
+            ],
           ),
-        ],
-      ),
     );
   }
 
@@ -202,30 +186,23 @@ class _MiniGameScreenState extends State<MiniGameScreen> {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        title: Text("Game Over"),
-        content: Text("The game has ended due to inactivity."),
-        actions: [
-          TextButton(
-            onPressed: () async {
-              await _eventHandler.resetGame();
-              if (mounted) {
-                Navigator.of(context).pop();
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => ChatScreen(
-                      chatRoomId: widget.chatRoomId,
-                      currentUserId: widget.currentUserId,
-                    ),
-                  ),
-                );
-              }
-            },
-            child: Text("OK"),
+      builder:
+          (context) => AlertDialog(
+            title: Text("Game Over"),
+            content: Text("The game has ended due to inactivity."),
+            actions: [
+              TextButton(
+                onPressed: () async {
+                  await _eventHandler.resetGame();
+                  if (mounted) {
+                    Navigator.of(context).pop();
+                    Navigator.pop(context);
+                  }
+                },
+                child: Text("OK"),
+              ),
+            ],
           ),
-        ],
-      ),
     );
   }
 
@@ -337,20 +314,21 @@ class _MiniGameScreenState extends State<MiniGameScreen> {
             final shouldExit = await showDialog<bool>(
               context: context,
               barrierDismissible: false,
-              builder: (context) => AlertDialog(
-                title: Text("Exit Game"),
-                content: Text("Are you sure you want to exit the game?"),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.of(context).pop(false),
-                    child: Text("Cancel"),
+              builder:
+                  (context) => AlertDialog(
+                    title: Text("Exit Game"),
+                    content: Text("Are you sure you want to exit the game?"),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.of(context).pop(false),
+                        child: Text("Cancel"),
+                      ),
+                      TextButton(
+                        onPressed: () => Navigator.of(context).pop(true),
+                        child: Text("Exit"),
+                      ),
+                    ],
                   ),
-                  TextButton(
-                    onPressed: () => Navigator.of(context).pop(true),
-                    child: Text("Exit"),
-                  ),
-                ],
-              ),
             );
 
             if (shouldExit == true && mounted) {
@@ -358,15 +336,7 @@ class _MiniGameScreenState extends State<MiniGameScreen> {
               await _eventHandler.handleExitGame();
               if (mounted) {
                 Navigator.of(context).pop();
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => ChatScreen(
-                      chatRoomId: widget.chatRoomId,
-                      currentUserId: widget.currentUserId,
-                    ),
-                  ),
-                );
+                Navigator.pop(context);
               }
             }
           },
@@ -385,7 +355,8 @@ class _MiniGameScreenState extends State<MiniGameScreen> {
             if (!gameState.isDrawer && !gameState.guessCorrect)
               _buildGuessInput(gameState),
             if (gameState.guessCorrect) _buildCorrectGuessMessage(),
-            if (gameState.showIncorrectGuess) _buildIncorrectGuessMessage(gameState),
+            if (gameState.showIncorrectGuess)
+              _buildIncorrectGuessMessage(gameState),
             if (gameState.isDrawer) _buildClearButton(),
           ],
         ),
@@ -415,7 +386,10 @@ class _MiniGameScreenState extends State<MiniGameScreen> {
         style: TextStyle(
           fontSize: 16,
           color: gameState.remainingAttempts == 1 ? Colors.red : Colors.black,
-          fontWeight: gameState.remainingAttempts == 1 ? FontWeight.bold : FontWeight.normal,
+          fontWeight:
+              gameState.remainingAttempts == 1
+                  ? FontWeight.bold
+                  : FontWeight.normal,
         ),
       ),
     );

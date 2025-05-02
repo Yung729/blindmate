@@ -1,7 +1,5 @@
 import 'dart:async';
-import 'package:blindmate/services/do_mission_service.dart';
 import 'package:blindmate/services/reward_service.dart';
-import 'package:blindmate/viewmodels/dataBinding/do_mission_data_binding.dart';
 import 'package:blindmate/viewmodels/dataBinding/matching_data_binding.dart';
 import 'package:blindmate/viewmodels/eventHandlers/do_mission_event_handler.dart';
 import 'package:blindmate/viewmodels/eventHandlers/matching_event_handler.dart';
