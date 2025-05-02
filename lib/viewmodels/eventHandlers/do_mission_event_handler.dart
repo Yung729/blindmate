@@ -1,48 +1,49 @@
-// event_handler.dart
-import 'package:blindmate/services/do_mission_service.dart';
-import 'package:blindmate/services/do_mission_service.dart';
+// import 'package:blindmate/dataBindings/do_mission_data_binding.dart';
 import 'package:blindmate/models/dataModels/mission_model.dart';
+import 'package:blindmate/models/dataModels/rewards_model.dart';
+import 'package:blindmate/models/dataModels/user_model.dart';
+import 'package:blindmate/models/dataModels/user_reward_model.dart';
+import 'package:blindmate/viewmodels/dataBinding/do_mission_data_binding.dart';
 
 class MissionEventHandler {
-  static Future<void> handleGenerateAndStoreMissions() async {
-    await generateAndStoreMissions();
+  final DoMissionDataBinding _missionBinding = DoMissionDataBinding();
+
+  Future<void> handleGenerateAndStoreMissions() async {
+    await _missionBinding.generateAndStoreMissionsIfNeeded();
   }
 
-  static Future<List<MissionModel>> handleFetchMissions({int limit = 3}) async {
-    return await fetchMissionsFromFirebase(limit: limit);
+  Future<List<MissionModel>> handleFetchMissions({int limit = 3}) async {
+    return await _missionBinding.fetchAllUserMissionsWithLimit(limit: limit);
   }
 
-  static Future<List<MissionModel>> handleFetchStatusTrueMissions({int limit = 3}) async {
-    return await fetchStatusTrueMissions(limit: limit);
+  Future<List<MissionModel>> handleFetchStatusTrueMissions({int limit = 3}) async {
+    return await _missionBinding.loadActiveMissions();
   }
 
-  static Future<List<MissionModel>> handleFetchFinishedTrueMissions({
+  Future<List<MissionModel>> handleFetchFinishedTrueMissions({
   int limit = 100,
   required String userId,
 }) async {
-  return await fetchFinishedTrueMissions(limit: limit, userId: userId);
+  // Pass userId to the data binding method
+  return await _missionBinding.loadFinishedMissions(userId, limit: limit);
 }
 
 
-  static Future<void> handleClearMissionList() async {
-    await clearMissionList();
+  Future<void> handleClearMissionList() async {
+    await _missionBinding.clearMissionList();
   }
 
-  static Future<bool> handleCheckDateAfterCreated() async {
-    return await isDateAfterCreated();
+  Future<bool> handleCheckDateAfterCreated() async {
+    return await _missionBinding.isDateAfterCreated();
   }
 
-  static Future<void> handleSaveMissions(List<MissionModel> missions) async {
-    await saveGeneratedMissionsToFirebase(missions);
-  }
-
-  static Future<void> handleTrackMissionProgress({
+  Future<void> handleTrackMissionProgress({
     required String category,
     required String type,
     int actionCount = 1,
     int actionTime = 0,
   }) async {
-    await trackUserMissionProgress(
+    await _missionBinding.trackProgress(
       category: category,
       type: type,
       actionCount: actionCount,
@@ -50,10 +51,15 @@ class MissionEventHandler {
     );
   }
 
-  static Future<void> handleAwardXP(String userId, int xp) async {
-    await awardUserXP(userId, xp);
+  Future<void> handleAwardXP(String userId, int xp) async {
+    await _missionBinding.awardXP(userId, xp);
+  }
+
+  void handleUserLogin(UserModel user) {
+    _missionBinding.setCurrentUser(user);
+  }
+
+  Future<List<RewardModel>> handleFetchRewards(UserModel user) async {
+    return await _missionBinding.getUserRewards(user.userId);
   }
 }
-
-// Note: _awardUserXP is private in mission_service.dart.
-// If you want to call it from here, expose it publicly or move it to a shared service.

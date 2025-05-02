@@ -1,17 +1,18 @@
 import 'dart:async';
+import 'package:blindmate/viewmodels/dataBinding/do_mission_data_binding.dart';
 import 'package:blindmate/viewmodels/eventHandlers/matching_event_handler.dart';
 import 'package:flutter/material.dart';
 import '../../models/dataModels/message_model.dart';
 import '../state/chat_state.dart';
 import '../dataBinding/chat_data_binding.dart';
 import '../uiValidation/chat_validator.dart';
-import 'package:blindmate/services/do_mission_service.dart';
 
 
 class ChatEventHandler {
   final ChatState chatState;
   final ChatDataBinding dataBinding;
   final MatchingEventHandler matchingHandler;
+final DoMissionDataBinding _doMissionDataBinding = DoMissionDataBinding();
 
   final String chatRoomId;
   final String currentUserId;
@@ -82,7 +83,7 @@ class ChatEventHandler {
       // ✅ Track mission progress (safe messages)
     // ✅ Track mission progress for valid (safe) text messages
   if (text != null && MessageValidator.isValid(text)) {
-    await trackUserMissionProgress(
+    await _doMissionDataBinding.trackProgress(
   category: "chat",
   type: "action",
   actionCount: 1,

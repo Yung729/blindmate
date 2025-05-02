@@ -1,9 +1,10 @@
-import 'package:blindmate/views/UIComponents/avatar_frame.dart';
+import 'package:blindmate/viewmodels/eventHandlers/do_mission_event_handler.dart';
+// import 'package:blindmate/views/UIComponents/avatar_frame.dart';
 import 'package:blindmate/views/UIComponents/custom_button.dart';
 import 'package:blindmate/views/UIComponents/empty_message.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:blindmate/models/dataModels/rewards_model.dart';
-import 'package:blindmate/viewmodels/dataBinding/do_mission_data_binding.dart';
+// import 'package:blindmate/viewmodels/dataBinding/do_mission_data_binding.dart';
 import 'package:blindmate/models/dataModels/user_model.dart';
 import 'package:blindmate/models/dataModels/user_reward_model.dart';
 import 'package:blindmate/views/UIComponents/image_frame.dart';
@@ -23,30 +24,30 @@ class _SwitchAvatarScreenState extends State<SwitchAvatarScreen> {
   List<UserReward> redeemRewardId = [];
   List<RewardModel> uniqueRewards = [];
   bool _isLoading = true;
+    late final MissionEventHandler _missionEventHandler;
 
   @override
   void initState() {
     super.initState();
+    _missionEventHandler = MissionEventHandler();
     if (widget.user != null) {
       // Assign the current user and fetch rewards
-      DoMissionDataBinding().assignCurrentUserId(widget.user);
+      _missionEventHandler.handleUserLogin(widget.user!);
       _fetchUserRewards(widget.user!.userId);
     }
   }
 
   Future<void> _fetchUserRewards(String userId) async {
-    List<UserReward> userRewardList = await DoMissionDataBinding()
-        .fetchUserRewards(userId);
+    List<RewardModel> userRewardList = await _missionEventHandler.handleFetchRewards(
+      widget.user!,
+    );
     List<RewardModel> allFetchedRewards = [];
 
-    for (var userReward in userRewardList) {
-      for (var rewardId in userReward.redeemedRewards) {
-        RewardModel? reward = await _fetchRewardModelById(rewardId);
-        if (reward != null) {
-          allFetchedRewards.add(reward);
-        }
-      }
+    for (var reward in userRewardList) {
+    if (reward != null) {
+      allFetchedRewards.add(reward);
     }
+  }
 
     // Remove duplicates based on redeemRewardId
     Set<String> seenIds = {};
@@ -58,7 +59,7 @@ class _SwitchAvatarScreenState extends State<SwitchAvatarScreen> {
         }).toList();
 
     setState(() {
-      redeemRewardId = userRewardList;
+      // redeemRewardId = [];
       _isLoading = false;
     });
   }

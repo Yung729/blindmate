@@ -76,11 +76,11 @@ class CreatePostEventHandler {
 
     // If the content is not deemed unsafe, track user mission progress
     if (moderationResult != 'UNSAFE') {
-      await trackUserMissionProgress(
-        category: 'post',
-        type: 'action',
-        actionCount: 1,
-      );
+      // await MissionService.trackUserMissionProgress(
+      //   category: 'post',
+      //   type: 'action',
+      //   actionCount: 1,
+      // );
     }
 
     createPostState.reset();

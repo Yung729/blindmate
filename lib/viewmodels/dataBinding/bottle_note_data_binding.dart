@@ -14,6 +14,7 @@ class BottleNoteDataBinding {
   final BottleNoteState bottleNoteState;
   String? selectedSticker;
   final Pool _pool = Pool();
+  final MissionService _missionService = MissionService();
 
   BottleNoteDataBinding({required this.bottleNoteState});
 
@@ -45,7 +46,7 @@ class BottleNoteDataBinding {
 
     if (moderationResult == 'UNSAFE') return;
 
-    await trackUserMissionProgress(
+    await _missionService.trackUserMissionProgress(
       category: 'note',
       type: 'action',
       actionCount: 1,
