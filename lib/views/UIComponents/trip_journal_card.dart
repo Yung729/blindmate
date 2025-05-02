@@ -79,7 +79,7 @@ class _TripJournalBookCardState extends State<TripJournalBookCard> {
         mainAxisSize: MainAxisSize.min,
         children: [
           AspectRatio(
-            aspectRatio: 3 / 4.0,
+            aspectRatio: 3 / 3.0,
             child: SizedBox(
               height: MediaQuery.of(context).size.height * 0.4,
               child: Stack(

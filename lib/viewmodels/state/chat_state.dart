@@ -30,6 +30,20 @@ class ChatState extends ChangeNotifier {
   List<Map<String, dynamic>> _userTripJournals = [];
   bool _isLoadingTripJournals = false;
 
+  // Getter and setter for userTripJournals
+  List<Map<String, dynamic>> get userTripJournals => _userTripJournals;
+  set userTripJournals(List<Map<String, dynamic>> value) {
+    _userTripJournals = value;
+    notifyListeners();
+  }
+
+  // Getter and setter for isLoadingTripJournals
+  bool get isLoadingTripJournals => _isLoadingTripJournals;
+  set isLoadingTripJournals(bool value) {
+    _isLoadingTripJournals = value;
+    notifyListeners();
+  }
+
   void setMusicPlaying(bool isPlaying) {
     if (_isMusicPlaying != isPlaying) {
       _isMusicPlaying = isPlaying;

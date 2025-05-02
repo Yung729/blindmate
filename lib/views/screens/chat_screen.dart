@@ -51,18 +51,15 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   StreamSubscription? _gameInvitationCancellationSubscription;
   DateTime? _chatStartTime;
 
-  List<Map<String, dynamic>> _userTripJournals = [];
-  bool _isLoadingTripJournals = false;
-
   Future<void> _fetchUserTripJournals() async {
-    setState(() => _isLoadingTripJournals = true);
+    _chatState.isLoadingTripJournals = true;
     final chatBinding = ChatDataBinding(chatState: _chatState);
     final journals = await chatBinding.fetchUserTripJournals(
       widget.currentUserId,
     );
     setState(() {
-      _userTripJournals = journals;
-      _isLoadingTripJournals = false;
+      _chatState.userTripJournals = journals;
+      _chatState.isLoadingTripJournals = false;
     });
   }
 
@@ -735,7 +732,7 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                                           });
                                         }
                                       },
-                                      pastJournals: _userTripJournals,
+                                      pastJournals: chatState.userTripJournals,
                                       actionButtonText: 'Send Journal',
                                     );
                                   },
