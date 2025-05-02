@@ -2,7 +2,6 @@ import 'package:blindmate/viewmodels/state/auth_state.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'pick_up_screen.dart';
-import '../../models/dataModels/bottle_note_model.dart';
 import '../../viewmodels/eventHandlers/bottle_note_event_handler.dart';
 import '../../viewmodels/state/bottle_note_state.dart';
 import '../UIComponents/custom_button.dart';
@@ -11,7 +10,7 @@ import '../UIComponents/custom_dialog.dart';
 import 'bottle_note_home_screen.dart';
 
 class ShowBottleNoteScreen extends StatefulWidget {
-  final BottleNote note;
+  final note;
 
   const ShowBottleNoteScreen({super.key, required this.note});
 

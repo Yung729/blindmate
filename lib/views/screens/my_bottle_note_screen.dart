@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../viewmodels/state/bottle_note_state.dart';
 import '../../viewmodels/eventHandlers/bottle_note_event_handler.dart';
-import '../../models/dataModels/bottle_note_model.dart';
 import '../UIComponents/custom_dialog.dart';
 import '../UIComponents/custom_snackbar.dart';
 
@@ -79,7 +78,7 @@ class _MyBottleNotesScreenState extends State<MyBottleNotesScreen> {
     }
   }
 
-  Future<void> _showNoteDialog(BottleNote note) async {
+  Future<void> _showNoteDialog(final note) async {
     try {
       final replies = await _eventHandler.getRepliesForNote(note.noteId);
       if (!mounted) return;
