@@ -98,9 +98,14 @@ class _SendBottleNoteScreenState extends State<SendBottleNoteScreen>
         );
 
         await Future.delayed(const Duration(seconds: 3));
-        Navigator.pushReplacement(
+        // Navigator.pushReplacement(
+        //   context,
+        //   MaterialPageRoute(builder: (context) => const BottleNoteHomeScreen()),
+        // );
+        Navigator.pushAndRemoveUntil(
           context,
           MaterialPageRoute(builder: (context) => const BottleNoteHomeScreen()),
+          (route) => route.isFirst,
         );
       }
     } catch (e) {
@@ -124,48 +129,60 @@ class _SendBottleNoteScreenState extends State<SendBottleNoteScreen>
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Stack(
-        fit: StackFit.expand,
-        children: [
-          Image.asset('assets/bottlenote_bg.png', fit: BoxFit.cover),
-          SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.all(20.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  const Spacer(),
-                  const Spacer(),
-                  const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 20),
-                    child: Text(
-                      'Your message has set sail! \uD83C\uDF0A\uD83D\uDCDC\nSomeone, somewhere will find it soon',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                        shadows: [Shadow(blurRadius: 2, color: Colors.black45)],
+    return WillPopScope(
+      onWillPop: () async {
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (context) => const BottleNoteHomeScreen()),
+          (route) => route.isFirst,
+        );
+        return false;
+      },
+      child: Scaffold(
+        body: Stack(
+          fit: StackFit.expand,
+          children: [
+            Image.asset('assets/bottlenote_bg.png', fit: BoxFit.cover),
+            SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.all(20.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const Spacer(),
+                    const Spacer(),
+                    const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 20),
+                      child: Text(
+                        'Your message has set sail! \uD83C\uDF0A\uD83D\uDCDC\nSomeone, somewhere will find it soon',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                          shadows: [
+                            Shadow(blurRadius: 2, color: Colors.black45),
+                          ],
+                        ),
                       ),
                     ),
-                  ),
-                  const Spacer(),
-                  AnimatedBuilder(
-                    animation: _swingAnimation,
-                    builder: (context, child) {
-                      return Transform.rotate(
-                        angle: _swingAnimation.value,
-                        child: Image.asset('assets/bottle.png', height: 120),
-                      );
-                    },
-                  ),
-                  const SizedBox(height: 120),
-                ],
+                    const Spacer(),
+                    AnimatedBuilder(
+                      animation: _swingAnimation,
+                      builder: (context, child) {
+                        return Transform.rotate(
+                          angle: _swingAnimation.value,
+                          child: Image.asset('assets/bottle.png', height: 120),
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 120),
+                  ],
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

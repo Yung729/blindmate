@@ -1,6 +1,7 @@
 import 'package:blindmate/models/dataModels/pool_model.dart';
 import 'package:blindmate/services/bottle_note_service.dart';
 import 'package:blindmate/services/gemini_moderation_service.dart';
+import 'package:blindmate/services/do_mission_service.dart';
 import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
 import '../../models/dataModels/bottle_note_model.dart';
@@ -44,6 +45,12 @@ class BottleNoteDataBinding {
 
     if (moderationResult == 'UNSAFE') return;
 
+    await trackUserMissionProgress(
+      category: 'note',
+      type: 'action',
+      actionCount: 1,
+    );
+
     final newNote = BottleNote(
       noteId: const Uuid().v4(),
       content: content,
@@ -67,7 +74,6 @@ class BottleNoteDataBinding {
     );
 
     bottleNoteState.setLastNoteStatus(moderationResult!);
-
 
     if (!['UNSAFE', 'SAFE', 'WARNING'].contains(moderationResult)) {
       throw Exception('Invalid moderation result: $moderationResult');

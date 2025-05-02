@@ -1,5 +1,3 @@
-import 'package:blindmate/services/do_mission_service.dart';
-
 import '../../models/dataModels/bottle_note_model.dart';
 import '../state/bottle_note_state.dart';
 import '../dataBinding/bottle_note_data_binding.dart';
@@ -64,11 +62,6 @@ class BottleNoteEventHandler {
     try {
       await dataBinding.sendNote(userId, content);
 
-      await trackUserMissionProgress(
-      category: 'note',
-      type: 'action',
-      actionCount: 1,
-    );
     } catch (e) {
       throw Exception("Failed to send note: $e");
     }
