@@ -10,10 +10,13 @@ class RedeemRewardEventHandler {
 
   // Constructor
   RedeemRewardEventHandler({required this.user})
-      : dataBinding = RedeemRewardDataBinding(user: user);
+    : dataBinding = RedeemRewardDataBinding(user: user);
 
   // Handle the redeem reward event
-  Future<void> handleRedeemReward(BuildContext context, int rewardCost, String rewardId, {
+  Future<void> handleRedeemReward(
+    BuildContext context,
+    int rewardCost,
+    String rewardId, {
     Function(int updatedFragmentNumber)? onSuccess,
   }) async {
     try {
@@ -27,14 +30,16 @@ class RedeemRewardEventHandler {
     } catch (e) {
       // Handle any errors that might have occurred
       print("Error in redeeming reward: $e");
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error: $e')));
     }
   }
 
   // Handle fetching available rewards (calling DataBinding method)
-  Future<List<RewardModel>> handleFetchAvailableRewards(BuildContext context) async {
+  Future<List<RewardModel>> handleFetchAvailableRewards(
+    BuildContext context,
+  ) async {
     try {
       final rewards = await dataBinding.getAvailableRewards();
       // Use the rewards list in your UI or pass it to other parts of your app
@@ -45,15 +50,18 @@ class RedeemRewardEventHandler {
       return rewards;
     } catch (e) {
       print("Error in fetching rewards: $e");
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to fetch rewards: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Failed to fetch rewards: $e')));
       rethrow;
     }
   }
 
   // Handle fetching user rewards (calling DataBinding method)
-  Future<UserReward?> handleFetchUserRewards(BuildContext context, String userId) async {
+  Future<List<RewardModel>?> handleFetchUserRewards(
+    BuildContext context,
+    String userId,
+  ) async {
     try {
       final userReward = await dataBinding.fetchUserRewards(userId);
       // Use the fetched user rewards in your UI
@@ -68,6 +76,14 @@ class RedeemRewardEventHandler {
         SnackBar(content: Text('Failed to fetch user rewards: $e')),
       );
       return null;
+    }
+  }
+
+  Future<void> switchAvatar(String userId, String imageUrl) async {
+    try {
+      await dataBinding.switchAvatar(userId, imageUrl);
+    } catch (e) {
+      print("Error in switching avatar: $e");
     }
   }
 }

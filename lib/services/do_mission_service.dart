@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'package:blindmate/models/dataModels/rewards_model.dart';
-import 'package:blindmate/models/dataModels/user_model.dart';
 import 'package:blindmate/models/dataModels/user_reward_model.dart';
 import 'package:blindmate/services/gemini_moderation_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -8,14 +7,13 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/dataModels/mission_model.dart';
 
 class MissionService {
-  UserModel? _currentUser;
+  final missionsRef = FirebaseFirestore.instance.collection('mission');
   String? userId;
+
   /// Saves a list of generated missions to Firestore.
   Future<void> saveGeneratedMissionsToFirebase(
     List<MissionModel> missions,
   ) async {
-    final missionsRef = FirebaseFirestore.instance.collection('mission');
-
     for (final mission in missions) {
       final missionData = mission.toMap();
       missionData['createdAt'] = DateTime.now();
@@ -67,17 +65,13 @@ class MissionService {
             .where('assignedUser', isEqualTo: currentUser.uid)
             .get();
 
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
 
     int updatedCount = 0;
     List<String> expiredMissionIds = [];
 
     for (var doc in missions.docs) {
-      // final data = doc.data();
       final createdAtTimestamp = doc.data()['createdAt'] as Timestamp?;
       if (createdAtTimestamp == null) {
-        // If no createdAt, expire it by default
         await doc.reference.update({'status': false});
         continue;
       }
@@ -126,7 +120,7 @@ class MissionService {
             .get(); // No limit or filtering here
 
     print(
-      "Fetched missions assigned to current user: ${querySnapshot.docs.length}",
+      "Fetched missions assigned to current user {$currentUser.uid} : ${querySnapshot.docs.length}",
     );
 
     return querySnapshot.docs
@@ -135,10 +129,8 @@ class MissionService {
   }
 
   // 2. Apply a limit to the missions list fetched from fetchAllUserMissions
-  Future<List<MissionModel>> fetchLimitedUserMissions({
-    int limit = 3,
-  }) async {
-    final allMissions = await fetchAllUserMissions(); // Get all missions first
+  Future<List<MissionModel>> fetchLimitedUserMissions({int limit = 3}) async {
+    final allMissions = await fetchFinishedMissions(); // Get all missions first
     if (allMissions.length > limit) {
       return allMissions.sublist(0, limit); // Apply the limit to the list
     }
@@ -146,25 +138,24 @@ class MissionService {
   }
 
   // 3. Apply `status == true` filter to the missions list fetched from fetchAllUserMissions
-  Future<List<MissionModel>> fetchStatusTrueMissions() async {
-    final allMissions =
-        await fetchLimitedUserMissions(); // Get all missions first
-    final filtered =
-        allMissions
-            .where((m) => m.status == true)
-            .toList(); // Filter by status == true
-
-    print("Filtered missions with status == true: ${filtered.length}");
-
-    return filtered;
+  Future<List<MissionModel>> fetchStatusTrueMissions(String userId) async {
+    final querySnapshot =
+        await missionsRef
+            .where('assignedUser', isEqualTo: userId)
+            .where('status', isEqualTo: true)
+            .get();
+    return querySnapshot.docs
+        .map((doc) => MissionModel.fromMap(doc.data(), doc.id))
+        .toList();
   }
 
   // 4. Apply `finished == true` filter to the missions list fetched from fetchAllUserMissions
-  Future<List<MissionModel>> fetchFinishedTrueMissions() async {
+  Future<List<MissionModel>> fetchFinishedMissions() async {
     final allMissions = await fetchAllUserMissions(); // Get all missions first
     final filtered =
         allMissions
             .where((m) => m.finished == true)
+            .where((m) => m.status == true)
             .toList(); // Filter by finished == true
 
     print("Filtered missions with finished == true: ${filtered.length}");
@@ -241,19 +232,13 @@ class MissionService {
       final missions =
           (parsed['missions'] as List).map((e) {
             e['status'] = true;
-            // e['finished'] = false;
             e['assignedUser'] = assignedUserId;
             e['progress'] = 0;
-            // e['createdAt'] = FieldValue.serverTimestamp();
             return MissionModel.fromMap(e, e['id']);
           }).toList();
 
       // 2. Save generated missions to Firebase
       await saveGeneratedMissionsToFirebase(missions);
-
-      // 3. Fetch back from Firebase (optional sync step)
-      final missionsFromFirebase = await fetchLimitedUserMissions(limit: 3);
-      print('Fetched missions from Firebase: $missionsFromFirebase');
 
       await updateGenerationLog(); // ✅ Mark generation done for today
     } catch (e) {
@@ -284,7 +269,6 @@ class MissionService {
     int actionTime = 0,
   }) async {
     final currentUser = FirebaseAuth.instance.currentUser;
-    final missionsRef = FirebaseFirestore.instance.collection('mission');
 
     if (currentUser == null) {
       throw Exception("No user is logged in.");
@@ -368,62 +352,55 @@ class MissionService {
     }
   }
 
-  Future<List<RewardModel>> fetchUniqueRedeemedRewards(UserReward userReward) async {
-  try {
-    // Step 1: Get the redeemed rewards from userReward
-    List redeemedRewardIds = userReward.redeemedRewards;
-    
-    // Step 2: Store all redeemedReward IDs in a list (no duplicates here yet)
-    List<RewardModel> allFetchedRewards = [];
+  Future<List<RewardModel>> fetchUniqueRedeemedRewards(
+    UserReward userReward,
+  ) async {
+    try {
+      // Step 1: Get the redeemed rewards from userReward
+      List redeemedRewardIds = userReward.redeemedRewards;
 
-    // Step 3: Retrieve all RewardModels for each redeemedReward ID
-    for (String rewardId in redeemedRewardIds) {
-      RewardModel? rewardModel = await fetchRewardById(rewardId);
-      if (rewardModel != null) {
-        allFetchedRewards.add(rewardModel);
+      // Step 2: Store all redeemedReward IDs in a list (no duplicates here yet)
+      List<RewardModel> allFetchedRewards = [];
+
+      // Step 3: Retrieve all RewardModels for each redeemedReward ID
+      for (String rewardId in redeemedRewardIds) {
+        RewardModel? rewardModel = await fetchRewardById(rewardId);
+        if (rewardModel != null) {
+          allFetchedRewards.add(rewardModel);
+        }
       }
+
+      // Step 4: Remove duplicates based on redeemRewardId
+      Set<String> seenIds = {};
+      List<RewardModel> uniqueRewards =
+          allFetchedRewards.where((reward) {
+            bool seen = seenIds.contains(reward.redeemRewardId);
+            if (!seen) seenIds.add(reward.redeemRewardId);
+            return !seen;
+          }).toList();
+
+      // Step 5: Return the unique list of RewardModel
+      return uniqueRewards;
+    } catch (e) {
+      print("Error fetching unique rewards: $e");
+      return [];
     }
-
-    // Step 4: Remove duplicates based on redeemRewardId
-    Set<String> seenIds = {};
-    List<RewardModel> uniqueRewards = allFetchedRewards.where((reward) {
-      bool seen = seenIds.contains(reward.redeemRewardId);
-      if (!seen) seenIds.add(reward.redeemRewardId);
-      return !seen;
-    }).toList();
-
-    // Step 5: Return the unique list of RewardModel
-    return uniqueRewards;
-
-  } catch (e) {
-    print("Error fetching unique rewards: $e");
-    return [];
   }
-}
 
-Future<RewardModel?> fetchRewardById(String rewardId) async {
-  try {
-    final docSnapshot = await FirebaseFirestore.instance
-        .collection('reward')
-        .doc(rewardId)
-        .get();
+  Future<RewardModel?> fetchRewardById(String rewardId) async {
+    try {
+      final docSnapshot =
+          await FirebaseFirestore.instance
+              .collection('reward')
+              .doc(rewardId)
+              .get();
 
-    if (docSnapshot.exists) {
-      return RewardModel.fromFirestore(docSnapshot);
+      if (docSnapshot.exists) {
+        return RewardModel.fromFirestore(docSnapshot);
+      }
+    } catch (e) {
+      print("Error fetching reward by ID: $e");
     }
-  } catch (e) {
-    print("Error fetching reward by ID: $e");
-  }
-  return null;
-}
-
-  void assignCurrentUserId(UserModel? user) {
-    if (user != null) {
-      _currentUser = user;
-      userId = user.userId;
-      print("Assigned UserId: $userId");
-    } else {
-      print("No current user found.");
-    }
+    return null;
   }
 }

@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'package:blindmate/viewmodels/dataBinding/do_mission_data_binding.dart';
 import 'package:blindmate/viewmodels/eventHandlers/matching_event_handler.dart';
 import 'package:flutter/material.dart';
 import '../../models/dataModels/message_model.dart';
@@ -7,12 +6,10 @@ import '../state/chat_state.dart';
 import '../dataBinding/chat_data_binding.dart';
 import '../uiValidation/chat_validator.dart';
 
-
 class ChatEventHandler {
   final ChatState chatState;
   final ChatDataBinding dataBinding;
   final MatchingEventHandler matchingHandler;
-final DoMissionDataBinding _doMissionDataBinding = DoMissionDataBinding();
 
   final String chatRoomId;
   final String currentUserId;
@@ -34,14 +31,14 @@ final DoMissionDataBinding _doMissionDataBinding = DoMissionDataBinding();
 
   Future<void> init() async {
     _isChatOpen = true;
-    
+
     // Use microtask to schedule state updates without delaying UI
     Future.microtask(() {
       chatState.clear(); // Reset state when initializing new chat
       // Set the current user ID for tracking music playback
       chatState.setCurrentUserId(currentUserId);
     });
-    
+
     dataBinding.initialize(chatRoomId, currentUserId);
     await dataBinding.fetchChatPartner(chatRoomId, currentUserId);
     dataBinding.listenTypingStatus(chatRoomId, chatState.otherUserId);
@@ -79,16 +76,6 @@ final DoMissionDataBinding _doMissionDataBinding = DoMissionDataBinding();
       dataBinding.addMessage(message);
       await dataBinding.sendMessage(currentUserId, chatRoomId, message);
       resetInactivityTimer();
-
-      // ✅ Track mission progress (safe messages)
-    // ✅ Track mission progress for valid (safe) text messages
-  if (text != null && MessageValidator.isValid(text)) {
-    await _doMissionDataBinding.trackProgress(
-  category: "chat",
-  type: "action",
-  actionCount: 1,
-);
-  }
     } catch (e) {
       if (e.toString().contains("BANNED")) {
         chatState.setBanned(true);
@@ -176,14 +163,16 @@ final DoMissionDataBinding _doMissionDataBinding = DoMissionDataBinding();
     try {
       print("🧳 Adding trip journal message to local state");
       dataBinding.addMessage(message);
-      
+
       print("🧳 Sending trip journal message via WebSocket/Firestore");
       await dataBinding.sendMessage(currentUserId, chatRoomId, message);
 
       resetInactivityTimer();
       print("✅ Trip journal message sent successfully");
     } catch (e) {
-      print("❌ Error sending trip journal message: $e");// Handle error if needed
+      print(
+        "❌ Error sending trip journal message: $e",
+      ); // Handle error if needed
     }
   }
 }

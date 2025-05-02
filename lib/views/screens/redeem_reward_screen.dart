@@ -75,24 +75,23 @@ class _RedeemRewardScreenState extends State<RedeemRewardScreen> {
       // Fetch all available rewards
       final allFetchedRewards = await _rewardEventHandler
           .handleFetchAvailableRewards(context);
-      final userReward = await _rewardEventHandler.handleFetchUserRewards(
+      final userRewards = await _rewardEventHandler.handleFetchUserRewards(
         context,
         _currentUser!.userId,
       );
       final redeemedRewardIds =
-          userReward?.redeemedRewards?.toSet() ?? <dynamic>{};
+          userRewards!.map((reward) => reward.redeemRewardId).toSet();
 
       print("Redeemed reward IDs: $redeemedRewardIds");
 
       // Filter out rewards that have been redeemed
-      final unredeemedRewards =
-          allFetchedRewards.where((reward) {
-            // Always include flowers
-            if (reward.rewardTitle == 'flower') return true;
+      final unredeemedRewards = allFetchedRewards.where((reward) {
+        // Always include flowers
+        if (reward.rewardTitle == 'flower') return true;
 
-            // Only include unredeemed non-flower rewards
-            return !redeemedRewardIds.contains(reward.redeemRewardId);
-          }).toList();
+        // Only include unredeemed non-flower rewards
+        return !redeemedRewardIds.contains(reward.redeemRewardId);
+      }).toList();
 
       print("All rewards count: ${allFetchedRewards.length}");
       print("Unredeemed rewards count: ${unredeemedRewards.length}");

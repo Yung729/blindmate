@@ -6,12 +6,14 @@ import '../../services/chat_service.dart';
 import '../../models/dataModels/message_model.dart';
 import '../state/chat_state.dart';
 import '../../services/trip_journal_service.dart';
+import '../../services/do_mission_service.dart';
 
 class ChatDataBinding {
   final ChatService _chatService = ChatService();
   final GiphyService _giphyService = GiphyService();
   final GeminiModerationService _moderationService = GeminiModerationService();
-  final UserTripJournalService _tripJournalService = UserTripJournalService(); 
+  final UserTripJournalService _tripJournalService = UserTripJournalService();
+  final MissionService _missionService = MissionService();
   final ChatState chatState;
 
   ChatDataBinding({required this.chatState});
@@ -99,8 +101,10 @@ class ChatDataBinding {
   ) async {
     // Check if this is a trip journal message
     if (message.tripJournals != null && message.tripJournals!.isNotEmpty) {
-      debugPrint("🧳 Sending trip journal message with ${message.tripJournals!.length} entries");
-      
+      debugPrint(
+        "🧳 Sending trip journal message with ${message.tripJournals!.length} entries",
+      );
+
       // For trip journals, mark as SAFE by default and send immediately
       final tripJournalMessage = MessageModel(
         senderId: message.senderId,
@@ -112,11 +116,17 @@ class ChatDataBinding {
         moderationStatus: 'SAFE',
         tripJournals: message.tripJournals,
       );
-      
+
+      await _missionService.trackUserMissionProgress(
+        category: "chat",
+        type: "action",
+        actionCount: 1,
+      );
+
       await _chatService.sendMessage(userId, chatRoomId, tripJournalMessage);
       return;
     }
-    
+
     // Handle regular text messages
     if (message.text != null && message.text!.isNotEmpty) {
       final moderationResult = await _moderationService.checkContentLevel(
@@ -160,14 +170,12 @@ class ChatDataBinding {
             throw Exception("BANNED");
           }
           break;
-          
+
         default:
           throw Exception("Message moderation failed");
       }
-    } else if (
-      (message.musicUrl != null && message.musicUrl!.isNotEmpty) ||
-      (message.stickerUrl != null && message.stickerUrl!.isNotEmpty)
-    ) {
+    } else if ((message.musicUrl != null && message.musicUrl!.isNotEmpty) ||
+        (message.stickerUrl != null && message.stickerUrl!.isNotEmpty)) {
       // For stickers or music, mark as SAFE by default
       final safeMessage = MessageModel(
         senderId: message.senderId,
@@ -283,7 +291,9 @@ class ChatDataBinding {
     }
   }
 
-  Future<List<Map<String, dynamic>>> fetchUserTripJournals(String userId) async {
+  Future<List<Map<String, dynamic>>> fetchUserTripJournals(
+    String userId,
+  ) async {
     try {
       return await _tripJournalService.fetchUserTripJournals(userId);
     } catch (e) {

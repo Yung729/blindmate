@@ -1,6 +1,7 @@
 import '../../models/api/youtube_api.dart';
 import '../../models/dataModels/post_model.dart';
 import '../../services/gemini_moderation_service.dart';
+import '../../services/do_mission_service.dart';
 import '../../services/post_service.dart';
 import '../../services/trip_journal_service.dart';
 import '../state/create_post_state.dart';
@@ -10,6 +11,7 @@ class CreatePostDataBinding {
   final PostService _postService = PostService();
   final UserTripJournalService _tripJournalService = UserTripJournalService();
   final GeminiModerationService _moderationService = GeminiModerationService();
+  final MissionService _missionService = MissionService();
 
   CreatePostDataBinding({required this.createPostState});
 
@@ -89,6 +91,12 @@ class CreatePostDataBinding {
     );
 
     await _postService.createPost(newPost);
+
+    await _missionService.trackUserMissionProgress(
+      category: 'post',
+      type: 'action',
+      actionCount: 1,
+    );
 
     return newPost;
   }

@@ -1,4 +1,3 @@
-import 'package:blindmate/services/do_mission_service.dart';
 import 'package:flutter/material.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -71,17 +70,6 @@ class CreatePostEventHandler {
       tripJournals: tripJournals,
       url: createPostState.selectedLinkUrl,
     );
-
-    String moderationResult = await checkContentModeration(createPostState.postContent);
-
-    // If the content is not deemed unsafe, track user mission progress
-    if (moderationResult != 'UNSAFE') {
-      // await MissionService.trackUserMissionProgress(
-      //   category: 'post',
-      //   type: 'action',
-      //   actionCount: 1,
-      // );
-    }
 
     createPostState.reset();
   }

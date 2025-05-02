@@ -1,16 +1,13 @@
-import 'package:blindmate/viewmodels/eventHandlers/do_mission_event_handler.dart';
-// import 'package:blindmate/views/UIComponents/avatar_frame.dart';
 import 'package:blindmate/views/UIComponents/custom_button.dart';
 import 'package:blindmate/views/UIComponents/empty_message.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:blindmate/models/dataModels/rewards_model.dart';
-// import 'package:blindmate/viewmodels/dataBinding/do_mission_data_binding.dart';
 import 'package:blindmate/models/dataModels/user_model.dart';
 import 'package:blindmate/models/dataModels/user_reward_model.dart';
 import 'package:blindmate/views/UIComponents/image_frame.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:blindmate/viewmodels/state/auth_state.dart';
+import 'package:blindmate/viewmodels/eventHandlers/redeem_reward_event_handler.dart';
 
 class SwitchAvatarScreen extends StatefulWidget {
   final UserModel? user;
@@ -24,60 +21,42 @@ class _SwitchAvatarScreenState extends State<SwitchAvatarScreen> {
   List<UserReward> redeemRewardId = [];
   List<RewardModel> uniqueRewards = [];
   bool _isLoading = true;
-  late final MissionEventHandler _missionEventHandler;
+  late final RedeemRewardEventHandler rewardEventHandler;
 
   @override
   void initState() {
     super.initState();
-    _missionEventHandler = MissionEventHandler();
+    rewardEventHandler = RedeemRewardEventHandler(user: widget.user!);
     if (widget.user != null) {
       // Assign the current user and fetch rewards
-      _missionEventHandler.handleUserLogin(widget.user!);
+      // _missionEventHandler.handleUserLogin(widget.user!);
       _fetchUserRewards(widget.user!.userId);
     }
   }
 
   Future<void> _fetchUserRewards(String userId) async {
-    List<RewardModel> userRewardList = await _missionEventHandler
-        .handleFetchRewards(widget.user!);
-    List<RewardModel> allFetchedRewards = [];
+    uniqueRewards = (await rewardEventHandler
+        .handleFetchUserRewards(context, widget.user!.userId))!;
+    // List<RewardModel> allFetchedRewards = [];
 
-    for (var reward in userRewardList) {
-      if (reward != null) {
-        allFetchedRewards.add(reward);
-      }
-    }
+    // for (var reward in userRewardList) {
+    //   if (reward != null) {
+    //     allFetchedRewards.add(reward);
+    //   }
+    // }
 
-    // Remove duplicates based on redeemRewardId
-    Set<String> seenIds = {};
-    uniqueRewards =
-        allFetchedRewards.where((reward) {
-          bool seen = seenIds.contains(reward.redeemRewardId);
-          if (!seen) seenIds.add(reward.redeemRewardId);
-          return !seen;
-        }).toList();
+    // // Remove duplicates based on redeemRewardId
+    // Set<String> seenIds = {};
+    // uniqueRewards =
+    //     allFetchedRewards.where((reward) {
+    //       bool seen = seenIds.contains(reward.redeemRewardId);
+    //       if (!seen) seenIds.add(reward.redeemRewardId);
+    //       return !seen;
+    //     }).toList();
 
     setState(() {
-      // redeemRewardId = [];
       _isLoading = false;
     });
-  }
-
-  Future<RewardModel?> _fetchRewardModelById(String rewardId) async {
-    try {
-      final docSnapshot =
-          await FirebaseFirestore.instance
-              .collection('reward')
-              .doc(rewardId)
-              .get();
-
-      if (docSnapshot.exists) {
-        return RewardModel.fromFirestore(docSnapshot);
-      }
-    } catch (e) {
-      print("Error fetching reward: $e");
-    }
-    return null;
   }
 
   @override
@@ -145,7 +124,6 @@ class _SwitchAvatarScreenState extends State<SwitchAvatarScreen> {
                                                                   ).pop(false),
                                                           child: const Text(
                                                             'Cancel',
-                                                            
                                                           ),
                                                         ),
                                                         TextButton(
@@ -166,13 +144,10 @@ class _SwitchAvatarScreenState extends State<SwitchAvatarScreen> {
                                               );
 
                                               if (confirm == true) {
-                                                await FirebaseFirestore.instance
-                                                    .collection('users')
-                                                    .doc(widget.user!.userId)
-                                                    .update({
-                                                      'avatarImg':
-                                                          reward.imageUrl,
-                                                    });
+                                                await rewardEventHandler.switchAvatar(
+                                                  widget.user!.userId,
+                                                  reward.imageUrl ?? '',
+                                                );
 
                                                 // Update global AuthState so all screens react
                                                 if (mounted) {
@@ -251,16 +226,7 @@ class _SwitchAvatarScreenState extends State<SwitchAvatarScreen> {
                                                     );
 
                                                     if (confirm == true) {
-                                                      await FirebaseFirestore
-                                                          .instance
-                                                          .collection('users')
-                                                          .doc(
-                                                            widget.user!.userId,
-                                                          )
-                                                          .update({
-                                                            'avatarImg':
-                                                                reward.imageUrl,
-                                                          });
+                                                      
 
                                                       if (mounted) {
                                                         Provider.of<AuthState>(

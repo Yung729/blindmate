@@ -56,12 +56,21 @@ class RedeemRewardDataBinding {
   }
 
   // Fetch user rewards (redeemed rewards)
-  Future<UserReward?> fetchUserRewards(String userId) async {
+  Future<List<RewardModel>?> fetchUserRewards(String userId) async {
     try {
       final userReward = await rewardService.fetchUserRewards(userId);
       return userReward;
     } catch (e) {
       throw Exception("Failed to fetch user rewards: $e");
+    }
+  }
+
+  Future<void> switchAvatar(String userId, String imageUrl) async {
+    try {
+      await rewardService.updateUserAvatar(userId, imageUrl);
+      print("Avatar switched successfully!");
+    } catch (e) {
+      print("Error switching avatar: $e");
     }
   }
 }

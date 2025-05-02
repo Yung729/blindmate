@@ -1,7 +1,5 @@
 import 'package:blindmate/models/dataModels/rewards_model.dart';
-import 'package:blindmate/models/dataModels/user_model.dart';
 import 'package:blindmate/models/dataModels/user_reward_model.dart';
-import 'package:blindmate/views/screens/redeem_reward_screen.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter/material.dart';
@@ -10,8 +8,11 @@ import '../services/level_progression_service.dart';
 
 class RewardService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final Map<String, DateTime> _lastFlowerSentTime = {}; // Track last sent time per user
-  static const Duration _flowerCooldown = Duration(seconds: 3); // Cooldown period
+  final Map<String, DateTime> _lastFlowerSentTime =
+      {}; // Track last sent time per user
+  static const Duration _flowerCooldown = Duration(
+    seconds: 3,
+  ); // Cooldown period
   final LevelProgressionService _levelService = LevelProgressionService();
 
   // Fetch the available rewards from the Firestore collection
@@ -27,13 +28,29 @@ class RewardService {
   }
 
   // Fetch user rewards (redeemed rewards)
-  Future<UserReward?> fetchUserRewards(String userId) async {
+  Future<List<RewardModel>?> fetchUserRewards(String userId) async {
     try {
       final userRewardDoc =
           await _firestore.collection('user_reward').doc(userId).get();
       if (userRewardDoc.exists) {
         print('Fetched user reward doc: ${userRewardDoc.data()}');
-        return UserReward.fromFirestore(userRewardDoc);
+        final redeemedRewardIds = List<String>.from(
+          userRewardDoc.data()?['redeemedReward'] ?? [],
+        );
+        final rewardsSnapshot = await _firestore.collection('reward').get();
+        final redeemedRewards =
+            rewardsSnapshot.docs
+                .where((doc) => redeemedRewardIds.contains(doc.id))
+                .map((doc) => RewardModel.fromFirestore(doc))
+                .toList();
+        if (redeemedRewards.isNotEmpty) {
+          print('Fetched redeemed rewards: ${redeemedRewards[0].rewardTitle}');
+          return redeemedRewards;
+        } else {
+          print('No redeemed rewards found.');
+        }
+        return null;
+        // return UserReward.fromFirestore(userRewardDoc);
       }
       return null;
     } catch (e) {
@@ -42,65 +59,69 @@ class RewardService {
   }
 
   Future<int> redeemReward(
-  String userId,
-  int fragmentCost,
-  String rewardId,
-  [BuildContext? context]
-) async {
-  try {
-    // Fetch reward info to check type
-    final rewardDoc = await _firestore.collection('reward').doc(rewardId).get();
-    final reward = RewardModel.fromFirestore(rewardDoc);
+    String userId,
+    int fragmentCost,
+    String rewardId, [
+    BuildContext? context,
+  ]) async {
+    try {
+      // Fetch reward info to check type
+      final rewardDoc =
+          await _firestore.collection('reward').doc(rewardId).get();
+      final reward = RewardModel.fromFirestore(rewardDoc);
 
-    final userRef = _firestore.collection('users').doc(userId);
+      final userRef = _firestore.collection('users').doc(userId);
 
-    // 🔻 Deduct fragments no matter what
-    await userRef.update({
-      'fragmentNumber': FieldValue.increment(-fragmentCost),
-    });
-
-    // 🔻 If reward is "flower", increment flower count
-    if (reward.rewardTitle?.toLowerCase() == 'flower') {
+      // 🔻 Deduct fragments no matter what
       await userRef.update({
-        'flower': FieldValue.increment(1),
+        'fragmentNumber': FieldValue.increment(-fragmentCost),
       });
-      
-      // Get the updated flower count to update the AuthState
-      final updatedUserDoc = await userRef.get();
-      final updatedFlowerCount = updatedUserDoc.data()?['flower'] ?? 0;
-      
-      // Update AuthState if context is provided
-      if (context != null) {
-        final authState = Provider.of<AuthState>(context, listen: false);
-        if (authState.currentUser != null) {
-          authState.currentUser!.flower = updatedFlowerCount;
-          authState.notifyListeners();
+
+      // 🔻 If reward is "flower", increment flower count
+      if (reward.rewardTitle?.toLowerCase() == 'flower') {
+        await userRef.update({'flower': FieldValue.increment(1)});
+
+        // Get the updated flower count to update the AuthState
+        final updatedUserDoc = await userRef.get();
+        final updatedFlowerCount = updatedUserDoc.data()?['flower'] ?? 0;
+
+        // Update AuthState if context is provided
+        if (context != null) {
+          final authState = Provider.of<AuthState>(context, listen: false);
+          if (authState.currentUser != null) {
+            authState.currentUser!.flower = updatedFlowerCount;
+            authState.notifyListeners();
+          }
         }
+      } else {
+        // 🔻 Otherwise, update redeemed reward list
+        final userReward = await _firestore.collection('user_reward').doc(userId).get();
+        final userRewardData = userReward.data();
+        List<dynamic> redeemedRewards = userRewardData?['redeemedReward'] ?? [];
+        redeemedRewards.add(rewardId);
+
+        await _firestore.collection('user_reward').doc(userId).set({
+          'userId': userId,
+          'redeemedReward': redeemedRewards,
+        }, SetOptions(merge: true));
       }
-    } else {
-      // 🔻 Otherwise, update redeemed reward list
-      final userReward = await fetchUserRewards(userId);
-      List<dynamic> redeemedRewards = userReward?.redeemedRewards ?? [];
-      redeemedRewards.add(rewardId);
 
-      await _firestore.collection('user_reward').doc(userId).set({
-        'userId': userId,
-        'redeemedReward': redeemedRewards,
-      }, SetOptions(merge: true));
+      // 🔻 Return updated fragment number
+      final updatedUserDoc = await userRef.get();
+      final updatedFragmentNumber =
+          updatedUserDoc.data()?['fragmentNumber'] ?? 0;
+
+      return updatedFragmentNumber;
+    } catch (e) {
+      throw Exception("Failed to redeem reward: $e");
     }
-
-    // 🔻 Return updated fragment number
-    final updatedUserDoc = await userRef.get();
-    final updatedFragmentNumber =
-        updatedUserDoc.data()?['fragmentNumber'] ?? 0;
-
-    return updatedFragmentNumber;
-  } catch (e) {
-    throw Exception("Failed to redeem reward: $e");
   }
-}
 
-  Future<int> sendFlower(String userId, String chatRoomId, BuildContext context) async {
+  Future<int> sendFlower(
+    String userId,
+    String chatRoomId,
+    BuildContext context,
+  ) async {
     // Check cooldown
     final lastSent = _lastFlowerSentTime[userId];
     final now = DateTime.now();
@@ -122,9 +143,10 @@ class RewardService {
         authState.currentUser!.flower = currentFlower - 1;
         authState.notifyListeners();
       }
-      
+
       // Get the recipient's user ID (the chat partner)
-      final chatDoc = await _firestore.collection('chats').doc(chatRoomId).get();
+      final chatDoc =
+          await _firestore.collection('chats').doc(chatRoomId).get();
       final chatData = chatDoc.data();
       if (chatData != null && chatData.containsKey('users')) {
         final List<String> users = List<String>.from(chatData['users'] ?? []);
@@ -133,24 +155,25 @@ class RewardService {
           (id) => id != userId,
           orElse: () => '',
         );
-        
-          try {
-            await _levelService.incrementProgressionWithFlower(recipientId!);
-            print('Updated level progression for user $recipientId');
-          } catch (e) {
-            print('Error updating level progression: $e');
-          }
-        
+
+        try {
+          await _levelService.incrementProgressionWithFlower(recipientId!);
+          print('Updated level progression for user $recipientId');
+        } catch (e) {
+          print('Error updating level progression: $e');
+        }
       }
 
       // Send flower animation event to chat room
-      await _firestore.collection('chats').doc(chatRoomId).collection('events').add({
-        'type': 'flower',
-        'senderId': userId,
-        'timestamp': FieldValue.serverTimestamp(),
-      });
-      
-
+      await _firestore
+          .collection('chats')
+          .doc(chatRoomId)
+          .collection('events')
+          .add({
+            'type': 'flower',
+            'senderId': userId,
+            'timestamp': FieldValue.serverTimestamp(),
+          });
 
       // Update cooldown tracker
       _lastFlowerSentTime[userId] = now;
@@ -170,5 +193,17 @@ class RewardService {
         .orderBy('timestamp', descending: true)
         .limit(1)
         .snapshots();
+  }
+
+  Future<void> updateUserAvatar(String userId, String avatarUrl) async {
+    try {
+      await _firestore.collection('users').doc(userId).update({
+        'avatarImg': avatarUrl,
+      });
+
+      print("Avatar updated successfully!");
+    } catch (e) {
+      print("Error updating avatar: $e");
+    }
   }
 }

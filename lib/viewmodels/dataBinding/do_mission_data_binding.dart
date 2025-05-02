@@ -1,6 +1,5 @@
 import 'package:blindmate/models/dataModels/mission_model.dart';
 import 'package:blindmate/models/dataModels/rewards_model.dart';
-import 'package:blindmate/models/dataModels/user_model.dart';
 import 'package:blindmate/models/dataModels/user_reward_model.dart';
 import 'package:blindmate/services/do_mission_service.dart';
 import 'package:flutter/material.dart';
@@ -41,9 +40,9 @@ class DoMissionDataBinding {
     }
   }
 
-  Future<List<MissionModel>> loadActiveMissions() async {
+  Future<List<MissionModel>> loadActiveMissions(String userId) async {
     try {
-      final active = await missionService.fetchStatusTrueMissions();
+      final active = await missionService.fetchStatusTrueMissions(userId);
       _missions
         ..clear()
         ..addAll(active);
@@ -59,7 +58,7 @@ class DoMissionDataBinding {
     int limit = 100,
   }) async {
     try {
-      final finished = await missionService.fetchFinishedTrueMissions();
+      final finished = await missionService.fetchFinishedMissions();
       _finishedMissions
         ..clear()
         ..addAll(finished);
@@ -88,9 +87,9 @@ class DoMissionDataBinding {
     }
   }
 
-  void setCurrentUser(UserModel? user) {
-    missionService.assignCurrentUserId(user);
-  }
+  // void setCurrentUser(UserModel? user) {
+  //   missionService.assignCurrentUserId(user);
+  // }
 
   Future<List<RewardModel>> getUserRewards(String userId) async {
     UserReward? userReward = await missionService.fetchUserRewards(

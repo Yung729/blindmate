@@ -53,9 +53,7 @@ class _DoMissionScreenState extends State<DoMissionScreen> {
       });
     }
     if (user != null) {
-      final missions = await _doMissionHandler.handleFetchStatusTrueMissions(
-        limit: 3,
-      );
+      final missions = await _doMissionHandler.handleFetchStatusTrueMissions(user.userId);
 
       if (mounted) {
         setState(() {

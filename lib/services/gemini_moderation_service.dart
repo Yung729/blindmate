@@ -115,7 +115,7 @@ Query:
   Future<String> generateMissionJsonFromPrompt() async {
     final model = GenerativeModel(model: 'gemini-1.5-flash', apiKey: apiKey);
     final prompt = '''
-  Generate 5 missions for a social app focusing ONLY on time-based OR action-based achievements.
+  Generate 3 missions for a social app focusing ONLY on time-based OR action-based achievements.
   Each mission should use these existing tracked metrics and features:
 
   Time-based metrics available:

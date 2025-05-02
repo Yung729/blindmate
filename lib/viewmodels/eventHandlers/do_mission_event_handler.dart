@@ -10,11 +10,11 @@ class MissionEventHandler {
     await _missionBinding.generateAndStoreMissionsIfNeeded();
   }
 
-  Future<List<MissionModel>> handleFetchStatusTrueMissions({int limit = 3}) async {
-    return await _missionBinding.loadActiveMissions();
+  Future<List<MissionModel>> handleFetchStatusTrueMissions(String userId) async {
+    return await _missionBinding.loadActiveMissions(userId);
   }
 
-  Future<List<MissionModel>> handleFetchFinishedTrueMissions({
+  Future<List<MissionModel>> getFinishedMissions({
   int limit = 100,
   required String userId,
 }) async {
@@ -36,9 +36,9 @@ class MissionEventHandler {
     );
   }
 
-  void handleUserLogin(UserModel user) {
-    _missionBinding.setCurrentUser(user);
-  }
+  // void handleUserLogin(UserModel user) {
+  //   _missionBinding.setCurrentUser(user);
+  // }
 
   Future<List<RewardModel>> handleFetchRewards(UserModel user) async {
     return await _missionBinding.getUserRewards(user.userId);
