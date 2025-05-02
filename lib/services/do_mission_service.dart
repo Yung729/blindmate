@@ -3,13 +3,9 @@ import 'package:blindmate/models/dataModels/rewards_model.dart';
 import 'package:blindmate/models/dataModels/user_model.dart';
 import 'package:blindmate/models/dataModels/user_reward_model.dart';
 import 'package:blindmate/services/gemini_moderation_service.dart';
-// import 'package:blindmate/viewmodels/state/do_mission_state.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-// import 'package:flutter/services.dart' show rootBundle;
-// import 'package:google_generative_ai/google_generative_ai.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/dataModels/mission_model.dart';
-import 'package:intl/intl.dart';
 
 class MissionService {
   UserModel? _currentUser;

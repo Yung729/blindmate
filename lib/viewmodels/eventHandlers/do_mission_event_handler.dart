@@ -1,8 +1,6 @@
-// import 'package:blindmate/dataBindings/do_mission_data_binding.dart';
 import 'package:blindmate/models/dataModels/mission_model.dart';
 import 'package:blindmate/models/dataModels/rewards_model.dart';
 import 'package:blindmate/models/dataModels/user_model.dart';
-import 'package:blindmate/models/dataModels/user_reward_model.dart';
 import 'package:blindmate/viewmodels/dataBinding/do_mission_data_binding.dart';
 
 class MissionEventHandler {
@@ -10,10 +8,6 @@ class MissionEventHandler {
 
   Future<void> handleGenerateAndStoreMissions() async {
     await _missionBinding.generateAndStoreMissionsIfNeeded();
-  }
-
-  Future<List<MissionModel>> handleFetchMissions({int limit = 3}) async {
-    return await _missionBinding.fetchAllUserMissionsWithLimit(limit: limit);
   }
 
   Future<List<MissionModel>> handleFetchStatusTrueMissions({int limit = 3}) async {
@@ -28,15 +22,6 @@ class MissionEventHandler {
   return await _missionBinding.loadFinishedMissions(userId, limit: limit);
 }
 
-
-  Future<void> handleClearMissionList() async {
-    await _missionBinding.clearMissionList();
-  }
-
-  Future<bool> handleCheckDateAfterCreated() async {
-    return await _missionBinding.isDateAfterCreated();
-  }
-
   Future<void> handleTrackMissionProgress({
     required String category,
     required String type,
@@ -49,10 +34,6 @@ class MissionEventHandler {
       actionCount: actionCount,
       actionTime: actionTime,
     );
-  }
-
-  Future<void> handleAwardXP(String userId, int xp) async {
-    await _missionBinding.awardXP(userId, xp);
   }
 
   void handleUserLogin(UserModel user) {
