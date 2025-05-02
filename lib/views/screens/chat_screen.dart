@@ -5,6 +5,7 @@ import 'package:blindmate/viewmodels/dataBinding/matching_data_binding.dart';
 import 'package:blindmate/viewmodels/eventHandlers/matching_event_handler.dart';
 import 'package:blindmate/viewmodels/state/matching_state.dart';
 import 'package:blindmate/views/UIComponents/custom_dialog.dart';
+import 'package:blindmate/views/UIComponents/custom_snackbar.dart';
 import 'package:blindmate/views/UIComponents/music_search_dialog.dart';
 import 'package:blindmate/views/screens/mini_game2.dart';
 import 'package:flutter/material.dart';
@@ -186,10 +187,10 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
               _gameInvitationService.deleteInvitation(doc.id);
             } else if (data['status'] == 'declined') {
               Navigator.pop(context); // Close any open dialogs
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text("Your partner declined the game invitation"),
-                ),
+              CustomSnackBar.show(
+                context: context,
+                message: "Your partner declined the game invitation",
+                status: "WARNING",
               );
               _gameInvitationService.deleteInvitation(doc.id);
             }
@@ -203,8 +204,10 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
           for (var doc in snapshot.docs) {
             // Close any open invitation dialogs
             Navigator.pop(context);
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text("Game invitation was cancelled")),
+            CustomSnackBar.show(
+              context: context,
+              message: "Game invitation was cancelled",
+              status: "WARNING",
             );
             _gameInvitationService.deleteInvitation(doc.id);
           }
@@ -264,10 +267,10 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     if (shouldReport) {
       await _chatHandler.reportUser();
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("User reported. You will not match again."),
-          ),
+        CustomSnackBar.show(
+          context: context,
+          message: "User reported. You will not match again.",
+          status: "SUCCESS",
         );
       }
       await _showChatSummary();
@@ -417,15 +420,17 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       });
     } else if (updatedCount == -1) {
       // Show cooldown message
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Please wait a moment before sending another flower."),
-          duration: Duration(seconds: 1),
-        ),
+      CustomSnackBar.show(
+        context: context,
+        message: "Please wait a moment before sending another flower.",
+        status: "WARNING",
+        duration: const Duration(seconds: 1),
       );
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("You don't have any flowers left!")),
+      CustomSnackBar.show(
+        context: context,
+        message: "You don't have any flowers left!",
+        status: "WARNING",
       );
     }
   }
@@ -456,17 +461,11 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
         if (!mounted) return;
         final messenger = ScaffoldMessenger.of(context);
         messenger.clearSnackBars();
-        messenger.showSnackBar(
-          SnackBar(
-            content: Text(chatState.errorMessage!),
-            backgroundColor:
-                chatState.errorMessage!.contains('Warning')
-                    ? Colors.orange[400]
-                    : Colors.red[400],
-            behavior: SnackBarBehavior.floating,
-            margin: const EdgeInsets.all(4),
-            duration: const Duration(seconds: 2),
-          ),
+        CustomSnackBar.show(
+          context: context,
+          message: chatState.errorMessage!,
+          status: chatState.errorMessage!.contains('Warning') ? 'WARNING' : 'ERROR',
+          duration: const Duration(seconds: 2),
         );
         // Clear the error message after showing
         chatState.setErrorMessage(null);
