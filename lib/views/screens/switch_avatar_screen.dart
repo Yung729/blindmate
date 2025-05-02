@@ -24,7 +24,7 @@ class _SwitchAvatarScreenState extends State<SwitchAvatarScreen> {
   List<UserReward> redeemRewardId = [];
   List<RewardModel> uniqueRewards = [];
   bool _isLoading = true;
-    late final MissionEventHandler _missionEventHandler;
+  late final MissionEventHandler _missionEventHandler;
 
   @override
   void initState() {
@@ -38,16 +38,15 @@ class _SwitchAvatarScreenState extends State<SwitchAvatarScreen> {
   }
 
   Future<void> _fetchUserRewards(String userId) async {
-    List<RewardModel> userRewardList = await _missionEventHandler.handleFetchRewards(
-      widget.user!,
-    );
+    List<RewardModel> userRewardList = await _missionEventHandler
+        .handleFetchRewards(widget.user!);
     List<RewardModel> allFetchedRewards = [];
 
     for (var reward in userRewardList) {
-    if (reward != null) {
-      allFetchedRewards.add(reward);
+      if (reward != null) {
+        allFetchedRewards.add(reward);
+      }
     }
-  }
 
     // Remove duplicates based on redeemRewardId
     Set<String> seenIds = {};
@@ -143,9 +142,10 @@ class _SwitchAvatarScreenState extends State<SwitchAvatarScreen> {
                                                               () =>
                                                                   Navigator.of(
                                                                     context,
-                                                                  ).pop(true),
+                                                                  ).pop(false),
                                                           child: const Text(
-                                                            'Yes',
+                                                            'Cancel',
+                                                            
                                                           ),
                                                         ),
                                                         TextButton(
@@ -153,9 +153,9 @@ class _SwitchAvatarScreenState extends State<SwitchAvatarScreen> {
                                                               () =>
                                                                   Navigator.of(
                                                                     context,
-                                                                  ).pop(false),
+                                                                  ).pop(true),
                                                           child: const Text(
-                                                            'Cancel',
+                                                            'Yes',
                                                             style: TextStyle(
                                                               color: Colors.red,
                                                             ),
