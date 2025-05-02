@@ -44,6 +44,9 @@ class _SharingScreenState extends State<SharingScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Provider.of<MusicPlayerState>(context, listen: false).stopMusic();
+    });
     _sharingState = context.read<SharingState>();
     final dataBinding = SharingDataBinding(sharingState: _sharingState);
 
@@ -262,6 +265,10 @@ class _SharingScreenState extends State<SharingScreen> {
           Expanded(
             child: GestureDetector(
               onTap: () {
+                Provider.of<MusicPlayerState>(
+                  context,
+                  listen: false,
+                ).stopMusic();
                 final sharingState = Provider.of<SharingState>(
                   context,
                   listen: false,

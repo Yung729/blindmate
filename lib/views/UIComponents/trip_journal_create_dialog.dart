@@ -77,7 +77,7 @@ class TripJournalDialog extends StatefulWidget {
             initialEntries: initialEntries,
             onJournalsAdded: onJournalsAdded,
             pastJournals: pastJournals,
-            actionButtonText: actionButtonText, 
+            actionButtonText: actionButtonText,
           ),
         );
       },
@@ -92,6 +92,8 @@ class _TripJournalDialogState extends State<TripJournalDialog> {
   final _formKey = GlobalKey<FormState>();
   late List<TripJournalEntry> _entries;
   static const int maxEntries = 7;
+
+  late List<bool> _dateErrors;
 
   bool _canAddMoreDays() {
     if (_entries.isEmpty) return false;
@@ -118,6 +120,9 @@ class _TripJournalDialogState extends State<TripJournalDialog> {
                 )
                 .toList()
             : [TripJournalEntry(initialActivities: <String>{})];
+
+    // Initialize date errors
+    _dateErrors = List.generate(_entries.length, (index) => false);
   }
 
   void _showPastJournals() {
@@ -177,16 +182,34 @@ class _TripJournalDialogState extends State<TripJournalDialog> {
     if (picked != null) {
       setState(() {
         _entries[index].date = picked;
+        _dateErrors[index] = false; // Clear error if date picke
         if (index == 0) {
-          setState(() {});
+          // Update all subsequent dates
+          for (int i = 1; i < _entries.length; i++) {
+            _entries[i].date = picked.add(Duration(days: i));
+            _dateErrors[i] = false; // Clear errors for subsequent days
+          }
         }
       });
     }
   }
 
   void _handleAdd() {
-    if (_formKey.currentState!.validate() &&
-        _entries.every((e) => e.date != null)) {
+    final formValid = _formKey.currentState!.validate();
+    bool allDatesValid = true;
+    setState(() {
+      // Validate dates
+      for (int i = 0; i < _entries.length; i++) {
+        if (_entries[i].date == null) {
+          _dateErrors[i] = true;
+          allDatesValid = false;
+        } else {
+          _dateErrors[i] = false;
+        }
+      }
+    });
+
+    if (formValid && allDatesValid) {
       final result =
           _entries
               .map(
@@ -214,6 +237,7 @@ class _TripJournalDialogState extends State<TripJournalDialog> {
             initialDate: nextDate,
           ),
         );
+        _dateErrors.add(false); // Add error flag for new entry
       });
     }
   }
@@ -221,6 +245,7 @@ class _TripJournalDialogState extends State<TripJournalDialog> {
   void _removeEntry(int index) {
     setState(() {
       _entries.removeAt(index);
+      _dateErrors.removeAt(index);
     });
   }
 
@@ -375,12 +400,14 @@ class _TripJournalDialogState extends State<TripJournalDialog> {
                     child: CustomButton(
                       text: 'Add More Days',
                       icon: const Icon(Icons.add, color: Colors.white),
-                      onPressed: (_entries.length >= maxEntries || !_canAddMoreDays())
-                          ? null
-                          : _addEntry,
-                      backgroundColor: _canAddMoreDays()
-                          ? Colors.blue.shade700
-                          : Colors.grey.shade400,
+                      onPressed:
+                          (_entries.length >= maxEntries || !_canAddMoreDays())
+                              ? null
+                              : _addEntry,
+                      backgroundColor:
+                          _canAddMoreDays()
+                              ? Colors.blue.shade700
+                              : Colors.grey.shade400,
                       fontSize: 15,
                       borderRadius: 30,
                       verticalPadding: 15,
@@ -640,7 +667,13 @@ class _TripJournalDialogState extends State<TripJournalDialog> {
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: Colors.blue.shade200),
+                    border: Border.all(
+                      color:
+                          _dateErrors[index]
+                              ? Colors.red
+                              : Colors.blue.shade200,
+                      width: 1.5,
+                    ),
                   ),
                   padding: const EdgeInsets.all(16),
                   child: Row(
@@ -662,19 +695,50 @@ class _TripJournalDialogState extends State<TripJournalDialog> {
                           ),
                         ),
                       ),
-                      TextButton(
-                        onPressed: () => _pickDate(index),
-                        child: Text(
-                          'Choose',
-                          style: TextStyle(
-                            color: Colors.blue.shade700,
-                            fontWeight: FontWeight.w600,
+                      if (index == 0)
+                        TextButton(
+                          onPressed: () => _pickDate(index),
+                          child: Text(
+                            'Choose',
+                            style: TextStyle(
+                              color: Colors.blue.shade700,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
+                        )
+                      else
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.lock,
+                              color: Colors.blue.shade200,
+                              size: 18,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              'Locked',
+                              style: TextStyle(
+                                color: Colors.blue.shade200,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
                         ),
-                      ),
                     ],
                   ),
                 ),
+                if (_dateErrors[index])
+                  const Padding(
+                    padding: EdgeInsets.only(top: 8.0, left: 4.0),
+                    child: Text(
+                      'Date is required',
+                      style: TextStyle(
+                        color: Colors.red,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
               ],
             ),
           ),

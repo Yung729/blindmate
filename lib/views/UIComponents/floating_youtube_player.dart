@@ -29,6 +29,7 @@ class _FloatingYoutubePlayerState extends State<FloatingYoutubePlayer>
   bool _isInitializing = false;
   bool _isLoading = false;
   double _sliderValue = 0.0;
+  bool _isDisposed = false;
 
   @override
   bool get wantKeepAlive => true;
@@ -44,21 +45,23 @@ class _FloatingYoutubePlayerState extends State<FloatingYoutubePlayer>
   void didUpdateWidget(covariant FloatingYoutubePlayer oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.youtubeUrl != oldWidget.youtubeUrl) {
-      _disposeController();
+      _safeDisposeController();
       _videoId = YoutubePlayer.convertUrlToId(widget.youtubeUrl);
       _initializePlayer();
-      setState(() {
-        _isPlaying = false;
-        _isReady = false;
-        _isInitializing = false;
-        _isLoading = false;
-        _sliderValue = 0.0;
-      });
+      if (mounted) {
+        setState(() {
+          _isPlaying = false;
+          _isReady = false;
+          _isInitializing = false;
+          _isLoading = false;
+          _sliderValue = 0.0;
+        });
+      }
     }
   }
 
   void _initializePlayer() {
-    if (_videoId == null) return;
+    if (_videoId == null || _isDisposed) return;
     _controller = YoutubePlayerController(
       initialVideoId: _videoId!,
       flags: const YoutubePlayerFlags(
@@ -68,158 +71,225 @@ class _FloatingYoutubePlayerState extends State<FloatingYoutubePlayer>
         enableCaption: false,
         forceHD: false,
       ),
-    )..addListener(_listener);
+    );
+    
+    if (!_isDisposed) {
+      _controller!.addListener(_listener);
+    }
   }
 
-  void _disposeController() {
+  void _safeDisposeController() {
     if (_controller != null) {
-      _controller!.removeListener(_listener);
-      _controller!.dispose();
-      _controller = null;
+      try {
+        if (!_isDisposed) {
+          _controller!.removeListener(_listener);
+        }
+        
+        // Pause before disposing to avoid race conditions
+        if (_controller!.value.isPlaying) {
+          _controller!.pause();
+        }
+        
+        // Use Future.delayed to ensure proper disposal sequence
+        Future.microtask(() {
+          try {
+            _controller?.dispose();
+          } catch (e) {
+            debugPrint('Error disposing controller: $e');
+          }
+          _controller = null;
+        });
+      } catch (e) {
+        debugPrint('Error during controller cleanup: $e');
+        _controller = null;
+      }
     }
   }
 
   void _listener() {
-    if (!mounted || _controller == null) return;
-    final value = _controller!.value;
-    setState(() {
-      _sliderValue = value.position.inSeconds.toDouble();
+    if (!mounted || _isDisposed || _controller == null) return;
+    
+    try {
+      final value = _controller!.value;
+      if (mounted) {
+        setState(() {
+          _sliderValue = value.position.inSeconds.toDouble();
 
-      // Update loading state based on player state
-      if (value.isPlaying) {
-        _isLoading = false;
-        _isInitializing = false;
-        _isPlaying = true;
+          // Update loading state based on player state
+          if (value.isPlaying) {
+            _isLoading = false;
+            _isInitializing = false;
+            _isPlaying = true;
 
-        // Update the global music state
-        final musicState = Provider.of<MusicPlayerState>(
-          context,
-          listen: false,
-        );
-        if (musicState.currentMusicUrl == widget.youtubeUrl &&
-            !musicState.isPlaying) {
-          musicState.resumeMusic();
-        }
-      } else {
-        _isPlaying = false;
-        final musicState = Provider.of<MusicPlayerState>(
-          context,
-          listen: false,
-        );
-        if (musicState.currentMusicUrl == widget.youtubeUrl &&
-            musicState.isPlaying) {
-          musicState.pauseMusic();
-        }
-        if (value.hasError) {
-          _isLoading = false;
-          _isInitializing = false;
-        }
-        if (value.position >= value.metaData.duration) {
-          _isLoading = false;
-          _isInitializing = false;
-        }
+            // Update the global music state
+            final musicState = Provider.of<MusicPlayerState>(
+              context,
+              listen: false,
+            );
+            if (musicState.currentMusicUrl == widget.youtubeUrl &&
+                !musicState.isPlaying) {
+              musicState.resumeMusic();
+            }
+          } else {
+            _isPlaying = false;
+            final musicState = Provider.of<MusicPlayerState>(
+              context,
+              listen: false,
+            );
+            if (musicState.currentMusicUrl == widget.youtubeUrl &&
+                musicState.isPlaying) {
+              musicState.pauseMusic();
+            }
+            if (value.hasError) {
+              _isLoading = false;
+              _isInitializing = false;
+            }
+            if (value.position >= value.metaData.duration) {
+              _isLoading = false;
+              _isInitializing = false;
+            }
+          }
+
+          // Update ready state when player is initialized
+          if (!_isReady && value.isReady) {
+            _isReady = true;
+          }
+        });
       }
-
-      // Update ready state when player is initialized
-      if (!_isReady && value.isReady) {
-        _isReady = true;
-      }
-    });
+    } catch (e) {
+      debugPrint('Error in YouTube player listener: $e');
+    }
   }
 
   Future<void> _handlePlayPause() async {
-    if (_isInitializing || _isLoading || _controller == null) return;
+    if (_isInitializing || _isLoading || _controller == null || _isDisposed) return;
 
     final musicState = Provider.of<MusicPlayerState>(context, listen: false);
 
-    if (_controller!.value.isPlaying && _controller!.value.isReady) {
-      _controller!.pause();
-      setState(() {
-        _isPlaying = false;
-        _isLoading = false;
-        _isInitializing = false;
-      });
+    try {
+      if (_controller!.value.isPlaying && _controller!.value.isReady) {
+        _controller!.pause();
+        if (mounted) {
+          setState(() {
+            _isPlaying = false;
+            _isLoading = false;
+            _isInitializing = false;
+          });
+        }
 
-      if (musicState.currentMusicUrl == widget.youtubeUrl) {
-        musicState.pauseMusic();
+        if (musicState.currentMusicUrl == widget.youtubeUrl) {
+          musicState.pauseMusic();
+        }
+        return;
       }
-      return;
-    }
 
-    // If another music is playing, stop it first
-    if (musicState.currentMusicUrl != null &&
-        musicState.currentMusicUrl != widget.youtubeUrl) {
-      musicState.stopMusic();
-    }
+      // If another music is playing, stop it first
+      if (musicState.currentMusicUrl != null &&
+          musicState.currentMusicUrl != widget.youtubeUrl) {
+        musicState.stopMusic();
+      }
 
-    setState(() {
-      _isLoading = true;
-      _isInitializing = true;
-    });
+      if (mounted) {
+        setState(() {
+          _isLoading = true;
+          _isInitializing = true;
+        });
+      }
 
-    if (!_isReady) {
-      await Future.delayed(const Duration(milliseconds: 500));
+      if (!_isReady) {
+        await Future.delayed(const Duration(milliseconds: 500));
 
-      if (!_isReady && _controller != null) {
-        _controller!.load(_videoId!);
+        if (!_isDisposed && !_isReady && _controller != null) {
+          _controller!.load(_videoId!);
 
-        // Wait for player to be ready
-        while (!_isReady && mounted) {
-          await Future.delayed(const Duration(milliseconds: 100));
+          // Wait for player to be ready, with timeout
+          int attempts = 0;
+          const maxAttempts = 50; // 5 seconds timeout
+          while (!_isReady && mounted && !_isDisposed && _controller != null && attempts < maxAttempts) {
+            await Future.delayed(const Duration(milliseconds: 100));
+            attempts++;
+          }
         }
       }
-    }
 
-    if (mounted && _controller != null && _controller!.value.isReady) {
-      // Ensure video is at beginning if it's ended
-      if (_controller!.value.position >= _controller!.metadata.duration) {
-        _controller!.seekTo(const Duration(seconds: 0));
+      if (mounted && !_isDisposed && _controller != null && _controller!.value.isReady) {
+        // Ensure video is at beginning if it's ended
+        if (_controller!.value.position >= _controller!.metadata.duration) {
+          _controller!.seekTo(const Duration(seconds: 0));
+        }
+
+        _controller!.play();
+
+        // Update the global music state
+        musicState.playMusic(widget.youtubeUrl, widget.title);
       }
-
-      _controller!.play();
-
-      // Update the global music state
-      musicState.playMusic(widget.youtubeUrl, widget.title);
-
-      // Loading indicator will be hidden by the listener when playback actually starts
+    } catch (e) {
+      debugPrint('Error in play/pause handler: $e');
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _isInitializing = false;
+        });
+      }
     }
   }
 
   @override
+  void deactivate() {
+    // Pause playback when widget is deactivated (e.g., navigating away)
+    if (_controller?.value.isPlaying ?? false) {
+      _controller?.pause();
+    }
+    super.deactivate();
+  }
+
+  @override
   void dispose() {
-    _disposeController();
+    _isDisposed = true;
+    _safeDisposeController();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     super.build(context);
+    
+    if (_isDisposed) {
+      return const SizedBox.shrink();
+    }
+    
     return Consumer<MusicPlayerState>(
       builder: (context, musicState, child) {
         // Keep player state in sync with global music state
-        if (_controller != null &&
+        if (!_isDisposed && _controller != null &&
             musicState.currentMusicUrl == widget.youtubeUrl) {
           if (musicState.isPlaying &&
               !_controller!.value.isPlaying &&
               _controller!.value.isReady) {
             WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (!_isLoading &&
+              if (mounted && !_isDisposed && !_isLoading &&
                   !_isInitializing &&
+                  _controller != null &&
                   _controller!.value.isReady) {
                 _controller!.play();
               }
             });
           } else if (!musicState.isPlaying &&
+              _controller != null &&
               _controller!.value.isPlaying &&
               _controller!.value.isReady) {
             WidgetsBinding.instance.addPostFrameCallback((_) {
-              _controller!.pause();
+              if (mounted && !_isDisposed && _controller != null) {
+                _controller!.pause();
+              }
             });
           }
-        } else if (_controller != null && _controller!.value.isPlaying) {
+        } else if (!_isDisposed && _controller != null && _controller!.value.isPlaying) {
           // If another track is playing in the global state, pause this one
           WidgetsBinding.instance.addPostFrameCallback((_) {
-            _controller!.pause();
+            if (mounted && !_isDisposed && _controller != null) {
+              _controller!.pause();
+            }
           });
         }
 
@@ -254,7 +324,7 @@ class _FloatingYoutubePlayerState extends State<FloatingYoutubePlayer>
                     child: Stack(
                       children: [
                         Image.network(
-                          "http://img.youtube.com/vi/$_videoId/mqdefault.jpg",
+                          "https://img.youtube.com/vi/$_videoId/mqdefault.jpg",
                           height: 96,
                           width: 96,
                           fit: BoxFit.cover,
@@ -290,20 +360,27 @@ class _FloatingYoutubePlayerState extends State<FloatingYoutubePlayer>
                   ),
 
                 // Hidden video player (required for audio playback)
-                Opacity(
-                  opacity: 0,
-                  child: SizedBox(
-                    height: 0,
-                    width: 0,
-                    child:
-                        _controller != null
-                            ? YoutubePlayer(
-                              controller: _controller!,
-                              showVideoProgressIndicator: false,
-                            )
-                            : null,
+                if (!_isDisposed && _controller != null)
+                  Opacity(
+                    opacity: 0,
+                    child: SizedBox(
+                      height: 0,
+                      width: 0,
+                      child: YoutubePlayer(
+                        controller: _controller!,
+                        showVideoProgressIndicator: false,
+                        onEnded: (metaData) {
+                          if (mounted && !_isDisposed) {
+                            // Hide the widget by stopping music when the song ends
+                            Provider.of<MusicPlayerState>(
+                              context,
+                              listen: false,
+                            ).stopMusic();
+                          }
+                        },
+                      ),
+                    ),
                   ),
-                ),
 
                 // Controls and info section
                 Expanded(
@@ -362,127 +439,92 @@ class _FloatingYoutubePlayerState extends State<FloatingYoutubePlayer>
                                   ),
 
                                   Expanded(
-                                    child:
-                                        _controller != null
-                                            ? ValueListenableBuilder<
-                                              YoutubePlayerValue
-                                            >(
-                                              valueListenable: _controller!,
-                                              builder: (context, value, child) {
-                                                return Column(
-                                                  mainAxisSize:
-                                                      MainAxisSize.min,
-                                                  children: [
-                                                    SizedBox(
-                                                      height: 20,
-                                                      child: SliderTheme(
-                                                        data: SliderThemeData(
-                                                          trackHeight: 2,
-                                                          thumbShape:
-                                                              const RoundSliderThumbShape(
-                                                                enabledThumbRadius:
-                                                                    4,
-                                                              ),
-                                                          overlayShape:
-                                                              const RoundSliderOverlayShape(
-                                                                overlayRadius:
-                                                                    8,
-                                                              ),
-                                                          activeTrackColor:
-                                                              Colors.white,
-                                                          inactiveTrackColor:
-                                                              Colors.white
-                                                                  .withOpacity(
-                                                                    0.3,
-                                                                  ),
-                                                          thumbColor:
-                                                              Colors.white,
-                                                          overlayColor: Colors
-                                                              .white
-                                                              .withOpacity(0.2),
-                                                        ),
-                                                        child: Slider(
-                                                          value: _sliderValue,
-                                                          max: value
-                                                              .metaData
-                                                              .duration
-                                                              .inSeconds
-                                                              .toDouble()
-                                                              .clamp(
-                                                                1,
-                                                                double.infinity,
-                                                              ),
-                                                          onChanged: (
-                                                            newValue,
-                                                          ) {
+                                    child: (!_isDisposed && _controller != null)
+                                        ? ValueListenableBuilder<YoutubePlayerValue>(
+                                            valueListenable: _controller!,
+                                            builder: (context, value, child) {
+                                              return Column(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  SizedBox(
+                                                    height: 20,
+                                                    child: SliderTheme(
+                                                      data: SliderThemeData(
+                                                        trackHeight: 2,
+                                                        thumbShape:
+                                                            const RoundSliderThumbShape(
+                                                              enabledThumbRadius: 4,
+                                                            ),
+                                                        overlayShape:
+                                                            const RoundSliderOverlayShape(
+                                                              overlayRadius: 8,
+                                                            ),
+                                                        activeTrackColor: Colors.white,
+                                                        inactiveTrackColor:
+                                                            Colors.white.withOpacity(0.3),
+                                                        thumbColor: Colors.white,
+                                                        overlayColor:
+                                                            Colors.white.withOpacity(0.2),
+                                                      ),
+                                                      child: Slider(
+                                                        value: _sliderValue,
+                                                        max: value.metaData.duration.inSeconds
+                                                            .toDouble()
+                                                            .clamp(1, double.infinity),
+                                                        onChanged: (newValue) {
+                                                          if (mounted && !_isDisposed) {
                                                             setState(() {
-                                                              _sliderValue =
-                                                                  newValue;
+                                                              _sliderValue = newValue;
                                                             });
-                                                            if (_controller!
-                                                                .value
-                                                                .isReady) {
+                                                            if (_controller != null &&
+                                                                _controller!.value.isReady) {
                                                               _controller!.seekTo(
                                                                 Duration(
-                                                                  seconds:
-                                                                      newValue
-                                                                          .toInt(),
+                                                                  seconds: newValue.toInt(),
                                                                 ),
                                                               );
                                                             }
-                                                          },
-                                                        ),
+                                                          }
+                                                        },
                                                       ),
                                                     ),
-                                                    SizedBox(
-                                                      height: 14,
-                                                      child: Padding(
-                                                        padding:
-                                                            const EdgeInsets.symmetric(
-                                                              horizontal: 4,
+                                                  ),
+                                                  SizedBox(
+                                                    height: 14,
+                                                    child: Padding(
+                                                      padding: const EdgeInsets.symmetric(
+                                                        horizontal: 4,
+                                                      ),
+                                                      child: Row(
+                                                        mainAxisAlignment:
+                                                            MainAxisAlignment.spaceBetween,
+                                                        children: [
+                                                          Text(
+                                                            _formatDuration(value.position),
+                                                            style: TextStyle(
+                                                              fontSize: 10,
+                                                              color: Colors.white
+                                                                  .withOpacity(0.7),
                                                             ),
-                                                        child: Row(
-                                                          mainAxisAlignment:
-                                                              MainAxisAlignment
-                                                                  .spaceBetween,
-                                                          children: [
-                                                            Text(
-                                                              _formatDuration(
-                                                                value.position,
-                                                              ),
-                                                              style: TextStyle(
-                                                                fontSize: 10,
-                                                                color: Colors
-                                                                    .white
-                                                                    .withOpacity(
-                                                                      0.7,
-                                                                    ),
-                                                              ),
+                                                          ),
+                                                          Text(
+                                                            _formatDuration(
+                                                                value.metaData.duration),
+                                                            style: TextStyle(
+                                                              fontSize: 10,
+                                                              color: Colors.white
+                                                                  .withOpacity(0.7),
                                                             ),
-                                                            Text(
-                                                              _formatDuration(
-                                                                value
-                                                                    .metaData
-                                                                    .duration,
-                                                              ),
-                                                              style: TextStyle(
-                                                                fontSize: 10,
-                                                                color: Colors
-                                                                    .white
-                                                                    .withOpacity(
-                                                                      0.7,
-                                                                    ),
-                                                              ),
-                                                            ),
-                                                          ],
-                                                        ),
+                                                          ),
+                                                        ],
                                                       ),
                                                     ),
-                                                  ],
-                                                );
-                                              },
-                                            )
-                                            : const SizedBox.shrink(),
+                                                  ),
+                                                ],
+                                              );
+                                            },
+                                          )
+                                        : const SizedBox.shrink(),
                                   ),
                                   // --- CLOSE BUTTON ---
                                   IconButton(
@@ -491,9 +533,7 @@ class _FloatingYoutubePlayerState extends State<FloatingYoutubePlayer>
                                       color: Colors.white,
                                     ),
                                     onPressed: () {
-                                      context
-                                          .read<MusicPlayerState>()
-                                          .stopMusic();
+                                      context.read<MusicPlayerState>().stopMusic();
                                     },
                                     tooltip: 'Close Player',
                                   ),

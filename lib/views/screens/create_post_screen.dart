@@ -376,28 +376,85 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                               fontSize: 16,
                             ),
                           ),
-                          GestureDetector(
-                            onTap: _togglePostVisibility,
-                            child: Row(
-                              children: [
-                                Text(
-                                  createPostState.isPublic
-                                      ? "Public"
-                                      : "Private",
-                                  style: TextStyle(
-                                    color: Colors.grey[600],
-                                    fontSize: 14,
+                          SizedBox(
+                            height: 32,
+                            child: Consumer<CreatePostState>(
+                              builder: (context, createPostState, _) {
+                                return PopupMenuButton<String>(
+                                  onSelected: (value) {
+                                    createPostState.setIsPublic(
+                                      value == "Public",
+                                    );
+                                  },
+                                  itemBuilder:
+                                      (BuildContext context) => [
+                                        const PopupMenuItem<String>(
+                                          value: "Public",
+                                          child: Row(
+                                            children: [
+                                              Icon(
+                                                Icons.public,
+                                                size: 16,
+                                                color: Colors.grey,
+                                              ),
+                                              SizedBox(width: 8),
+                                              Text("Public"),
+                                            ],
+                                          ),
+                                        ),
+                                        const PopupMenuItem<String>(
+                                          value: "Private",
+                                          child: Row(
+                                            children: [
+                                              Icon(
+                                                Icons.lock,
+                                                size: 16,
+                                                color: Colors.grey,
+                                              ),
+                                              SizedBox(width: 8),
+                                              Text("Private"),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 4,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: Colors.grey.shade100,
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(
+                                          createPostState.isPublic
+                                              ? Icons.public
+                                              : Icons.lock,
+                                          size: 16,
+                                          color: Colors.grey[600],
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          createPostState.isPublic
+                                              ? "Public"
+                                              : "Private",
+                                          style: TextStyle(
+                                            color: Colors.grey[600],
+                                            fontSize: 14,
+                                          ),
+                                        ),
+                                        const Icon(
+                                          Icons.arrow_drop_down,
+                                          size: 20,
+                                        ),
+                                      ],
+                                    ),
                                   ),
-                                ),
-                                const SizedBox(width: 4),
-                                Icon(
-                                  createPostState.isPublic
-                                      ? Icons.public
-                                      : Icons.lock,
-                                  size: 14,
-                                  color: Colors.grey[600],
-                                ),
-                              ],
+                                );
+                              },
                             ),
                           ),
                         ],
@@ -800,7 +857,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                           children: [
                             const Icon(
                               Icons.location_on,
-                              color: Colors.green,
+                              color: Colors.blue,
                               size: 20,
                             ),
                             const SizedBox(width: 8),
