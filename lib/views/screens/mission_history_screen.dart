@@ -14,6 +14,7 @@ class MissionHistoryScreen extends StatefulWidget {
 class _MissionHistoryScreenState extends State<MissionHistoryScreen> {
   List<MissionModel> _finishedMissions = [];
   bool _isLoading = true;
+  final MissionEventHandler _missionEventHandler = MissionEventHandler();
 
   @override
   void initState() {
@@ -22,7 +23,7 @@ class _MissionHistoryScreenState extends State<MissionHistoryScreen> {
   }
 
   Future<void> _loadFinishedMissions() async {
-    final missions = await MissionEventHandler.handleFetchFinishedTrueMissions(limit: 100,userId: widget.user.userId,);
+    final missions = await _missionEventHandler.handleFetchFinishedTrueMissions(limit: 100,userId: widget.user.userId,);
     print("Fetched ${missions.length} finished missions."); // Debug print
     setState(() {
       _finishedMissions = missions;

@@ -1,7 +1,9 @@
 import 'dart:async';
 import 'package:blindmate/services/do_mission_service.dart';
 import 'package:blindmate/services/reward_service.dart';
+import 'package:blindmate/viewmodels/dataBinding/do_mission_data_binding.dart';
 import 'package:blindmate/viewmodels/dataBinding/matching_data_binding.dart';
+import 'package:blindmate/viewmodels/eventHandlers/do_mission_event_handler.dart';
 import 'package:blindmate/viewmodels/eventHandlers/matching_event_handler.dart';
 import 'package:blindmate/viewmodels/state/matching_state.dart';
 import 'package:blindmate/views/UIComponents/custom_dialog.dart';
@@ -50,6 +52,7 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   StreamSubscription? _gameInvitationResponseSubscription;
   StreamSubscription? _gameInvitationCancellationSubscription;
   DateTime? _chatStartTime;
+  final _missionEventHandler = MissionEventHandler();
 
   Future<void> _fetchUserTripJournals() async {
     _chatState.isLoadingTripJournals = true;
@@ -312,7 +315,7 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
           DateTime.now().difference(_chatStartTime!).inSeconds;
 
       // ✅ Track chat time-based mission progress
-      await trackUserMissionProgress(
+      await _missionEventHandler.handleTrackMissionProgress(
         category: 'chat',
         type: 'time',
         actionTime: durationInSeconds,
@@ -461,7 +464,8 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
         CustomSnackBar.show(
           context: context,
           message: chatState.errorMessage!,
-          status: chatState.errorMessage!.contains('Warning') ? 'WARNING' : 'ERROR',
+          status:
+              chatState.errorMessage!.contains('Warning') ? 'WARNING' : 'ERROR',
           duration: const Duration(seconds: 2),
         );
         // Clear the error message after showing

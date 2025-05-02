@@ -13,7 +13,6 @@ import '../../models/dataModels/user_model.dart';
 
 class DoMissionScreen extends StatefulWidget {
   final UserModel user;
-
   const DoMissionScreen({super.key, required this.user});
 
   @override
@@ -54,7 +53,7 @@ class _DoMissionScreenState extends State<DoMissionScreen> {
       });
     }
     if (user != null) {
-      final missions = await MissionEventHandler.handleFetchStatusTrueMissions(
+      final missions = await _doMissionHandler.handleFetchStatusTrueMissions(
         limit: 3,
       );
 
