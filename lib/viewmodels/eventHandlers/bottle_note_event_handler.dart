@@ -93,6 +93,7 @@ class BottleNoteEventHandler {
   }
 
   Future<void> deleteNote(String noteId) async {
+    print(noteId);
     await dataBinding.deleteNote(noteId);
   }
 

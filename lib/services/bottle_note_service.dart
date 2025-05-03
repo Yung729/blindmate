@@ -50,13 +50,14 @@ class BottleNoteService {
   }
 
   Future<void> removeNote(String noteId) async {
-    await _notesRef.doc(noteId).update({'status': 'INACTIVE'});
+    await _notesRef.doc(noteId).update({'status': 'DELETED'});
   }
 
   Future<List<BottleNote>> getNotesByUserId(String userId) async {
     final querySnapshot =
         await _notesRef
             .where('senderId', isEqualTo: userId)
+            .where('status', isNotEqualTo: 'DELETED')
             .orderBy('timestamp', descending: true)
             .get();
 

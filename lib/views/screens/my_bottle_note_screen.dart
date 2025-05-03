@@ -52,7 +52,7 @@ class _MyBottleNotesScreenState extends State<MyBottleNotesScreen> {
     final shouldDelete = await showConfirmDialog(
       context,
       "Delete Note",
-      "Are you sure you want to delete this note? This action cannot be undone.",
+      "Are you sure you want to delete this note permanently? This action cannot be undone.",
     );
 
     if (!shouldDelete) return;
@@ -215,12 +215,24 @@ class _MyBottleNotesScreenState extends State<MyBottleNotesScreen> {
                                     crossAxisAlignment:
                                         CrossAxisAlignment.start,
                                     children: [
-                                      Text(
-                                        note.content,
-                                        style: const TextStyle(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.w500,
-                                        ),
+                                      Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          Text(
+                                            note.content,
+                                            style: const TextStyle(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                          ),
+                                          Text(
+                                            "Status: ${note.status == 'INACTIVE' ? 'Expired' : 'Available'}",
+                                            style: const TextStyle(
+                                              fontSize: 12,
+                                            ),
+                                          ),
+                                        ],
                                       ),
                                       const SizedBox(height: 12),
                                       Row(
