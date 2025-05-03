@@ -1,14 +1,14 @@
 import 'package:blindmate/models/dataModels/mission_model.dart';
 import 'package:blindmate/viewmodels/eventHandlers/do_mission_event_handler.dart';
+import 'package:blindmate/viewmodels/state/auth_state.dart';
 import 'package:blindmate/views/UIComponents/crystal_box.dart';
 import 'package:blindmate/views/UIComponents/custom_button.dart';
 import 'package:blindmate/views/UIComponents/mission_field.dart';
 import 'package:blindmate/views/screens/mission_history_screen.dart';
 import 'package:blindmate/views/screens/redeem_reward_screen.dart';
 import 'package:blindmate/views/screens/mission_detail_screen.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../models/dataModels/user_model.dart';
 
 class DoMissionScreen extends StatefulWidget {
@@ -18,18 +18,18 @@ class DoMissionScreen extends StatefulWidget {
   @override
   _DoMissionScreenState createState() => _DoMissionScreenState();
 
-  static Future<UserModel?> fetchUserData() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return null;
-    final doc =
-        await FirebaseFirestore.instance
-            .collection('users')
-            .doc(user.uid)
-            .get();
-    if (!doc.exists) return null;
+  // static Future<UserModel?> fetchUserData() async {
+  //   final user = FirebaseAuth.instance.currentUser;
+  //   if (user == null) return null;
+  //   final doc =
+  //       await FirebaseFirestore.instance
+  //           .collection('users')
+  //           .doc(user.uid)
+  //           .get();
+  //   if (!doc.exists) return null;
 
-    return UserModel.fromMap(doc.data()!, doc.id);
-  }
+  //   return UserModel.fromMap(doc.data()!, doc.id);
+  // }
 }
 
 class _DoMissionScreenState extends State<DoMissionScreen> {
@@ -45,21 +45,24 @@ class _DoMissionScreenState extends State<DoMissionScreen> {
   }
 
   Future<void> _loadUserData() async {
-    final user = await DoMissionScreen.fetchUserData();
-    if (mounted) {
-      // Check if widget is still mounted
-      setState(() {
-        _currentUser = user;
-      });
-    }
-    if (user != null) {
-      final missions = await _doMissionHandler.handleFetchStatusTrueMissions(user.userId);
-
+    try {
+      final user = context.read<AuthState>().currentUser;
       if (mounted) {
+        // Check if widget is still mounted
         setState(() {
-          _missions = missions;
+          _currentUser = user;
         });
       }
+      if (user != null) {
+        final missions = await _doMissionHandler.handleFetchStatusTrueMissions(user.userId);
+        if (mounted) {
+          setState(() {
+            _missions = missions;
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint('Error loading user data: $e');
     }
   }
 

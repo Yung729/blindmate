@@ -3,42 +3,19 @@ import 'package:blindmate/services/do_mission_service.dart';
 import 'package:flutter/material.dart';
 
 class DoMissionDataBinding {
-  final List<MissionModel> _missions = [];
-  final List<MissionModel> _finishedMissions = [];
   final missionService = MissionService();
-
-  List<MissionModel> get missions => _missions;
-  List<MissionModel> get finishedMissions => _finishedMissions;
 
   Future<void> generateAndStoreMissionsIfNeeded() async {
     try {
-      final shouldGenerate = await missionService.isDateAfterCreated();
-      if (shouldGenerate) {
-        await clearMissionList();
-        await missionService.generateAndStoreMissions();
-      }
+      await missionService.generateAndStoreMissions();
     } catch (e) {
       debugPrint("❌ Failed to generate missions: $e");
-    }
-  }
-
-  Future<void> clearMissionList() async {
-    try {
-      await missionService.clearMissionList();
-      _missions.clear();
-      _finishedMissions.clear();
-      debugPrint("✅ Mission list cleared.");
-    } catch (e) {
-      debugPrint("❌ Failed to clear mission list: $e");
     }
   }
 
   Future<List<MissionModel>> loadActiveMissions(String userId) async {
     try {
       final active = await missionService.fetchStatusTrueMissions(userId);
-      _missions
-        ..clear()
-        ..addAll(active);
       return active;
     } catch (e) {
       debugPrint("❌ Failed to load active missions: $e");
@@ -51,10 +28,7 @@ class DoMissionDataBinding {
     int limit = 100,
   }) async {
     try {
-      final finished = await missionService.fetchFinishedMissions();
-      _finishedMissions
-        ..clear()
-        ..addAll(finished);
+      final finished = await missionService.fetchFinishedMissions(userId);
       return finished;
     } catch (e) {
       debugPrint("❌ Failed to load finished missions: $e");

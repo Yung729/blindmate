@@ -10,9 +10,7 @@ class MissionDetailScreen extends StatefulWidget {
 }
 
 class _MissionDetailScreenState extends State<MissionDetailScreen> {
-  // final MissionModel mission;
-  // const _MissionDetailScreenState({super.key, required this.mission});
-
+  
   @override
   Widget build(BuildContext context) {
     final mission = widget.mission;

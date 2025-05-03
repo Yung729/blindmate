@@ -23,7 +23,7 @@ class _MissionHistoryScreenState extends State<MissionHistoryScreen> {
   }
 
   Future<void> _loadFinishedMissions() async {
-    final missions = await _missionEventHandler.getFinishedMissions(limit: 100,userId: widget.user.userId,);
+    final missions = await _missionEventHandler.getFinishedMissions(userId: widget.user.userId);
     print("Fetched ${missions.length} finished missions."); // Debug print
     setState(() {
       _finishedMissions = missions;

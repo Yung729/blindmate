@@ -1,5 +1,4 @@
 import 'package:blindmate/models/dataModels/rewards_model.dart';
-import 'package:blindmate/models/dataModels/user_reward_model.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter/material.dart';
@@ -78,7 +77,7 @@ class RewardService {
       });
 
       // 🔻 If reward is "flower", increment flower count
-      if (reward.rewardTitle?.toLowerCase() == 'flower') {
+      if (reward.rewardTitle.toLowerCase() == 'flower') {
         await userRef.update({'flower': FieldValue.increment(1)});
 
         // Get the updated flower count to update the AuthState
@@ -142,6 +141,7 @@ class RewardService {
       if (authState.currentUser != null) {
         authState.currentUser!.flower = currentFlower - 1;
         authState.notifyListeners();
+        
       }
 
       // Get the recipient's user ID (the chat partner)

@@ -98,10 +98,6 @@ class _SendBottleNoteScreenState extends State<SendBottleNoteScreen>
         );
 
         await Future.delayed(const Duration(seconds: 3));
-        // Navigator.pushReplacement(
-        //   context,
-        //   MaterialPageRoute(builder: (context) => const BottleNoteHomeScreen()),
-        // );
         Navigator.pushAndRemoveUntil(
           context,
           MaterialPageRoute(builder: (context) => const BottleNoteHomeScreen()),

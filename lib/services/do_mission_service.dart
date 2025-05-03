@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'package:blindmate/models/dataModels/rewards_model.dart';
 import 'package:blindmate/services/gemini_moderation_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -7,7 +6,6 @@ import '../models/dataModels/mission_model.dart';
 
 class MissionService {
   final missionsRef = FirebaseFirestore.instance.collection('mission');
-  String? userId;
 
   /// Saves a list of generated missions to Firestore.
   Future<void> saveGeneratedMissionsToFirebase(
@@ -105,31 +103,6 @@ class MissionService {
     print("Expired outdated missions for user ${currentUser.uid}.");
   }
 
-  Future<List<MissionModel>> fetchAllUserMissions() async {
-    final currentUser = FirebaseAuth.instance.currentUser;
-
-    if (currentUser == null) {
-      throw Exception("No user is logged in.");
-    }
-
-    final querySnapshot =
-        await FirebaseFirestore.instance
-            .collection('mission')
-            .where(
-              'assignedUser',
-              isEqualTo: currentUser.uid,
-            ) // Fetch all missions for user
-            .get(); // No limit or filtering here
-
-    print(
-      "Fetched missions assigned to current user {$currentUser.uid} : ${querySnapshot.docs.length}",
-    );
-
-    return querySnapshot.docs
-        .map((doc) => MissionModel.fromMap(doc.data(), doc.id))
-        .toList();
-  }
-
   Future<List<MissionModel>> fetchStatusTrueMissions(String userId) async {
     final querySnapshot =
         await missionsRef
@@ -141,17 +114,15 @@ class MissionService {
         .toList();
   }
 
-  Future<List<MissionModel>> fetchFinishedMissions() async {
-    final allMissions = await fetchAllUserMissions(); // Get all missions first
-    final filtered =
-        allMissions
-            .where((m) => m.finished == true)
-            .where((m) => m.status == true)
-            .toList(); // Filter by finished == true
-
-    print("Filtered missions with finished == true: ${filtered.length}");
-
-    return filtered;
+  Future<List<MissionModel>> fetchFinishedMissions(String userId) async {
+        final querySnapshot =
+        await missionsRef
+            .where('assignedUser', isEqualTo: userId)
+            .where('finished', isEqualTo: true)
+            .get();
+    return querySnapshot.docs
+        .map((doc) => MissionModel.fromMap(doc.data(), doc.id))
+        .toList();
   }
 
   /// Main function to generate missions, store in Firebase, and update app state.
@@ -188,7 +159,6 @@ class MissionService {
             return MissionModel.fromMap(e, e['id']);
           }).toList();
 
-      // 2. Save generated missions to Firebase
       await saveGeneratedMissionsToFirebase(missions);
 
     } catch (e) {
@@ -269,35 +239,5 @@ class MissionService {
         print("Updated mission progress for mission ID: ${mission.id}");
       }
     }
-
-    //   if (type == 'time') {
-    //     await missionsRef.doc(mission.id).update({
-    //       'progress': FieldValue.increment(actionTime),
-    //     });
-    //     print("Updated mission progress (time) for mission ID: ${mission.id}");
-    //   } else if (type == 'action') {
-    //     await missionsRef.doc(mission.id).update({
-    //       'progress': FieldValue.increment(actionCount),
-    //     });
-    //     print("Updated mission progress (action) for mission ID: ${mission.id}");
-    //   }
-    // }
-  }
-
-  Future<RewardModel?> fetchRewardById(String rewardId) async {
-    try {
-      final docSnapshot =
-          await FirebaseFirestore.instance
-              .collection('reward')
-              .doc(rewardId)
-              .get();
-
-      if (docSnapshot.exists) {
-        return RewardModel.fromFirestore(docSnapshot);
-      }
-    } catch (e) {
-      print("Error fetching reward by ID: $e");
-    }
-    return null;
   }
 }

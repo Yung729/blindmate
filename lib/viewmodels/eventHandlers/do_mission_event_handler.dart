@@ -13,11 +13,10 @@ class MissionEventHandler {
   }
 
   Future<List<MissionModel>> getFinishedMissions({
-  int limit = 100,
   required String userId,
 }) async {
   // Pass userId to the data binding method
-  return await _missionBinding.loadFinishedMissions(userId, limit: limit);
+  return await _missionBinding.loadFinishedMissions(userId);
 }
 
   Future<void> handleTrackMissionProgress({
