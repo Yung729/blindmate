@@ -1,6 +1,4 @@
 import 'package:blindmate/models/dataModels/mission_model.dart';
-import 'package:blindmate/models/dataModels/rewards_model.dart';
-import 'package:blindmate/models/dataModels/user_model.dart';
 import 'package:blindmate/viewmodels/dataBinding/do_mission_data_binding.dart';
 
 class MissionEventHandler {
@@ -34,13 +32,5 @@ class MissionEventHandler {
       actionCount: actionCount,
       actionTime: actionTime,
     );
-  }
-
-  // void handleUserLogin(UserModel user) {
-  //   _missionBinding.setCurrentUser(user);
-  // }
-
-  Future<List<RewardModel>> handleFetchRewards(UserModel user) async {
-    return await _missionBinding.getUserRewards(user.userId);
   }
 }

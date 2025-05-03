@@ -1,6 +1,4 @@
 import 'package:blindmate/models/dataModels/mission_model.dart';
-import 'package:blindmate/models/dataModels/rewards_model.dart';
-import 'package:blindmate/models/dataModels/user_reward_model.dart';
 import 'package:blindmate/services/do_mission_service.dart';
 import 'package:flutter/material.dart';
 
@@ -11,11 +9,6 @@ class DoMissionDataBinding {
 
   List<MissionModel> get missions => _missions;
   List<MissionModel> get finishedMissions => _finishedMissions;
-
-  // Future<void> initialize() async {
-  //   await generateAndStoreMissionsIfNeeded();
-  //   await loadActiveMissions();
-  // }
 
   Future<void> generateAndStoreMissionsIfNeeded() async {
     try {
@@ -84,21 +77,6 @@ class DoMissionDataBinding {
       );
     } catch (e) {
       debugPrint("❌ Failed to track mission progress: $e");
-    }
-  }
-
-  // void setCurrentUser(UserModel? user) {
-  //   missionService.assignCurrentUserId(user);
-  // }
-
-  Future<List<RewardModel>> getUserRewards(String userId) async {
-    UserReward? userReward = await missionService.fetchUserRewards(
-      userId,
-    );
-    if (userReward != null) {
-      return missionService.fetchUniqueRedeemedRewards(userReward);
-    } else {
-      return []; // or throw an exception if null is unacceptable
     }
   }
 }

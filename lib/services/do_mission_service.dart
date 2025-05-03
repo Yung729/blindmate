@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'package:blindmate/models/dataModels/rewards_model.dart';
-import 'package:blindmate/models/dataModels/user_reward_model.dart';
 import 'package:blindmate/services/gemini_moderation_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -29,15 +28,18 @@ class MissionService {
         await FirebaseFirestore.instance
             .collection('mission')
             .where('assignedUser', isEqualTo: currentUser.uid)
+            .orderBy('createdAt', descending: true)
+            .limit(1)
             .get();
 
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
 
-    for (var doc in missions.docs) {
-      final createdAt = (doc.data()['createdAt'] as Timestamp?)?.toDate();
-      if (createdAt == null) continue;
-
+    final createdAt =
+        missions.docs.isEmpty
+            ? null
+            : (missions.docs.first.data()['createdAt'] as Timestamp?)?.toDate();
+    if (createdAt != null) {
       final createdDate = DateTime(
         createdAt.year,
         createdAt.month,
@@ -49,7 +51,9 @@ class MissionService {
       }
     }
 
-    print("No missions created today. Regeneration required.");
+    print(
+      "No missions found for user ${currentUser.uid}. Regeneration required.",
+    );
     return true;
   }
 
@@ -64,7 +68,6 @@ class MissionService {
             .collection('mission')
             .where('assignedUser', isEqualTo: currentUser.uid)
             .get();
-
 
     int updatedCount = 0;
     List<String> expiredMissionIds = [];
@@ -102,7 +105,6 @@ class MissionService {
     print("Expired outdated missions for user ${currentUser.uid}.");
   }
 
-  // 1. Fetch all user missions (no filters, no limits)
   Future<List<MissionModel>> fetchAllUserMissions() async {
     final currentUser = FirebaseAuth.instance.currentUser;
 
@@ -128,16 +130,6 @@ class MissionService {
         .toList();
   }
 
-  // 2. Apply a limit to the missions list fetched from fetchAllUserMissions
-  Future<List<MissionModel>> fetchLimitedUserMissions({int limit = 3}) async {
-    final allMissions = await fetchFinishedMissions(); // Get all missions first
-    if (allMissions.length > limit) {
-      return allMissions.sublist(0, limit); // Apply the limit to the list
-    }
-    return allMissions; // Return all if no limit is exceeded
-  }
-
-  // 3. Apply `status == true` filter to the missions list fetched from fetchAllUserMissions
   Future<List<MissionModel>> fetchStatusTrueMissions(String userId) async {
     final querySnapshot =
         await missionsRef
@@ -149,7 +141,6 @@ class MissionService {
         .toList();
   }
 
-  // 4. Apply `finished == true` filter to the missions list fetched from fetchAllUserMissions
   Future<List<MissionModel>> fetchFinishedMissions() async {
     final allMissions = await fetchAllUserMissions(); // Get all missions first
     final filtered =
@@ -163,56 +154,16 @@ class MissionService {
     return filtered;
   }
 
-  Future<bool> alreadyGeneratedToday() async {
-    final currentUser = FirebaseAuth.instance.currentUser;
-    if (currentUser == null) return true;
-
-    final doc =
-        await FirebaseFirestore.instance
-            .collection('generationLog')
-            .doc(currentUser.uid)
-            .get();
-
-    if (!doc.exists) return false;
-
-    final lastGenerated = (doc.data()?['date'] as Timestamp?)?.toDate();
-    if (lastGenerated == null) return false;
-
-    final today = DateTime.now();
-    final isSameDay =
-        today.year == lastGenerated.year &&
-        today.month == lastGenerated.month &&
-        today.day == lastGenerated.day;
-
-    return isSameDay;
-  }
-
-  Future<void> updateGenerationLog() async {
-    final currentUser = FirebaseAuth.instance.currentUser;
-    if (currentUser == null) return;
-
-    await FirebaseFirestore.instance
-        .collection('generationLog')
-        .doc(currentUser.uid)
-        .set({'date': DateTime.now()});
-  }
-
   /// Main function to generate missions, store in Firebase, and update app state.
   Future<void> generateAndStoreMissions() async {
     try {
       bool shouldRegenerate = await isDateAfterCreated();
-      final alreadyGenerated = await alreadyGeneratedToday();
-      if (alreadyGenerated) {
-        print('🛑 Missions already generated today. Skipping.');
-        return;
-      }
 
       if (shouldRegenerate) {
         await clearMissionList();
       }
       print("Should regenerate missions today? $shouldRegenerate");
 
-      // 1. Generate missions with Gemini
       final geminiService = GeminiModerationService();
       final geminiJson = await geminiService.generateMissionJsonFromPrompt();
 
@@ -226,7 +177,7 @@ class MissionService {
 
       final currentUser = FirebaseAuth.instance.currentUser;
       final assignedUserId =
-          currentUser?.uid ?? ''; // Use UID, fallback to empty string
+          currentUser?.uid ?? ''; 
 
       // 2. Build list of MissionModel with added fields
       final missions =
@@ -240,7 +191,6 @@ class MissionService {
       // 2. Save generated missions to Firebase
       await saveGeneratedMissionsToFirebase(missions);
 
-      await updateGenerationLog(); // ✅ Mark generation done for today
     } catch (e) {
       print('❌ Error during mission generation: $e');
       rethrow;
@@ -332,59 +282,6 @@ class MissionService {
     //     print("Updated mission progress (action) for mission ID: ${mission.id}");
     //   }
     // }
-  }
-
-  Future<UserReward?> fetchUserRewards(String userId) async {
-    try {
-      final querySnapshot =
-          await FirebaseFirestore.instance
-              .collection('user_reward')
-              .where('userId', isEqualTo: userId)
-              .get();
-
-      if (querySnapshot.docs.isEmpty) {
-        return null;
-      }
-      return UserReward.fromFirestore(querySnapshot.docs.first);
-    } catch (e) {
-      print("Error fetching user rewards: $e");
-      return null;
-    }
-  }
-
-  Future<List<RewardModel>> fetchUniqueRedeemedRewards(
-    UserReward userReward,
-  ) async {
-    try {
-      // Step 1: Get the redeemed rewards from userReward
-      List redeemedRewardIds = userReward.redeemedRewards;
-
-      // Step 2: Store all redeemedReward IDs in a list (no duplicates here yet)
-      List<RewardModel> allFetchedRewards = [];
-
-      // Step 3: Retrieve all RewardModels for each redeemedReward ID
-      for (String rewardId in redeemedRewardIds) {
-        RewardModel? rewardModel = await fetchRewardById(rewardId);
-        if (rewardModel != null) {
-          allFetchedRewards.add(rewardModel);
-        }
-      }
-
-      // Step 4: Remove duplicates based on redeemRewardId
-      Set<String> seenIds = {};
-      List<RewardModel> uniqueRewards =
-          allFetchedRewards.where((reward) {
-            bool seen = seenIds.contains(reward.redeemRewardId);
-            if (!seen) seenIds.add(reward.redeemRewardId);
-            return !seen;
-          }).toList();
-
-      // Step 5: Return the unique list of RewardModel
-      return uniqueRewards;
-    } catch (e) {
-      print("Error fetching unique rewards: $e");
-      return [];
-    }
   }
 
   Future<RewardModel?> fetchRewardById(String rewardId) async {
