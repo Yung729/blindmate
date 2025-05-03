@@ -16,9 +16,12 @@ class SurveyDataBinding {
 
   Future<void> fetchQuestions() async {
     print('🔍 SurveyDataBinding: Starting fetchQuestions');
-    _surveyState.setLoading(true);
-    _surveyState.setError(null);
-    _surveyState.setSurveyModel(SurveyModel.empty());
+    Future.microtask(() {
+      _surveyState.clear();
+      _surveyState.setLoading(true);
+      _surveyState.setError(null);
+      _surveyState.setSurveyModel(SurveyModel.empty());
+    });
 
     try {
       // Add a timeout to prevent indefinite hanging
