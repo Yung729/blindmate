@@ -26,6 +26,35 @@ Future<bool> showConfirmDialog(
   return result ?? false;
 }
 
+Future<dynamic> showSaveDraftDialog(
+  BuildContext context,
+  String title,
+  String message,
+) async {
+  final result = await showDialog(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: Text(title),
+      content: Text(message),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop('continue'),
+          child: const Text('Continue Editing'),
+        ),
+        TextButton(
+          onPressed: () => Navigator.of(context).pop('save'),
+          child: const Text('Save as Draft', style: TextStyle(color: Colors.orange)),
+        ),
+        TextButton(
+          onPressed: () => Navigator.of(context).pop('discard'),
+          child: const Text('Discard', style: TextStyle(color: Colors.red)),
+        ),
+      ],
+    ),
+  );
+  return result;
+}
+
 void showErrorDialog(
   BuildContext context,
   String message, {

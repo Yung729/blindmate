@@ -21,10 +21,23 @@ class CreatePostState extends ChangeNotifier {
   List<Map<String, dynamic>> _tripJournals = [];
   bool _isLoadingJournals = false;
 
+  // Draft state
+  bool _hasUnsavedChanges = false;
+  bool _loadedFromDraft = false;
+
   // Getters
   List<Map<String, dynamic>> get tripJournals => _tripJournals;
   bool get isLoadingJournals => _isLoadingJournals;
   bool get hasTripJournals => _tripJournals.isNotEmpty;
+  bool get hasUnsavedChanges => _hasUnsavedChanges;
+  bool get loadedFromDraft => _loadedFromDraft;
+
+  // Check if there's any content to save
+  bool get hasContent => 
+    postContent.trim().isNotEmpty || 
+    selectedMusicUrl != null || 
+    selectedLinkUrl != null ||
+    _tripJournals.isNotEmpty;
 
   // Post visibility and loading methods
   void setIsPublic(bool value) {
@@ -121,6 +134,29 @@ class CreatePostState extends ChangeNotifier {
     }
   }
 
+  // Load from draft
+  void loadFromDraft({
+    required String content,
+    required bool isPublicValue,
+    String? musicUrl,
+    String? musicTitle,
+    String? linkUrl,
+    List<Map<String, dynamic>>? tripJournals,
+  }) {
+    postContent = content;
+    isPublic = isPublicValue;
+    selectedMusicUrl = musicUrl;
+    selectedMusicTitle = musicTitle;
+    selectedLinkUrl = linkUrl;
+    if (tripJournals != null) {
+      _tripJournals = tripJournals;
+    }
+    
+    _loadedFromDraft = true;
+    _hasUnsavedChanges = false;
+    notifyListeners();
+  }
+
   // Reset all state
   void reset() {
     // Reset post visibility and loading
@@ -143,6 +179,12 @@ class CreatePostState extends ChangeNotifier {
     _tripJournals = [];
     _isLoadingJournals = false;
 
+    notifyListeners();
+  }
+
+  // Reset unsaved changes flag (used after saving draft)
+  void resetUnsavedChanges() {
+    _hasUnsavedChanges = false;
     notifyListeners();
   }
 

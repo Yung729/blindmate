@@ -19,6 +19,23 @@ class CreatePostEventHandler {
     required this.userAvatar,
   });
 
+  // Draft management methods
+  Future<bool> hasDraft() async {
+    return await dataBinding.hasDraft();
+  }
+
+  Future<void> loadDraft() async {
+    await dataBinding.loadDraft();
+  }
+
+  Future<void> saveToDraft() async {
+    await dataBinding.saveToDraft(userId);
+  }
+
+  Future<void> clearDraft() async {
+    await dataBinding.clearDraft();
+  }
+
   Future<List<Map<String, dynamic>>> loadUserTripJournals() async {
     try {
       final journals = await dataBinding.fetchUserTripJournals(userId);

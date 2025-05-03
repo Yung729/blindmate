@@ -722,8 +722,7 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                                       context,
                                       initialEntries: [],
                                       onJournalsAdded: (entries) async {
-                                        if (entries != null &&
-                                            entries.isNotEmpty) {
+                                        if (entries.isNotEmpty) {
                                           await _chatHandler
                                               .sendTripJournalMessage(
                                                 context,

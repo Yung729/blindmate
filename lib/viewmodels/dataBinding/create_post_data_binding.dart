@@ -4,6 +4,7 @@ import '../../services/gemini_moderation_service.dart';
 import '../../services/do_mission_service.dart';
 import '../../services/post_service.dart';
 import '../../services/trip_journal_service.dart';
+import '../../services/draft_post_service.dart';
 import '../state/create_post_state.dart';
 
 class CreatePostDataBinding {
@@ -12,8 +13,48 @@ class CreatePostDataBinding {
   final UserTripJournalService _tripJournalService = UserTripJournalService();
   final GeminiModerationService _moderationService = GeminiModerationService();
   final MissionService _missionService = MissionService();
+  final DraftPostService _draftService = DraftPostService();
 
   CreatePostDataBinding({required this.createPostState});
+
+  // Check if a draft exists
+  Future<bool> hasDraft() async {
+    return await _draftService.hasDraft();
+  }
+
+  // Load draft content
+  Future<void> loadDraft() async {
+    final draft = await _draftService.getDraft();
+    if (draft != null) {
+      createPostState.loadFromDraft(
+        content: draft['content'] ?? '',
+        isPublicValue: draft['isPublic'] ?? true,
+        musicUrl: draft['musicUrl'],
+        musicTitle: draft['musicTitle'],
+        linkUrl: draft['linkUrl'],
+        tripJournals: draft['tripJournals'] as List<Map<String, dynamic>>?,
+      );
+    }
+  }
+
+  // Save the current post as a draft
+  Future<void> saveToDraft(String userId) async {
+    await _draftService.saveDraft(
+      userId: userId,
+      content: createPostState.postContent,
+      isPublic: createPostState.isPublic,
+      musicUrl: createPostState.selectedMusicUrl,
+      musicTitle: createPostState.selectedMusicTitle,
+      linkUrl: createPostState.selectedLinkUrl,
+      tripJournals: createPostState.tripJournals,
+    );
+    createPostState.resetUnsavedChanges();
+  }
+
+  // Clear the draft
+  Future<void> clearDraft() async {
+    await _draftService.clearDraft();
+  }
 
   Future<String> checkContentModeration(String content) async {
     final result = await _moderationService.checkContentLevel(content);
@@ -91,6 +132,9 @@ class CreatePostDataBinding {
     );
 
     await _postService.createPost(newPost);
+
+    // Clear the draft after successfully posting
+    await _draftService.clearDraft();
 
     await _missionService.trackUserMissionProgress(
       category: 'post',
