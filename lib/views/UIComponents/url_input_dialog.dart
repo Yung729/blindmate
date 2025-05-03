@@ -1,16 +1,14 @@
 
 import 'package:flutter/material.dart';
-import 'fetch_url_thumbail.dart';
-import '../../utils/slider_header.dart';
 import '../../viewmodels/uiValidation/url_validator.dart'; // Import the URL validation utility
 
 class UrlInputDialog extends StatefulWidget {
   final Function(String url, String? thumbnail) onUrlAdded;
 
   const UrlInputDialog({
-    Key? key,
+    super.key,
     required this.onUrlAdded,
-  }) : super(key: key);
+  });
 
   static Future<void> show(
     BuildContext context, {
@@ -33,10 +31,10 @@ class UrlInputDialog extends StatefulWidget {
   }
 
   @override
-  _UrlInputDialogState createState() => _UrlInputDialogState();
+  UrlInputDialogState createState() => UrlInputDialogState();
 }
 
-class _UrlInputDialogState extends State<UrlInputDialog> {
+class UrlInputDialogState extends State<UrlInputDialog> {
   final TextEditingController _urlController = TextEditingController();
   String? _thumbnailUrl;
   bool _isFetching = false;
@@ -46,28 +44,6 @@ class _UrlInputDialogState extends State<UrlInputDialog> {
   void dispose() {
     _urlController.dispose();
     super.dispose();
-  }
-
-  Future<void> _fetchThumbnail(String url) async {
-    setState(() {
-      _isFetching = true;
-      _errorText = null;
-    });
-
-    try {
-      final metadata = await fetchUrlMetadata(url);
-      setState(() {
-        _thumbnailUrl = metadata?['image'];
-        _isFetching = false;
-      });
-    } catch (e) {
-      print("Error fetching thumbnail: $e");
-      setState(() {
-        _thumbnailUrl = null;
-        _isFetching = false;
-        _errorText = "Failed to fetch metadata.";
-      });
-    }
   }
 
   void _handleAddUrl() {

@@ -23,10 +23,10 @@ class CreatePostScreen extends StatefulWidget {
   });
 
   @override
-  _CreatePostScreenState createState() => _CreatePostScreenState();
+  CreatePostScreenState createState() => CreatePostScreenState();
 }
 
-class _CreatePostScreenState extends State<CreatePostScreen> {
+class CreatePostScreenState extends State<CreatePostScreen> {
   late TextEditingController _textController;
   late CreatePostEventHandler _eventHandler;
   final ScrollController _scrollController = ScrollController();
@@ -35,7 +35,6 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
   bool _isMetadataFetched = false;
   List<Map<String, dynamic>> _tripJournals = [];
   List<Map<String, dynamic>> _pastJournals = [];
-  bool _isLoadingJournals = false;
 
   String _formatDateRange(List<Map<String, dynamic>> journals) {
     if (journals.isEmpty) return '';
@@ -79,12 +78,10 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
 
   Future<void> _fetchPastJournals() async {
     setState(() {
-      _isLoadingJournals = true;
     });
     final journals = await _eventHandler.loadUserTripJournals();
     setState(() {
       _pastJournals = journals;
-      _isLoadingJournals = false;
     });
   }
 
@@ -274,12 +271,6 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
       _cachedMetadata = null; // Clear cached metadata
       _isMetadataFetched = false; // Reset the flag
     });
-  }
-
-  void _togglePostVisibility() {
-    Provider.of<CreatePostState>(context, listen: false).setIsPublic(
-      !Provider.of<CreatePostState>(context, listen: false).isPublic,
-    );
   }
 
   @override

@@ -30,7 +30,7 @@ class MyPostsList extends StatefulWidget {
   final double musicPlayerHeight;
 
   const MyPostsList({
-    Key? key,
+    super.key,
     required this.posts,
     required this.userId,
     required this.avatarUrl,
@@ -47,7 +47,7 @@ class MyPostsList extends StatefulWidget {
     this.onToggleVisibility,
     required this.isMusicPlaying,
     required this.musicPlayerHeight,
-  }) : super(key: key);
+  });
 
   @override
   State<MyPostsList> createState() => _MyPostsListState();
@@ -75,15 +75,6 @@ class _MyPostsListState extends State<MyPostsList> {
     );
 
     return allSameVisibility ? firstVisibility : null;
-  }
-
-  List<Map<String, dynamic>> get _filteredPosts {
-    if (_showTripJournalsPanel) {
-      return widget.posts
-          .where((post) => post['postType'] == 'tripJournal')
-          .toList();
-    }
-    return widget.posts;
   }
 
   void _toggleVisibility() {
@@ -478,10 +469,9 @@ class _CustomRoundCheckbox extends StatelessWidget {
   final ValueChanged<bool?> onChanged;
 
   const _CustomRoundCheckbox({
-    Key? key,
     required this.value,
     required this.onChanged,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

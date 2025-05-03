@@ -30,10 +30,10 @@ class SharingScreen extends StatefulWidget {
   });
 
   @override
-  _SharingScreenState createState() => _SharingScreenState();
+  SharingScreenState createState() => SharingScreenState();
 }
 
-class _SharingScreenState extends State<SharingScreen> {
+class SharingScreenState extends State<SharingScreen> {
   late SharingEventHandler _eventHandler;
   late SharingState _sharingState;
   bool _showMyPostsOnly = false;
@@ -224,8 +224,9 @@ class _SharingScreenState extends State<SharingScreen> {
               // Persistent player at the bottom
               Consumer<MusicPlayerState>(
                 builder: (context, musicState, _) {
-                  if (musicState.currentMusicUrl == null)
+                  if (musicState.currentMusicUrl == null) {
                     return const SizedBox.shrink();
+                  }
                   return Align(
                     alignment: Alignment.bottomCenter,
                     child: FloatingYoutubePlayer(

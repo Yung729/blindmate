@@ -1,4 +1,3 @@
-
 import '../../services/post_service.dart';
 import '../state/sharing_state.dart';
 
@@ -20,9 +19,9 @@ class SharingDataBinding {
 
     // Set up stream for posts
     if (sharingState.currentUser != null) {
-      _postService
-          .getPosts(sharingState.currentUser!.userId)
-          .listen((posts) async {
+      _postService.getPosts(sharingState.currentUser!.userId).listen((
+        posts,
+      ) async {
         // 1. Collect unique userIds from posts
         final userIds = posts.map((p) => p.userId).toSet().toList();
 
@@ -34,12 +33,10 @@ class SharingDataBinding {
           // If you have authorAvatar in PostModel, set it here:
           // post.authorAvatar = avatarMap[post.userId];
           // If not, you can use avatarMap in your UI instead.
-          if (post is dynamic) {
-            // Only set if the field exists
-            try {
-              post.authorAvatar = avatarMap[post.userId];
-            } catch (_) {}
-          }
+          // Only set if the field exists
+          try {
+            post.authorAvatar = avatarMap[post.userId];
+          } catch (_) {}
         }
 
         sharingState.setPosts(posts);
@@ -76,7 +73,9 @@ class SharingDataBinding {
   Future<void> updatePostVisibility(String postId, bool isPublic) async {
     sharingState.setLoading(true);
     try {
-      await _postService.updatePost(postId, {'visibility': isPublic ? 'public' : 'private'});
+      await _postService.updatePost(postId, {
+        'visibility': isPublic ? 'public' : 'private',
+      });
       // The stream in initialize should handle updating the state automatically
     } catch (e) {
       print("Error updating post visibility via service: $e");
