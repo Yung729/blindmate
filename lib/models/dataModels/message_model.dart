@@ -15,7 +15,7 @@ class MessageModel {
   // Generate a random unique ID
   static String _generateUniqueId() {
     final timestamp = DateTime.now().millisecondsSinceEpoch;
-    final random = Random().nextInt(9000000) + 1000000; // 7-digit number
+    final random = Random().nextInt(90000000) + 10000000;
     return '$timestamp-$random';
   }
 

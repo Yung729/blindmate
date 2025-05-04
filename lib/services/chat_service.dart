@@ -7,16 +7,20 @@ import '../models/dataModels/message_model.dart';
 
 class ChatService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final String websocketUrl =
-      "wss://blindmate-backend-chat.up.railway.app";
+  final String websocketUrl = "wss://blindmate-backend-chat.up.railway.app";
 
   WebSocketChannel? _channel;
   final StreamController<MessageModel> _messageStreamController =
       StreamController.broadcast();
-  String? _currentUserId; // Track current user ID
+  String? _currentUserId;
+
+  // Track sent message IDs to avoid duplicates
+  final Set<String> _sentMessageIds = {};
 
   /// Helper to serialize tripJournals dates as strings
-  List<Map<String, dynamic>> serializeTripJournals(List<Map<String, dynamic>> journals) {
+  List<Map<String, dynamic>> serializeTripJournals(
+    List<Map<String, dynamic>> journals,
+  ) {
     return journals.map((journal) {
       final newJournal = Map<String, dynamic>.from(journal);
       if (newJournal['date'] is DateTime) {
@@ -34,11 +38,11 @@ class ChatService {
 
     final connectMessage = jsonEncode({
       "type": "connect",
-      "chatRoomId": chatRoomId, // ✅ No need for userId
+      "chatRoomId": chatRoomId,
     });
     _channel?.sink.add(connectMessage);
 
-    _listenForMessages(chatRoomId); // ✅ Ensures real-time updates
+    _listenForMessages(chatRoomId);
   }
 
   // Track received message IDs to prevent duplicates
@@ -50,24 +54,27 @@ class ChatService {
         final data = jsonDecode(message);
 
         if (data['type'] == 'message' && data['chatRoomId'] == chatRoomId) {
-          print("✅ New Message Received!");
-
           // Use fromWebSocket instead of fromMap for WebSocket messages
           MessageModel msg = MessageModel.fromWebSocket(data);
-          
-          // Only broadcast messages from other users and avoid duplicates
-          if (msg.senderId != _currentUserId) {
-            // Check if we already have this message (by messageId)
-            final isDuplicate = _receivedMessageIds.contains(msg.messageId);
-                
-            if (!isDuplicate) {
-              _receivedMessageIds.add(msg.messageId);
-              _messageStreamController.add(msg);
-              print("✅ Added message with ID ${msg.messageId}");
-            } else {
-              print("🔄 Duplicate message detected with ID ${msg.messageId}");
-            }
+
+          // Check if this message has already been processed
+          if (_receivedMessageIds.contains(msg.messageId)) {
+            print("🔄 Skipping duplicate message: ${msg.messageId}");
+            return;
           }
+
+          // Track the message ID to avoid duplicates
+          _receivedMessageIds.add(msg.messageId);
+
+          // Skip messages from current user - they will be added directly to state when sent
+          if (msg.senderId == _currentUserId) {
+            print("👤 Skipping own message in WebSocket listener: ${msg.messageId}");
+            return;
+          }
+          
+          // Broadcast the message to listeners (only for messages from other users)
+          _messageStreamController.add(msg);
+          print("✅ Added message with ID ${msg.messageId} from ${msg.senderId}");
         }
       } catch (e) {
         print("⚠️ WebSocket Error: $e");
@@ -82,23 +89,26 @@ class ChatService {
   }
 
   /// 🔹 Send a message via WebSocket
-  Future<void> sendMessage(
+  /// Returns the message that was sent (with any modifications)
+  Future<MessageModel> sendMessage(
     String userId,
     String chatRoomId,
     MessageModel message,
   ) async {
     final Map<String, dynamic> messageMap = {
       "type": "message",
-      "messageId": message.messageId, 
+      "messageId": message.messageId,
       "chatRoomId": chatRoomId,
       "senderId": message.senderId,
       "timestamp": DateTime.now().toIso8601String(),
       "moderationStatus": message.moderationStatus,
     };
-    
+
     // Only add non-null fields to avoid issues with null values
     if (message.text != null) messageMap["text"] = message.text;
-    if (message.stickerUrl != null) messageMap["stickerUrl"] = message.stickerUrl;
+    if (message.stickerUrl != null) {
+      messageMap["stickerUrl"] = message.stickerUrl;
+    }
     if (message.musicUrl != null && message.musicUrl!.isNotEmpty) {
       messageMap["musicUrl"] = message.musicUrl;
       print("🎵 Added musicUrl to WebSocket message: ${message.musicUrl}");
@@ -107,20 +117,26 @@ class ChatService {
       messageMap["musicTitle"] = message.musicTitle;
       print("🎵 Added musicTitle to WebSocket message: ${message.musicTitle}");
     }
-   if (message.tripJournals != null && message.tripJournals!.isNotEmpty) {
-  messageMap["tripJournals"] = serializeTripJournals(message.tripJournals!);
-}
-    
+    if (message.tripJournals != null && message.tripJournals!.isNotEmpty) {
+      messageMap["tripJournals"] = serializeTripJournals(message.tripJournals!);
+    }
+
     final messageData = jsonEncode(messageMap);
     _channel?.sink.add(messageData);
     print("🚀 Sent WebSocket Message: $messageData");
+
+    // Track this message ID as sent by the current user
+    _sentMessageIds.add(message.messageId);
+    print("📝 Tracking sent message ID: ${message.messageId}");
 
     await _firestore
         .collection('chats')
         .doc(chatRoomId)
         .collection('messages')
-        .doc(message.messageId) 
+        .doc(message.messageId)
         .set(message.toMapForFirestore());
+
+    return message; // Return the message so it can be added to the state
   }
 
   // 🔹 Listen for chat updates (when chat is closed)
@@ -144,7 +160,6 @@ class ChatService {
       'closed': true,
       'closedAt': FieldValue.serverTimestamp(),
     });
-    
   }
 
   /// 🔹 Close WebSocket connection
@@ -191,24 +206,22 @@ class ChatService {
 
     List<String> users = List<String>.from(chatDoc['users']);
     users.remove(currentUserId);
-  
+
     if (users.isEmpty) return null;
-  
+
     // Get the partner's user ID
     final partnerId = users.first;
-  
+
     // Fetch the partner's user data to get their avatar
-    final partnerDoc = await _firestore.collection('users').doc(partnerId).get();
+    final partnerDoc =
+        await _firestore.collection('users').doc(partnerId).get();
     String? avatarImg;
-  
+
     if (partnerDoc.exists && partnerDoc.data() != null) {
       avatarImg = partnerDoc.data()!['avatarImg'] as String?;
     }
-  
-    return {
-      'partnerId': partnerId,
-      'avatarImg': avatarImg ?? ''
-    };
+
+    return {'partnerId': partnerId, 'avatarImg': avatarImg ?? ''};
   }
 
   Future<void> saveChatSummary(

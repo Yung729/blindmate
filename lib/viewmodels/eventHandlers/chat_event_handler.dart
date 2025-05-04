@@ -32,10 +32,8 @@ class ChatEventHandler {
   Future<void> init() async {
     _isChatOpen = true;
 
-    // Use microtask to schedule state updates without delaying UI
     Future.microtask(() {
       chatState.clear(); // Reset state when initializing new chat
-      // Set the current user ID for tracking music playback
       chatState.setCurrentUserId(currentUserId);
     });
 
@@ -56,31 +54,34 @@ class ChatEventHandler {
     String? musicUrl,
     String? musicTitle,
   }) async {
-    if ((text == null || !MessageValidator.isValid(text)) &&
-        (stickerUrl == null || stickerUrl.isEmpty) &&
-        (musicUrl == null || musicUrl.isEmpty)) {
+    // Validate message has content
+    bool hasText = text != null && MessageValidator.isValid(text);
+    bool hasSticker = stickerUrl != null && stickerUrl.isNotEmpty;
+    bool hasMusic = musicUrl != null && musicUrl.isNotEmpty;
+    
+    if (!hasText && !hasSticker && !hasMusic) {
       print("❌ Invalid message, no content to send");
       return;
     }
 
     final message = MessageModel(
       senderId: currentUserId,
-      text: text?.trim(),
-      stickerUrl: stickerUrl,
-      musicUrl: musicUrl,
-      musicTitle: musicTitle,
+      text: hasText ? text.trim() : null,
+      stickerUrl: hasSticker ? stickerUrl : null,
+      musicUrl: hasMusic ? musicUrl : null,
+      musicTitle: hasMusic ? musicTitle : null,
       timestamp: DateTime.now(),
     );
 
     try {
-      dataBinding.addMessage(message);
+      // Send message through data binding (which now adds it to state)
       await dataBinding.sendMessage(currentUserId, chatRoomId, message);
-      resetInactivityTimer();
+      resetInactivityTimer(context);
     } catch (e) {
       if (e.toString().contains("BANNED")) {
         chatState.setBanned(true);
       }
-      return;
+      print("❌ Error sending message: $e");
     }
   }
 
@@ -125,24 +126,28 @@ class ChatEventHandler {
     _startInactivityTimer(context);
   }
 
-  void resetInactivityTimer() {
+  // Reset the inactivity timer when there's user activity
+  void resetInactivityTimer(BuildContext context) {
     _inactivityTimer?.cancel();
-    _inactivityTimer = Timer(const Duration(minutes: 10), () {
-      if (chatState.isChatOpen) {
-        chatState.setInactive(true); // Add new state for inactivity
-      }
-    });
+    _startInactivityTimer(context);
   }
 
+  // Clean up resources when chat is closed
   void dispose() {
     _inactivityTimer?.cancel();
+    _typingTimer?.cancel();
+    typingStatusSubscription?.cancel();
+    chatUpdatesSubscription?.cancel();
   }
 
-  void _startInactivityTimer(BuildContext context) {
+  // Start or restart the inactivity timer
+  void _startInactivityTimer(BuildContext? context) {
+    const inactivityDuration = Duration(minutes: 1);
+    
     _inactivityTimer?.cancel();
-    _inactivityTimer = Timer(const Duration(minutes: 10), () {
+    _inactivityTimer = Timer(inactivityDuration, () {
       if (chatState.isChatOpen) {
-        chatState.setInactive(true); // Use new state instead of partnerLeft
+        chatState.setInactive(true);
       }
     });
   }
@@ -162,12 +167,11 @@ class ChatEventHandler {
     );
     try {
       print("🧳 Adding trip journal message to local state");
-      dataBinding.addMessage(message);
 
       print("🧳 Sending trip journal message via WebSocket/Firestore");
       await dataBinding.sendMessage(currentUserId, chatRoomId, message);
 
-      resetInactivityTimer();
+      resetInactivityTimer(context);
       print("✅ Trip journal message sent successfully");
     } catch (e) {
       print(

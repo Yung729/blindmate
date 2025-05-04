@@ -110,32 +110,10 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       if (_chatState.isBanned) {
         _showBanDialog();
       } else if (_chatState.reportedUser) {
-        _showChatSummary().then((_) {
-          _chatState.markSummaryShown();
-          // Reset the local flag after showing summary
-          _isSummaryBeingShown = false;
-          // Stop music playback when chat ends
-          if (_chatState.isMusicPlaying) {
-            _chatState.setMusicPlaying(false);
-          }
-          _chatHandler.handleExit().then((_) {
-            Navigator.popUntil(context, (route) => route.isFirst);
-          });
-        });
+        _handleChatExit(showSummary: true);
       } else if (_chatState.partnerLeft) {
         if (!_chatState.isBanned) {
-          _showChatSummary().then((_) {
-            _chatState.markSummaryShown();
-            // Reset the local flag after showing summary
-            _isSummaryBeingShown = false;
-            // Stop music playback when partner leaves
-            if (_chatState.isMusicPlaying) {
-              _chatState.setMusicPlaying(false);
-            }
-            _chatHandler.handleExit().then((_) {
-              Navigator.popUntil(context, (route) => route.isFirst);
-            });
-          });
+          _handleChatExit(showSummary: true);
         }
       } else if (_chatState.isInactive) {
         _showInactivityDialog();
@@ -271,14 +249,7 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
           status: "SUCCESS",
         );
       }
-      await _showChatSummary();
-      _chatState.markSummaryShown();
-      // Stop music playback when reporting user
-      if (_chatState.isMusicPlaying) {
-        _chatState.setMusicPlaying(false);
-      }
-      await _chatHandler.handleExit();
-      Navigator.popUntil(context, (route) => route.isFirst);
+      await _handleChatExit(showSummary: true);
     }
   }
 
@@ -290,14 +261,8 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       "You have been removed from this chat due to multiple inappropriate messages. "
       "Please be mindful of our community guidelines.",
       onOk: () async {
-        await _showChatSummary();
-        _chatState.markSummaryShown();
-        // Reset the local flag after showing summary
-        _isSummaryBeingShown = false;
-        await _chatHandler.handleExit();
-        if (mounted) {
-          Navigator.popUntil(context, (route) => route.isFirst);
-        }
+        Navigator.pop(context); // Close the dialog
+        await _handleChatExit(showSummary: true);
       },
     );
   }
@@ -318,14 +283,8 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
         type: 'time',
         actionTime: durationInSeconds,
       );
-      await _showChatSummary();
-      _chatState.markSummaryShown();
-      // Reset the local flag after showing summary
-      _isSummaryBeingShown = false;
-      await _chatHandler.handleExit();
-      if (mounted && Navigator.canPop(context)) {
-        Navigator.pop(context);
-      }
+      
+      await _handleChatExit(showSummary: true);
     }
   }
 
@@ -382,13 +341,8 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
         TextButton(
           onPressed: () async {
             Navigator.pop(context);
-            await _showChatSummary();
-            _chatState.markSummaryShown();
-            // Reset the local flag after showing summary
-            _isSummaryBeingShown = false;
-            if (mounted && Navigator.canPop(context)) {
-              Navigator.pop(context);
-            }
+            // We don't need to call closeChatRoom again as it was already called by the timer
+            await _handleChatExit(showSummary: true);
           },
           child: const Text("OK"),
         ),
@@ -882,7 +836,7 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                             _chatHandler.updateTyping(false);
                           }
                         },
-                        onSubmitted: (_) => _chatHandler.resetInactivityTimer(),
+                        onSubmitted: (_) => _chatHandler.resetInactivityTimer(context),
                         decoration: InputDecoration(
                           hintText: "Type a message...",
                           hintStyle: TextStyle(color: Colors.grey[400]),
@@ -1074,5 +1028,24 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
             ],
           ),
     );
+  }
+
+  // Add a helper method to handle chat exit consistently
+  Future<void> _handleChatExit({required bool showSummary}) async {
+    if (showSummary) {
+      await _showChatSummary();
+      _chatState.markSummaryShown();
+      _isSummaryBeingShown = false;
+    }
+    
+    // Stop music playback when chat ends
+    if (_chatState.isMusicPlaying) {
+      _chatState.setMusicPlaying(false);
+    }
+    
+    await _chatHandler.handleExit();
+    if (mounted) {
+      Navigator.popUntil(context, (route) => route.isFirst);
+    }
   }
 }

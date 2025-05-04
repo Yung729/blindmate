@@ -19,26 +19,19 @@ class ChatDataBinding {
   ChatDataBinding({required this.chatState});
 
   void initialize(String chatRoomId, String userId) async {
-    
     // Initialize network connections
     _chatService.connectWebSocket(chatRoomId, userId);
 
-    // Set up listeners with optimized state updates
+    // Set up listeners for incoming messages
     _chatService.getMessages().listen((message) {
-      print("📩 RECEIVED message: $message");
-      if (message.tripJournals != null) {
-        print("📩 RECEIVED tripJournals: ${message.tripJournals}");
-      }
-
-      // Use microtask for better performance while avoiding setState errors
+      // Use microtask to avoid blocking the UI thread
       Future.microtask(() {
-        // Only add if not already in the list - check by messageId
-        if (chatState.messages.isEmpty ||
-            !chatState.messages.any((m) => m.messageId == message.messageId)) {
+        // Only add messages that aren't already in the state
+        if (!chatState.messages.any((m) => m.messageId == message.messageId)) {
           chatState.addMessage(message);
-          print("✅ Added message to chat state with ID: ${message.messageId}");
+          print("✅ Added incoming message: ${message.messageId}");
         } else {
-          print("🔄 Duplicate message filtered out: ${message.messageId}");
+          print("🔄 Skipping duplicate message: ${message.messageId}");
         }
       });
     });
@@ -64,12 +57,10 @@ class ChatDataBinding {
       final isPositive = await _moderationService.isStickerSearchPositive(
         query,
       );
-
-      if (isPositive) {
-        // Fetch stickers with the query if it's positive
+      debugPrint("🔍 Sticker search query: '$query' isPositive: $isPositive");
+      if (isPositive || query == 'happy') {
         List<String> stickers = await _giphyService.fetchStickers(query);
         setStickers(stickers);
-        debugPrint("🔍 Positive sticker search: '$query'");
       } else {
         // If negative, don't search and show an error message
         chatState.setErrorMessage(
@@ -97,101 +88,102 @@ class ChatDataBinding {
     });
   }
 
-  // FIX: Improved message sending logic with better handling for tripJournals
+  // Improved message sending logic with better handling for all message types
   Future<void> sendMessage(
     String userId,
     String chatRoomId,
     MessageModel message,
   ) async {
-    // Check if this is a trip journal message
-    if (message.tripJournals != null && message.tripJournals!.isNotEmpty) {
-      debugPrint(
-        "🧳 Sending trip journal message with ${message.tripJournals!.length} entries",
-      );
+    MessageModel messageToSend;
+    String? moderationResult;
 
-      // For trip journals, mark as SAFE by default and send immediately
-      final tripJournalMessage = MessageModel(
+    // Track mission progress for all message types
+    _missionService.trackUserMissionProgress(
+      category: "chat",
+      type: "action",
+      actionCount: 1,
+    );
+
+    // Determine message type and handle accordingly
+    if (message.tripJournals != null && message.tripJournals!.isNotEmpty) {
+      
+      moderationResult = 'SAFE';
+      
+      messageToSend = MessageModel(
+        messageId: message.messageId,
         senderId: message.senderId,
         text: message.text,
         stickerUrl: message.stickerUrl,
         musicUrl: message.musicUrl,
         musicTitle: message.musicTitle,
         timestamp: message.timestamp,
-        moderationStatus: 'SAFE',
+        moderationStatus: moderationResult,
         tripJournals: message.tripJournals,
       );
-
-      await _missionService.trackUserMissionProgress(
-        category: "chat",
-        type: "action",
-        actionCount: 1,
-      );
-
-      await _chatService.sendMessage(userId, chatRoomId, tripJournalMessage);
-      return;
-    }
-
-    // Handle regular text messages
-    if (message.text != null && message.text!.isNotEmpty) {
-      final moderationResult = await _moderationService.checkContentLevel(
+    } else if (message.text != null && message.text!.isNotEmpty) {
+      moderationResult = await _moderationService.checkContentLevel(
         message.text!,
       );
 
-      final moderatedMessage = MessageModel(
+      messageToSend = MessageModel(
+        messageId: message.messageId,
         senderId: message.senderId,
         text: message.text,
         stickerUrl: message.stickerUrl,
         musicUrl: message.musicUrl,
         musicTitle: message.musicTitle,
         timestamp: message.timestamp,
-        moderationStatus: moderationResult, // Add moderation status
+        moderationStatus: moderationResult,
         tripJournals: message.tripJournals,
       );
 
-      if (message.senderId == userId) {
-        chatState.incrementMessageCount(moderationResult ?? "SAFE");
-      }
-
+      // Show appropriate error messages based on moderation result
       switch (moderationResult) {
-        case 'SAFE':
-          await _chatService.sendMessage(userId, chatRoomId, moderatedMessage);
-          break;
-
         case 'WARNING':
           chatState.setErrorMessage(
             "⚠️ Warning: Your message contains sensitive content",
           );
-          await _chatService.sendMessage(userId, chatRoomId, moderatedMessage);
           break;
-
         case 'UNSAFE':
           chatState.setErrorMessage(
             "🚫 Message blocked: Inappropriate content detected",
           );
-          await _chatService.sendMessage(userId, chatRoomId, moderatedMessage);
-
           if (chatState.unsafeMessageCount >= 3) {
             throw Exception("BANNED");
           }
           break;
-
-        default:
-          throw Exception("Message moderation failed");
       }
     } else if ((message.musicUrl != null && message.musicUrl!.isNotEmpty) ||
         (message.stickerUrl != null && message.stickerUrl!.isNotEmpty)) {
-      // For stickers or music, mark as SAFE by default
-      final safeMessage = MessageModel(
+      
+      moderationResult = 'SAFE';
+      messageToSend = MessageModel(
+        messageId: message.messageId,
         senderId: message.senderId,
         text: message.text,
         stickerUrl: message.stickerUrl,
         musicUrl: message.musicUrl,
         musicTitle: message.musicTitle,
         timestamp: message.timestamp,
-        moderationStatus: 'SAFE',
+        moderationStatus: moderationResult,
         tripJournals: message.tripJournals,
       );
-      await _chatService.sendMessage(userId, chatRoomId, safeMessage);
+    } else {
+      // Invalid message with no content
+      debugPrint("❌ Invalid message, no content to send");
+      return;
+    }
+
+    // Send message via WebSocket
+
+    chatState.incrementMessageCount(moderationResult ?? 'SAFE');
+    await _chatService.sendMessage(userId, chatRoomId, messageToSend);
+
+    // Directly add the message to the state instead of waiting for WebSocket response
+    if (!chatState.messages.any(
+      (m) => m.messageId == messageToSend.messageId,
+    )) {
+      chatState.addMessage(messageToSend);
     }
   }
 
@@ -203,16 +195,14 @@ class ChatDataBinding {
     await _chatService.updateTypingStatus(chatRoomId, userId, isTyping);
   }
 
-  void closeConnection() {
-    _chatService.closeConnection();
-  }
-
   Future<void> reportUser(String reporterId, String reportedId) async {
     await _chatService.reportUser(reporterId, reportedId);
   }
 
   Future<void> closeChatRoom(String chatRoomId) async {
     await _chatService.closeChatRoom(chatRoomId);
+    // Set partnerLeft to true to ensure both users exit
+    chatState.setPartnerLeft(true);
   }
 
   void setOtherUserId(String userId) {
@@ -221,10 +211,6 @@ class ChatDataBinding {
 
   void setStickers(List<String> stickers) {
     chatState.setStickers(stickers);
-  }
-
-  void addMessage(MessageModel message) {
-    chatState.addMessage(message);
   }
 
   void clearChatState() {
@@ -253,19 +239,12 @@ class ChatDataBinding {
     final users = await _chatService.getChatUsers(chatRoomId);
     users.remove(currentUserId);
 
-    closeConnection();
-
-    if (users.isEmpty) {
-      await _chatService.closeChatRoom(chatRoomId);
-    } else {
-      await _chatService.closeChatRoom(chatRoomId);
-    }
-
+    _chatService.closeConnection();
+    
+    // Always close the chat room regardless of remaining users
+    await closeChatRoom(chatRoomId);
+    
     clearChatState();
-  }
-
-  Future<String?> moderateContent(String message) async {
-    return await _moderationService.checkContentLevel(message);
   }
 
   Future<void> saveChatSummary(String currentUserId, String chatRoomId) async {

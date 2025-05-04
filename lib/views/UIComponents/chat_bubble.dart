@@ -59,7 +59,12 @@ class _ChatBubbleState extends State<ChatBubble> with SingleTickerProviderStateM
       ),
     );
 
-    _animationController.forward();
+    // Use a post-frame callback to ensure the widget is mounted
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _animationController.forward();
+      }
+    });
   }
 
   @override
