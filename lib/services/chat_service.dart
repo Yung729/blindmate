@@ -41,6 +41,9 @@ class ChatService {
     _listenForMessages(chatRoomId); // ✅ Ensures real-time updates
   }
 
+  // Track received message IDs to prevent duplicates
+  final Set<String> _receivedMessageIds = {};
+
   void _listenForMessages(String chatRoomId) {
     _channel?.stream.listen((message) {
       try {
@@ -52,9 +55,18 @@ class ChatService {
           // Use fromWebSocket instead of fromMap for WebSocket messages
           MessageModel msg = MessageModel.fromWebSocket(data);
           
-          // Only broadcast messages from other users
+          // Only broadcast messages from other users and avoid duplicates
           if (msg.senderId != _currentUserId) {
-            _messageStreamController.add(msg);
+            // Check if we already have this message (by messageId)
+            final isDuplicate = _receivedMessageIds.contains(msg.messageId);
+                
+            if (!isDuplicate) {
+              _receivedMessageIds.add(msg.messageId);
+              _messageStreamController.add(msg);
+              print("✅ Added message with ID ${msg.messageId}");
+            } else {
+              print("🔄 Duplicate message detected with ID ${msg.messageId}");
+            }
           }
         }
       } catch (e) {
@@ -75,9 +87,9 @@ class ChatService {
     String chatRoomId,
     MessageModel message,
   ) async {
-    // Create a map with all message fields, ensuring null values are properly handled
     final Map<String, dynamic> messageMap = {
       "type": "message",
+      "messageId": message.messageId, 
       "chatRoomId": chatRoomId,
       "senderId": message.senderId,
       "timestamp": DateTime.now().toIso8601String(),
@@ -103,12 +115,12 @@ class ChatService {
     _channel?.sink.add(messageData);
     print("🚀 Sent WebSocket Message: $messageData");
 
-    // Store message in Firestore
     await _firestore
         .collection('chats')
         .doc(chatRoomId)
         .collection('messages')
-        .add(message.toMapForFirestore());
+        .doc(message.messageId) 
+        .set(message.toMapForFirestore());
   }
 
   // 🔹 Listen for chat updates (when chat is closed)

@@ -2,7 +2,6 @@ import 'package:blindmate/viewmodels/dataBinding/auth_data_binding.dart';
 import 'package:blindmate/viewmodels/eventHandlers/auth_event_handler.dart';
 import 'package:blindmate/viewmodels/state/auth_state.dart';
 import 'package:blindmate/views/screens/bottle_note_home_screen.dart';
-import 'package:blindmate/views/screens/mission_detail_screen.dart';
 import 'package:blindmate/views/screens/mission_history_screen.dart';
 import 'package:blindmate/views/screens/my_bottle_note_screen.dart';
 import 'package:blindmate/views/screens/pick_up_screen.dart';

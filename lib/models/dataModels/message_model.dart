@@ -1,6 +1,8 @@
+import 'dart:math';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class MessageModel {
+  final String messageId; // Unique ID for each message
   final String senderId;
   final String? text;
   final String? stickerUrl;
@@ -10,7 +12,15 @@ class MessageModel {
   final DateTime timestamp;
   final String? moderationStatus;
 
+  // Generate a random unique ID
+  static String _generateUniqueId() {
+    final timestamp = DateTime.now().millisecondsSinceEpoch;
+    final random = Random().nextInt(9000000) + 1000000; // 7-digit number
+    return '$timestamp-$random';
+  }
+
   MessageModel({
+    String? messageId,
     required this.senderId,
     this.text,
     this.stickerUrl,
@@ -19,7 +29,7 @@ class MessageModel {
     this.tripJournals,
     required this.timestamp,
     this.moderationStatus,
-  });
+  }) : messageId = messageId ?? _generateUniqueId();
 
   /// 🔹 Convert Firestore Map to `MessageModel`
   factory MessageModel.fromMap(Map<String, dynamic> data) {
@@ -30,6 +40,7 @@ class MessageModel {
     }
 
     return MessageModel(
+      messageId: data['messageId'],
       senderId: data['senderId'] ?? 'Unknown',
       text: data['text'],
       stickerUrl: data['stickerUrl'],
@@ -59,6 +70,8 @@ class MessageModel {
     }
 
     return MessageModel(
+      messageId:
+          data['messageId'], // Will use provided ID or generate a new one if null
       senderId: data['senderId'] ?? 'Unknown',
       text: data['text'],
       stickerUrl: data['stickerUrl'],
@@ -73,6 +86,7 @@ class MessageModel {
   /// 🔹 Convert to Firestore-friendly Map
   Map<String, dynamic> toMapForFirestore() {
     final Map<String, dynamic> result = {
+      'messageId': messageId, // Include the sequential message ID
       'senderId': senderId,
       'timestamp': FieldValue.serverTimestamp(),
       'moderationStatus': moderationStatus ?? 'SAFE',
@@ -83,7 +97,7 @@ class MessageModel {
     if (stickerUrl != null) result['stickerUrl'] = stickerUrl;
     if (musicUrl != null) result['musicUrl'] = musicUrl;
     if (musicTitle != null) result['musicTitle'] = musicTitle;
-    
+
     // Special handling for tripJournals
     if (tripJournals != null && tripJournals!.isNotEmpty) {
       result['tripJournals'] = tripJournals;
@@ -97,6 +111,7 @@ class MessageModel {
   Map<String, dynamic> toMapForWebSocket() {
     return {
       'type': 'message', // Required for WebSocket messages
+      'messageId': messageId, // Include the sequential message ID
       'senderId': senderId,
       'text': text,
       'stickerUrl': stickerUrl,

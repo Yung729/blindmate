@@ -18,8 +18,9 @@ class ChatDataBinding {
 
   ChatDataBinding({required this.chatState});
 
-  void initialize(String chatRoomId, String userId) {
-    // Initialize network connections first
+  void initialize(String chatRoomId, String userId) async {
+    
+    // Initialize network connections
     _chatService.connectWebSocket(chatRoomId, userId);
 
     // Set up listeners with optimized state updates
@@ -31,10 +32,13 @@ class ChatDataBinding {
 
       // Use microtask for better performance while avoiding setState errors
       Future.microtask(() {
-        // Only add if not already in the list
+        // Only add if not already in the list - check by messageId
         if (chatState.messages.isEmpty ||
-            !chatState.messages.any((m) => m.timestamp == message.timestamp)) {
+            !chatState.messages.any((m) => m.messageId == message.messageId)) {
           chatState.addMessage(message);
+          print("✅ Added message to chat state with ID: ${message.messageId}");
+        } else {
+          print("🔄 Duplicate message filtered out: ${message.messageId}");
         }
       });
     });

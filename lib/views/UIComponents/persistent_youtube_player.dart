@@ -16,7 +16,8 @@ class PersistentYoutubePlayer extends StatefulWidget {
   });
 
   @override
-  State<PersistentYoutubePlayer> createState() => _PersistentYoutubePlayerState();
+  State<PersistentYoutubePlayer> createState() =>
+      _PersistentYoutubePlayerState();
 }
 
 class _PersistentYoutubePlayerState extends State<PersistentYoutubePlayer>
@@ -62,27 +63,35 @@ class _PersistentYoutubePlayerState extends State<PersistentYoutubePlayer>
           _isLoading = false;
           _isInitializing = false;
           _isPlaying = true;
-          
+
           // Update the global music state
-          final musicState = Provider.of<MusicPlayerState>(context, listen: false);
-          if (musicState.currentMusicUrl == widget.youtubeUrl && !musicState.isPlaying) {
+          final musicState = Provider.of<MusicPlayerState>(
+            context,
+            listen: false,
+          );
+          if (musicState.currentMusicUrl == widget.youtubeUrl &&
+              !musicState.isPlaying) {
             musicState.resumeMusic();
           }
         } else {
           // When music is not playing (stopped, paused, or ended)
           _isPlaying = false;
-          
+
           // Update the global music state
-          final musicState = Provider.of<MusicPlayerState>(context, listen: false);
-          if (musicState.currentMusicUrl == widget.youtubeUrl && musicState.isPlaying) {
+          final musicState = Provider.of<MusicPlayerState>(
+            context,
+            listen: false,
+          );
+          if (musicState.currentMusicUrl == widget.youtubeUrl &&
+              musicState.isPlaying) {
             musicState.pauseMusic();
           }
-          
+
           if (_controller.value.hasError) {
             _isLoading = false;
             _isInitializing = false;
           }
-          
+
           // If we're at the end of the video
           if (_controller.value.position >= _controller.metadata.duration) {
             _isLoading = false;
@@ -102,14 +111,14 @@ class _PersistentYoutubePlayerState extends State<PersistentYoutubePlayer>
     if (_isInitializing || _isLoading) return;
 
     final musicState = Provider.of<MusicPlayerState>(context, listen: false);
-    
+
     if (_controller.value.isPlaying) {
       _controller.pause();
       setState(() {
         _isPlaying = false;
         _isLoading = false;
       });
-      
+
       if (musicState.currentMusicUrl == widget.youtubeUrl) {
         musicState.pauseMusic();
       }
@@ -117,7 +126,7 @@ class _PersistentYoutubePlayerState extends State<PersistentYoutubePlayer>
     }
 
     // If another music is playing, stop it first
-    if (musicState.currentMusicUrl != null && 
+    if (musicState.currentMusicUrl != null &&
         musicState.currentMusicUrl != widget.youtubeUrl) {
       musicState.stopMusic();
     }
@@ -150,10 +159,10 @@ class _PersistentYoutubePlayerState extends State<PersistentYoutubePlayer>
       }
 
       _controller.play();
-      
+
       // Update the global music state
       musicState.playMusic(widget.youtubeUrl, widget.title);
-      
+
       // Loading indicator will be hidden by the listener when playback actually starts
     }
   }
@@ -189,7 +198,7 @@ class _PersistentYoutubePlayerState extends State<PersistentYoutubePlayer>
             _controller.pause();
           });
         }
-        
+
         return SizedBox(
           height: 96,
           child: Container(
@@ -309,13 +318,10 @@ class _PersistentYoutubePlayerState extends State<PersistentYoutubePlayer>
                                       padding: EdgeInsets.zero,
                                       icon:
                                           (_isInitializing || _isLoading)
-                                              ? SizedBox(
+                                              ? UIComponents.loadingIndicator(
                                                 width: 24,
                                                 height: 24,
-                                                child: CircularProgressIndicator(
-                                                  strokeWidth: 2,
-                                                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                                                ),
+                                                strokeWidth: 2,
                                               )
                                               : Icon(
                                                 _isPlaying
@@ -350,8 +356,10 @@ class _PersistentYoutubePlayerState extends State<PersistentYoutubePlayer>
                                                       const RoundSliderOverlayShape(
                                                         overlayRadius: 8,
                                                       ),
-                                                  activeTrackColor: Colors.white,
-                                                  inactiveTrackColor: Colors.white
+                                                  activeTrackColor:
+                                                      Colors.white,
+                                                  inactiveTrackColor: Colors
+                                                      .white
                                                       .withOpacity(0.3),
                                                   thumbColor: Colors.white,
                                                   overlayColor: Colors.white
@@ -371,7 +379,8 @@ class _PersistentYoutubePlayerState extends State<PersistentYoutubePlayer>
                                                     });
                                                     _controller.seekTo(
                                                       Duration(
-                                                        seconds: newValue.toInt(),
+                                                        seconds:
+                                                            newValue.toInt(),
                                                       ),
                                                     );
                                                   },
@@ -381,9 +390,10 @@ class _PersistentYoutubePlayerState extends State<PersistentYoutubePlayer>
                                             SizedBox(
                                               height: 14,
                                               child: Padding(
-                                                padding: const EdgeInsets.symmetric(
-                                                  horizontal: 4,
-                                                ),
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                      horizontal: 4,
+                                                    ),
                                                 child: Row(
                                                   mainAxisAlignment:
                                                       MainAxisAlignment
@@ -431,7 +441,7 @@ class _PersistentYoutubePlayerState extends State<PersistentYoutubePlayer>
             ),
           ),
         );
-      }
+      },
     );
   }
 

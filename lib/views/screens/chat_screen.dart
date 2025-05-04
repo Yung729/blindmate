@@ -594,9 +594,8 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                               final isMe =
                                   message.senderId == widget.currentUserId;
 
-                              // Create a unique key based on sender and timestamp since MessageModel has no id field
-                              final uniqueKey =
-                                  '${message.senderId}-${message.timestamp.millisecondsSinceEpoch}';
+                              // Create a unique key based on the message ID
+                              final uniqueKey = message.messageId;
                               return KeyedSubtree(
                                 key: ValueKey('message-$uniqueKey'),
                                 child: _buildChatBubble(
@@ -622,9 +621,7 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                               // Find the index of the message with this unique key
                               final int
                               messageIndex = chatState.messages.indexWhere(
-                                (m) =>
-                                    '${m.senderId}-${m.timestamp.millisecondsSinceEpoch}' ==
-                                    messageUniqueKey,
+                                (m) => m.messageId == messageUniqueKey,
                               );
                               if (messageIndex < 0) return null;
 
