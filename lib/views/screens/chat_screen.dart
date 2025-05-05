@@ -14,13 +14,12 @@ import '../../viewmodels/state/chat_state.dart';
 import '../../viewmodels/eventHandlers/chat_event_handler.dart';
 import '../../viewmodels/dataBinding/chat_data_binding.dart';
 import '../../views/UIComponents/bottom_drawer.dart';
-import '../../views/UIComponents/typing_bubble.dart';
-import '../../views/UIComponents/chat_bubble.dart';
+import '../../views/UIComponents/chat_list_view.dart';
+import '../../views/UIComponents/chat_input.dart';
 import 'mini_game_screen.dart';
 import '../../viewmodels/state/auth_state.dart';
 import '../../services/game_invitation_service.dart';
 import '../UIComponents/trip_journal_create_dialog.dart';
-import '../UIComponents/trip_journal_card.dart';
 
 class ChatScreen extends StatefulWidget {
   final String chatRoomId;
@@ -39,7 +38,6 @@ class ChatScreen extends StatefulWidget {
 class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   late ChatEventHandler _chatHandler;
   late ChatState _chatState;
-  late TextEditingController _messageController;
   bool _isDrawerVisible = false;
   bool _showStickers = false;
   bool _isCountdownWarningVisible = false;
@@ -68,7 +66,6 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   @override
   void initState() {
     super.initState();
-    _messageController = TextEditingController();
     _localFlowerCount = context.read<AuthState>().currentUser?.flower ?? 0;
     _chatStartTime = DateTime.now();
 
@@ -199,7 +196,6 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _chatHandler.dispose();
-    _messageController.dispose();
     _flowerEventSubscription?.cancel();
     _gameInvitationSubscription?.cancel();
     _gameInvitationResponseSubscription?.cancel();
@@ -503,77 +499,43 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                         ),
                       ),
 
-                    Expanded(
-                      child: Padding(
-                        padding: EdgeInsets.only(
-                          bottom:
-                              _isDrawerVisible
-                                  ? _calculateDrawerHeight(
-                                    context,
-                                    _showStickers,
-                                  )
-                                  : 0,
-                        ),
-                        child: ListView.custom(
-                          reverse: true,
-                          childrenDelegate: SliverChildBuilderDelegate(
-                            (context, index) {
-                              if (chatState.isOtherUserTyping && index == 0) {
-                                return _buildTypingIndicatorBubble();
-                              }
-
-                              final messageIndex =
-                                  chatState.isOtherUserTyping
-                                      ? index - 1
-                                      : index;
-                              final message = chatState.messages[messageIndex];
-                              final isMe =
-                                  message.senderId == widget.currentUserId;
-
-                              // Create a unique key based on the message ID
-                              final uniqueKey = message.messageId;
-                              return KeyedSubtree(
-                                key: ValueKey('message-$uniqueKey'),
-                                child: _buildChatBubble(
-                                  message,
-                                  isMe,
-                                  authState.currentUser?.avatarImg,
-                                ),
-                              );
-                            },
-                            // This preserves state across rebuilds
-                            findChildIndexCallback: (key) {
-                              final ValueKey<String> valueKey =
-                                  key as ValueKey<String>;
-                              final String keyString = valueKey.value;
-
-                              // Skip for typing indicator
-                              if (keyString == 'typing-indicator') return null;
-
-                              // Extract unique message key from the key string
-                              final String messageUniqueKey = keyString
-                                  .replaceFirst('message-', '');
-
-                              // Find the index of the message with this unique key
-                              final int
-                              messageIndex = chatState.messages.indexWhere(
-                                (m) => m.messageId == messageUniqueKey,
-                              );
-                              if (messageIndex < 0) return null;
-
-                              // Adjust for typing indicator if present
-                              return chatState.isOtherUserTyping
-                                  ? messageIndex + 1
-                                  : messageIndex;
-                            },
-                            childCount:
-                                chatState.messages.length +
-                                (chatState.isOtherUserTyping ? 1 : 0),
-                          ),
-                        ),
-                      ),
+                    ChatListView(
+                      chatState: chatState,
+                      currentUserId: widget.currentUserId,
+                      currentUserAvatarImg: authState.currentUser?.avatarImg,
+                      isDrawerVisible: _isDrawerVisible,
+                      calculateDrawerHeight: _calculateDrawerHeight,
+                      showStickers: _showStickers,
                     ),
-                    _buildMessageInput(),
+                    
+                    ChatInput(
+                      onSendMessage: (text) {
+                        _chatHandler.sendMessage(
+                          context,
+                          text: text,
+                        );
+                        // Reset inactivity timer and clear countdown warning
+                        _chatHandler.resetInactivityTimer(context);
+                        setState(() {
+                          _isCountdownWarningVisible = false;
+                        });
+                      },
+                      onTypingChanged: (isTyping) {
+                        _chatHandler.updateTyping(isTyping);
+                      },
+                      onPlusButtonPressed: () {
+                        setState(() {
+                          _isDrawerVisible = !_isDrawerVisible;
+                          _isCountdownWarningVisible = false;
+                        });
+                      },
+                      onResetInactivityTimer: () {
+                        _chatHandler.resetInactivityTimer(context);
+                        setState(() {
+                          _isCountdownWarningVisible = false;
+                        });
+                      },
+                    ),
                   ],
                 ),
 
@@ -587,7 +549,34 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          _buildMessageInput(),
+                          ChatInput(
+                            onSendMessage: (text) {
+                              _chatHandler.sendMessage(
+                                context,
+                                text: text,
+                              );
+                              // Reset inactivity timer and clear countdown warning
+                              _chatHandler.resetInactivityTimer(context);
+                              setState(() {
+                                _isCountdownWarningVisible = false;
+                              });
+                            },
+                            onTypingChanged: (isTyping) {
+                              _chatHandler.updateTyping(isTyping);
+                            },
+                            onPlusButtonPressed: () {
+                              setState(() {
+                                _isDrawerVisible = !_isDrawerVisible;
+                                _isCountdownWarningVisible = false;
+                              });
+                            },
+                            onResetInactivityTimer: () {
+                              _chatHandler.resetInactivityTimer(context);
+                              setState(() {
+                                _isCountdownWarningVisible = false;
+                              });
+                            },
+                          ),
                           AnimatedContainer(
                             duration: const Duration(milliseconds: 300),
                             height: _calculateDrawerHeight(
@@ -694,180 +683,6 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
           ),
         );
       },
-    );
-  }
-
-  Widget _buildTypingIndicatorBubble() {
-    return KeyedSubtree(
-      key: const ValueKey('typing-indicator'),
-      child: ChatBubble(
-        isMe: false,
-        child: const TypingBubble(),
-        showAvatar: true,
-      ),
-    );
-  }
-
-  Widget _buildChatBubble(message, bool isMe, String? currentUserAvatarImg) {
-    // Determine if this message should show avatar based on the next message
-    final messageIndex = _chatState.messages.indexOf(message);
-    final nextMessage =
-        messageIndex < _chatState.messages.length - 1
-            ? _chatState.messages[messageIndex + 1]
-            : null;
-
-    // Show avatar if it's the last message from this sender
-    final showAvatar =
-        nextMessage == null || nextMessage.senderId != message.senderId;
-
-    // --- Trip Journal Support ---
-    if (message.tripJournals != null && message.tripJournals!.isNotEmpty) {
-      // Show trip journal card in chat bubble
-      return Padding(
-        padding: const EdgeInsets.symmetric(vertical: 6.0, horizontal: 8.0),
-        child: ChatBubble(
-          isMe: isMe,
-          avatarUrl:
-              isMe ? currentUserAvatarImg : _chatState.otherUserAvatarImg,
-          timestamp: message.timestamp,
-          showAvatar: showAvatar,
-          child: TripJournalBookCard(journals: message.tripJournals!),
-        ),
-      );
-    }
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 1.0),
-      child: ChatBubble(
-        isMe: isMe,
-        text: message.text,
-        stickerUrl: message.stickerUrl,
-        musicUrl: message.musicUrl,
-        musicTitle: message.musicTitle,
-        avatarUrl: isMe ? currentUserAvatarImg : _chatState.otherUserAvatarImg,
-        timestamp: message.timestamp,
-        showAvatar: showAvatar,
-        moderationStatus: message.moderationStatus,
-      ),
-    );
-  }
-
-  Widget _buildMessageInput() {
-    final bool hasText = _messageController.text.isNotEmpty;
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 8.0),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            offset: const Offset(0, -1),
-            blurRadius: 4.0,
-            color: Colors.black.withOpacity(0.04),
-          ),
-        ],
-      ),
-      child: SafeArea(
-        child: Row(
-          children: [
-            Container(
-              decoration: BoxDecoration(
-                color: Colors.blue[50],
-                shape: BoxShape.circle,
-              ),
-              child: IconButton(
-                icon: Icon(
-                  Icons.add_circle_outline,
-                  color: Colors.blue[400],
-                  size: 26,
-                ),
-                onPressed: () {
-                  // Dismiss keyboard when opening drawer
-                  FocusScope.of(context).unfocus();
-                  // Reset inactivity timer on interaction
-                  _chatHandler.resetInactivityTimer(context);
-                  setState(() {
-                    _isDrawerVisible = !_isDrawerVisible;
-                    _isCountdownWarningVisible = false;
-                  });
-                },
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 2),
-                decoration: BoxDecoration(
-                  color: Colors.grey[50],
-                  borderRadius: BorderRadius.circular(24.0),
-                  border: Border.all(color: Colors.grey[200]!, width: 1),
-                ),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        controller: _messageController,
-                        maxLines: 4,
-                        minLines: 1,
-                        textCapitalization: TextCapitalization.sentences,
-                        style: const TextStyle(fontSize: 16),
-                        onChanged: (text) {
-                          setState(
-                            () {},
-                          ); // Rebuild to update send button color
-                          if (text.isNotEmpty) {
-                            _chatHandler.updateTyping(true);
-                          } else {
-                            _chatHandler.updateTyping(false);
-                          }
-                          // Reset inactivity timer when typing
-                          _chatHandler.resetInactivityTimer(context);
-                          _isCountdownWarningVisible = false;
-                        },
-                        onSubmitted: (_) => _chatHandler.resetInactivityTimer(context),
-                        decoration: InputDecoration(
-                          hintText: "Type a message...",
-                          hintStyle: TextStyle(color: Colors.grey[400]),
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 16.0,
-                            vertical: 10.0,
-                          ),
-                          border: InputBorder.none,
-                        ),
-                      ),
-                    ),
-                    Container(
-                      margin: const EdgeInsets.only(right: 4),
-                      child: IconButton(
-                        icon: Icon(
-                          Icons.send_rounded,
-                          color: hasText ? Colors.blue[400] : Colors.grey[300],
-                          size: 24,
-                        ),
-                        onPressed:
-                            hasText
-                                ? () {
-                                  _chatHandler.sendMessage(
-                                    context,
-                                    text: _messageController.text,
-                                  );
-                                  _messageController.clear();
-                                  // Reset inactivity timer and clear countdown warning
-                                  _chatHandler.resetInactivityTimer(context);
-                                  setState(() {
-                                    _isCountdownWarningVisible = false;
-                                  });
-                                }
-                                : null,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 
