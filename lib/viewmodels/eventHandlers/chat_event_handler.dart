@@ -20,7 +20,7 @@ class ChatEventHandler {
   Timer? _warningTimer;
   Timer? _countdownTimer;
   int _countdownSeconds = 10;
-  static const int inactivityDurationMinutes = 1;
+  static const int inactivityDurationMinutes = 10;
 
   StreamSubscription? typingStatusSubscription;
   StreamSubscription? chatUpdatesSubscription;

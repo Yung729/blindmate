@@ -36,166 +36,191 @@ class ChatScreen extends StatefulWidget {
 }
 
 class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
-  late ChatEventHandler _chatHandler;
+  // ViewModel components
   late ChatState _chatState;
+  late ChatDataBinding _chatDataBinding;
+  late ChatEventHandler _chatEventHandler;
+  late MatchingEventHandler _matchingEventHandler;
+  
+  // UI State
   bool _isDrawerVisible = false;
   bool _showStickers = false;
   bool _isCountdownWarningVisible = false;
+  bool _isSummaryBeingShown = false;
+  
+  // Services
   final RewardService _rewardService = RewardService();
   final GameInvitationService _gameInvitationService = GameInvitationService();
+  final MissionEventHandler _missionEventHandler = MissionEventHandler();
+  
+  // Local tracking
   int _localFlowerCount = 0;
+  DateTime? _chatStartTime;
+
+  // Subscriptions
   StreamSubscription? _flowerEventSubscription;
   StreamSubscription? _gameInvitationSubscription;
   StreamSubscription? _gameInvitationResponseSubscription;
   StreamSubscription? _gameInvitationCancellationSubscription;
-  DateTime? _chatStartTime;
-  final _missionEventHandler = MissionEventHandler();
-
-  Future<void> _fetchUserTripJournals() async {
-    _chatState.isLoadingTripJournals = true;
-    final chatBinding = ChatDataBinding(chatState: _chatState);
-    final journals = await chatBinding.fetchUserTripJournals(
-      widget.currentUserId,
-    );
-    setState(() {
-      _chatState.userTripJournals = journals;
-      _chatState.isLoadingTripJournals = false;
-    });
-  }
 
   @override
   void initState() {
     super.initState();
-    _localFlowerCount = context.read<AuthState>().currentUser?.flower ?? 0;
+    _initializeViewModels();
+    _setupEventListeners();
     _chatStartTime = DateTime.now();
-
-    _chatState = context.read<ChatState>();
-    final chatBinding = ChatDataBinding(chatState: _chatState);
-
-    final matchingState = context.read<MatchingState>();
-    final matchingDataBinding = MatchingDataBinding(
-      matchingState: matchingState,
-    );
-
-    final matchingHandler = MatchingEventHandler(
-      matchingState: matchingState,
-      dataBinding: matchingDataBinding,
-    );
-
-    _chatHandler = ChatEventHandler(
-      chatState: _chatState,
-      dataBinding: chatBinding,
-      matchingHandler: matchingHandler,
-      chatRoomId: widget.chatRoomId,
-      currentUserId: widget.currentUserId,
-    );
-
-    _chatHandler.init();
-
+    
     WidgetsBinding.instance.addObserver(this);
-    _chatHandler.startInactivityTimer(context);
-
+    
     // Add post-frame callback to ensure UI is built before checking state
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _updateFlowerCount();
       _handleErrorMessages();
     });
+  }
 
-    _chatState.addListener(() {
-      if (!mounted || _chatState.hasSummaryShown || _isSummaryBeingShown)
-        return;
+  void _initializeViewModels() {
+    // Initialize state
+    _chatState = context.read<ChatState>();
+    
+    // Initialize data bindings
+    _chatDataBinding = ChatDataBinding(chatState: _chatState);
+    
+    // Initialize matchingHandler, needed by chatEventHandler
+    final matchingState = context.read<MatchingState>();
+    final matchingDataBinding = MatchingDataBinding(matchingState: matchingState);
+    _matchingEventHandler = MatchingEventHandler(
+      matchingState: matchingState,
+      dataBinding: matchingDataBinding,
+    );
 
-      if (_chatState.isBanned) {
-        _showBanDialog();
-      } else if (_chatState.reportedUser) {
-        _handleChatExit(showSummary: true);
-      } else if (_chatState.partnerLeft) {
-        if (!_chatState.isBanned) {
-          _handleChatExit(showSummary: true);
-        }
-      } else if (_chatState.isInactive) {
-        // Auto close without showing dialog
-        _handleChatExit(showSummary: true);
-      } else if (_chatState.countdownSeconds > 0) {
-        // Show the countdown warning
-        _showCountdownWarning();
-      }
-    });
+    // Initialize event handler
+    _chatEventHandler = ChatEventHandler(
+      chatState: _chatState,
+      dataBinding: _chatDataBinding,
+      matchingHandler: _matchingEventHandler,
+      chatRoomId: widget.chatRoomId,
+      currentUserId: widget.currentUserId,
+    );
+
+    // Initialize chat
+    _chatEventHandler.init();
+    _chatEventHandler.startInactivityTimer(context);
+    
+    // Update local state
+    _localFlowerCount = context.read<AuthState>().currentUser?.flower ?? 0;
+  }
+
+  void _setupEventListeners() {
+    // Listen for chat state changes
+    _chatState.addListener(_handleChatStateChanges);
 
     // Listen to flower events
     _flowerEventSubscription = _rewardService
         .listenToFlowerEvents(widget.chatRoomId)
-        .listen((snapshot) {
-          if (snapshot.docs.isNotEmpty) {
-            final event = snapshot.docs.first.data() as Map<String, dynamic>;
-            if (event['senderId'] != widget.currentUserId) {
-              // Use microtask for better performance
-              Future.microtask(() {
-                // Show flower animation for the other user
-                _chatState.setShowFlowerAnimation(true);
-                Future.delayed(const Duration(seconds: 2), () {
-                  if (mounted) {
-                    _chatState.setShowFlowerAnimation(false);
-                  }
-                });
-              });
-            }
-          }
-        });
+        .listen(_handleFlowerEvent);
 
     // Listen for game invitations
     _gameInvitationSubscription = _gameInvitationService
         .listenForInvitations(widget.currentUserId)
-        .listen((snapshot) {
-          for (var doc in snapshot.docs) {
-            final data = doc.data() as Map<String, dynamic>;
-            _showGameInvitationDialog(doc.id, data);
-          }
-        });
+        .listen(_handleGameInvitations);
 
     // Listen for invitation responses
     _gameInvitationResponseSubscription = _gameInvitationService
         .listenForInvitationResponse(widget.currentUserId)
-        .listen((snapshot) {
-          for (var doc in snapshot.docs) {
-            final data = doc.data() as Map<String, dynamic>;
-            if (data['status'] == 'accepted') {
-              Navigator.pop(context); // Close any open dialogs
-              _navigateToGame(data['gameType'], data['chatRoomId']);
-              _gameInvitationService.deleteInvitation(doc.id);
-            } else if (data['status'] == 'declined') {
-              Navigator.pop(context); // Close any open dialogs
-              CustomSnackBar.show(
-                context: context,
-                message: "Your partner declined the game invitation",
-                status: "WARNING",
-              );
-              _gameInvitationService.deleteInvitation(doc.id);
-            }
-          }
-        });
+        .listen(_handleGameInvitationResponses);
 
     // Listen for invitation cancellations
     _gameInvitationCancellationSubscription = _gameInvitationService
         .listenForInvitationCancellation(widget.currentUserId)
-        .listen((snapshot) {
-          for (var doc in snapshot.docs) {
-            // Close any open invitation dialogs
-            Navigator.pop(context);
-            CustomSnackBar.show(
-              context: context,
-              message: "Game invitation was cancelled",
-              status: "WARNING",
-            );
-            _gameInvitationService.deleteInvitation(doc.id);
-          }
+        .listen(_handleGameInvitationCancellations);
+  }
+
+  void _handleChatStateChanges() {
+    if (!mounted || _chatState.hasSummaryShown || _isSummaryBeingShown) {
+      return;
+    }
+
+    if (_chatState.isBanned) {
+      _showBanDialog();
+    } else if (_chatState.reportedUser) {
+      _handleChatExit(showSummary: true);
+    } else if (_chatState.partnerLeft) {
+      if (!_chatState.isBanned) {
+        _handleChatExit(showSummary: true);
+      }
+    } else if (_chatState.isInactive) {
+      // Auto close without showing dialog
+      _handleChatExit(showSummary: true);
+    } else if (_chatState.countdownSeconds > 0) {
+      // Show the countdown warning
+      _showCountdownWarning();
+    }
+  }
+
+  void _handleFlowerEvent(dynamic snapshot) {
+    if (snapshot.docs.isNotEmpty) {
+      final event = snapshot.docs.first.data() as Map<String, dynamic>;
+      if (event['senderId'] != widget.currentUserId) {
+        // Use microtask for better performance
+        Future.microtask(() {
+          // Show flower animation for the other user
+          _chatState.setShowFlowerAnimation(true);
+          Future.delayed(const Duration(seconds: 2), () {
+            if (mounted) {
+              _chatState.setShowFlowerAnimation(false);
+            }
+          });
         });
+      }
+    }
+  }
+
+  void _handleGameInvitations(dynamic snapshot) {
+    for (var doc in snapshot.docs) {
+      final data = doc.data() as Map<String, dynamic>;
+      _showGameInvitationDialog(doc.id, data);
+    }
+  }
+
+  void _handleGameInvitationResponses(dynamic snapshot) {
+    for (var doc in snapshot.docs) {
+      final data = doc.data() as Map<String, dynamic>;
+      if (data['status'] == 'accepted') {
+        Navigator.pop(context); // Close any open dialogs
+        _navigateToGame(data['gameType'], data['chatRoomId']);
+        _gameInvitationService.deleteInvitation(doc.id);
+      } else if (data['status'] == 'declined') {
+        Navigator.pop(context); // Close any open dialogs
+        CustomSnackBar.show(
+          context: context,
+          message: "Your partner declined the game invitation",
+          status: "WARNING",
+        );
+        _gameInvitationService.deleteInvitation(doc.id);
+      }
+    }
+  }
+
+  void _handleGameInvitationCancellations(dynamic snapshot) {
+    for (var doc in snapshot.docs) {
+      // Close any open invitation dialogs
+      Navigator.pop(context);
+      CustomSnackBar.show(
+        context: context,
+        message: "Game invitation was cancelled",
+        status: "WARNING",
+      );
+      _gameInvitationService.deleteInvitation(doc.id);
+    }
   }
 
   @override
   void dispose() {
+    // Clean up resources
     WidgetsBinding.instance.removeObserver(this);
-    _chatHandler.dispose();
+    _chatState.removeListener(_handleChatStateChanges);
+    _chatEventHandler.dispose();
     _flowerEventSubscription?.cancel();
     _gameInvitationSubscription?.cancel();
     _gameInvitationResponseSubscription?.cancel();
@@ -219,7 +244,7 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       if (_chatState.isMusicPlaying) {
         _chatState.setMusicPlaying(false);
       }
-      _chatHandler.handleExit();
+      _chatEventHandler.handleExit();
     }
   }
 
@@ -235,6 +260,8 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     }
   }
 
+  // UI Actions
+  
   Future<void> _showReportDialog() async {
     final shouldReport = await showConfirmDialog(
       context,
@@ -242,7 +269,7 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       "Are you sure you want to report this user? You will not be matched with them again.",
     );
     if (shouldReport) {
-      await _chatHandler.reportUser();
+      await _chatEventHandler.reportUser();
       if (mounted) {
         CustomSnackBar.show(
           context: context,
@@ -278,7 +305,7 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       final durationInSeconds =
           DateTime.now().difference(_chatStartTime!).inSeconds;
 
-      // ✅ Track chat time-based mission progress
+      // Track chat time-based mission progress
       await _missionEventHandler.handleTrackMissionProgress(
         category: 'chat',
         type: 'time',
@@ -288,9 +315,6 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       await _handleChatExit(showSummary: true);
     }
   }
-
-  // Local flag to prevent multiple summary dialogs
-  bool _isSummaryBeingShown = false;
 
   Future<void> _showChatSummary() async {
     // Check both the state flag and local flag to prevent multiple dialogs
@@ -337,11 +361,9 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     );
 
     if (updatedCount >= 0) {
-      // Changed from > 0 to >= 0 to include when last flower is sent
       setState(() {
         _localFlowerCount = updatedCount;
       });
-      // Show animation even when the last flower is sent (when updatedCount becomes 0)
       _chatState.setShowFlowerAnimation(true);
       Future.delayed(const Duration(seconds: 2), () {
         if (mounted) {
@@ -349,7 +371,6 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
         }
       });
     } else if (updatedCount == -1) {
-      // Show cooldown message
       CustomSnackBar.show(
         context: context,
         message: "Please wait a moment before sending another flower.",
@@ -373,7 +394,6 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   }
 
   void _updateFlowerCount() {
-    // Check for auth state changes outside of build
     final authState = Provider.of<AuthState>(context, listen: false);
     if (authState.currentUser?.flower != _localFlowerCount) {
       setState(() {
@@ -383,10 +403,8 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   }
 
   void _handleErrorMessages() {
-    // Handle error messages outside of build
     final chatState = Provider.of<ChatState>(context, listen: false);
     if (chatState.errorMessage != null) {
-      // Use microtask for better performance
       Future.microtask(() {
         if (!mounted) return;
         final messenger = ScaffoldMessenger.of(context);
@@ -425,9 +443,226 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     return adjustedHeight + bottomPadding;
   }
 
+  // Message handling
+  
+  void _handleSendMessage(String text) {
+    _chatEventHandler.sendMessage(
+      context,
+      text: text,
+    );
+    _chatEventHandler.resetInactivityTimer(context);
+    setState(() {
+      _isCountdownWarningVisible = false;
+    });
+  }
+  
+  // Trip journals
+  
+  Future<void> _fetchUserTripJournals() async {
+    _chatState.isLoadingTripJournals = true;
+    final journals = await _chatDataBinding.fetchUserTripJournals(
+      widget.currentUserId,
+    );
+    if (mounted) {
+      setState(() {
+        _chatState.userTripJournals = journals;
+        _chatState.isLoadingTripJournals = false;
+      });
+    }
+  }
+  
+  // Game handling
+  
+  void _showGameInvitationDialog(
+    String invitationId,
+    Map<String, dynamic> data,
+  ) {
+    final gameType = data['gameType'] as String;
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: const Text("Game Invitation"),
+        content: Text("Your partner wants to play $gameType with you!"),
+        actions: [
+          TextButton(
+            onPressed: () async {
+              await _gameInvitationService.respondToInvitation(
+                invitationId,
+                false,
+              );
+              Navigator.pop(context);
+            },
+            child: const Text("Decline"),
+          ),
+          TextButton(
+            onPressed: () async {
+              await _gameInvitationService.respondToInvitation(
+                invitationId,
+                true,
+              );
+              Navigator.pop(context);
+              _navigateToGame(gameType, data['chatRoomId']);
+            },
+            child: const Text("Accept"),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _navigateToGame(String gameType, String chatRoomId) {
+    if (gameType == 'Draw & Guess') {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => MiniGameScreen(
+            chatRoomId: chatRoomId,
+            currentUserId: widget.currentUserId,
+            opponentId: _chatState.otherUserId ?? '',
+            isDrawer: true,
+          ),
+        ),
+      );
+    } else if (gameType == 'Tic Tac Toe') {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => MiniGame2Screen(
+            chatRoomId: chatRoomId,
+            currentUserId: widget.currentUserId,
+            opponentId: _chatState.otherUserId ?? '',
+            isPlayerX: true,
+          ),
+        ),
+      );
+    }
+  }
+
+  void _showGameSelectionDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Select Game"),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.draw, color: Colors.blue),
+              title: const Text("Draw & Guess"),
+              subtitle: const Text("Draw and let your partner guess"),
+              onTap: () {
+                Navigator.pop(context);
+                _handleGameSelection("Draw & Guess");
+              },
+            ),
+            const Divider(),
+            ListTile(
+              leading: const Icon(Icons.grid_on, color: Colors.green),
+              title: const Text("Tic Tac Toe"),
+              subtitle: const Text("Classic X and O game"),
+              onTap: () {
+                Navigator.pop(context);
+                _handleGameSelection("Tic Tac Toe");
+              },
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Cancel"),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _handleGameSelection(String gameType) {
+    if (_chatState.otherUserId == null) return;
+
+    String? currentInvitationId;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: const Text("Sending Invitation"),
+        content: const Text(
+          "Waiting for your partner to accept the game invitation...",
+        ),
+        actions: [
+          TextButton(
+            onPressed: () async {
+              if (currentInvitationId != null) {
+                await _gameInvitationService.cancelInvitation(
+                  currentInvitationId!,
+                );
+              }
+              Navigator.pop(context);
+            },
+            child: const Text("Cancel"),
+          ),
+        ],
+      ),
+    );
+
+    _gameInvitationService
+        .sendInvitation(
+          chatRoomId: widget.chatRoomId,
+          senderId: widget.currentUserId,
+          receiverId: _chatState.otherUserId!,
+          gameType: gameType,
+        )
+        .then((invitationId) {
+          currentInvitationId = invitationId;
+        });
+  }
+
+  Future<void> _handleChatExit({required bool showSummary}) async {
+    if (showSummary) {
+      await _showChatSummary();
+      _chatState.markSummaryShown();
+      _isSummaryBeingShown = false;
+    }
+    
+    // Stop music playback when chat ends
+    if (_chatState.isMusicPlaying) {
+      _chatState.setMusicPlaying(false);
+    }
+    
+    await _chatEventHandler.handleExit();
+    if (mounted) {
+      Navigator.popUntil(context, (route) => route.isFirst);
+    }
+  }
+
+  void _showCountdownWarning() {
+    // Only show if not already shown
+    if (!_isCountdownWarningVisible) {
+      _isCountdownWarningVisible = true;
+      
+      // Clear any existing snackbars
+      ScaffoldMessenger.of(context).clearSnackBars();
+      
+      // Use the CustomSnackBar component with action button
+      CustomSnackBar.show(
+        context: context,
+        message: '⚠️ Chat inactive! Will close in ${_chatState.countdownSeconds} seconds.',
+        status: 'WARNING',
+        duration: const Duration(seconds: 10),
+        actionLabel: 'Keep Chatting',
+        onActionPressed: () {
+          // Reset the inactivity timer
+          _chatEventHandler.resetInactivityTimer(context);
+          _isCountdownWarningVisible = false;
+        },
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    // Listen for changes but don't update state during build
     return Consumer2<ChatState, AuthState>(
       builder: (context, chatState, authState, child) {
         // Schedule state updates with microtask for better performance
@@ -448,236 +683,15 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
             }
           },
           child: Scaffold(
-            appBar: AppBar(
-              title: Row(
-                children: [
-                  CircleAvatar(
-                    radius: 18,
-                    backgroundImage:
-                        (authState.currentUser?.avatarImg != null &&
-                                authState.currentUser!.avatarImg.isNotEmpty)
-                            ? NetworkImage(authState.currentUser!.avatarImg)
-                            : const AssetImage('assets/default_pic.jpg')
-                                as ImageProvider,
-                  ),
-                  const SizedBox(width: 8),
-                  const Text("Chat"),
-                ],
-              ),
-              flexibleSpace: Container(
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [Colors.blueAccent, Colors.lightBlueAccent],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                ),
-              ),
-              leading: IconButton(
-                icon: const Icon(Icons.arrow_back),
-                onPressed: () => _confirmEndChat(),
-              ),
-              actions: [
-                if (chatState.otherUserId != null)
-                  IconButton(
-                    icon: const Icon(Icons.flag, color: Colors.red),
-                    onPressed: () => _showReportDialog(),
-                  ),
-              ],
-            ),
+            appBar: _buildAppBar(authState),
             body: Stack(
               children: [
                 // Main chat UI
-                Column(
-                  children: [
-                    if (chatState.showFlowerAnimation)
-                      Center(
-                        child: Image.asset(
-                          'assets/flower.gif',
-                          width: 120,
-                          height: 120,
-                        ),
-                      ),
-
-                    ChatListView(
-                      chatState: chatState,
-                      currentUserId: widget.currentUserId,
-                      currentUserAvatarImg: authState.currentUser?.avatarImg,
-                      isDrawerVisible: _isDrawerVisible,
-                      calculateDrawerHeight: _calculateDrawerHeight,
-                      showStickers: _showStickers,
-                    ),
-                    
-                    ChatInput(
-                      onSendMessage: (text) {
-                        _chatHandler.sendMessage(
-                          context,
-                          text: text,
-                        );
-                        // Reset inactivity timer and clear countdown warning
-                        _chatHandler.resetInactivityTimer(context);
-                        setState(() {
-                          _isCountdownWarningVisible = false;
-                        });
-                      },
-                      onTypingChanged: (isTyping) {
-                        _chatHandler.updateTyping(isTyping);
-                      },
-                      onPlusButtonPressed: () {
-                        setState(() {
-                          _isDrawerVisible = !_isDrawerVisible;
-                          _isCountdownWarningVisible = false;
-                        });
-                      },
-                      onResetInactivityTimer: () {
-                        _chatHandler.resetInactivityTimer(context);
-                        setState(() {
-                          _isCountdownWarningVisible = false;
-                        });
-                      },
-                    ),
-                  ],
-                ),
+                _buildMainChatUI(chatState, authState),
 
                 // Bottom drawer overlay
                 if (_isDrawerVisible)
-                  Positioned(
-                    bottom: 0,
-                    left: 0,
-                    right: 0,
-                    child: SafeArea(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          ChatInput(
-                            onSendMessage: (text) {
-                              _chatHandler.sendMessage(
-                                context,
-                                text: text,
-                              );
-                              // Reset inactivity timer and clear countdown warning
-                              _chatHandler.resetInactivityTimer(context);
-                              setState(() {
-                                _isCountdownWarningVisible = false;
-                              });
-                            },
-                            onTypingChanged: (isTyping) {
-                              _chatHandler.updateTyping(isTyping);
-                            },
-                            onPlusButtonPressed: () {
-                              setState(() {
-                                _isDrawerVisible = !_isDrawerVisible;
-                                _isCountdownWarningVisible = false;
-                              });
-                            },
-                            onResetInactivityTimer: () {
-                              _chatHandler.resetInactivityTimer(context);
-                              setState(() {
-                                _isCountdownWarningVisible = false;
-                              });
-                            },
-                          ),
-                          AnimatedContainer(
-                            duration: const Duration(milliseconds: 300),
-                            height: _calculateDrawerHeight(
-                              context,
-                              _showStickers,
-                            ),
-                            decoration: const BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.only(
-                                topLeft: Radius.circular(20),
-                                topRight: Radius.circular(20),
-                              ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black26,
-                                  blurRadius: 10,
-                                  offset: Offset(0, -2),
-                                ),
-                              ],
-                            ),
-                            child: SingleChildScrollView(
-                              child: SizedBox(
-                                height: _calculateDrawerHeight(
-                                  context,
-                                  _showStickers,
-                                ),
-                                child: BottomDrawer(
-                                  onFlowerSelected: (_) async {
-                                    await _sendFlower();
-                                    setState(() {
-                                      _isDrawerVisible = false;
-                                    });
-                                  },
-                                  onStickerSelected: (sticker) {
-                                    _chatHandler.sendMessage(
-                                      context,
-                                      stickerUrl: sticker,
-                                    );
-                                    setState(() {
-                                      _isDrawerVisible = false;
-                                      _showStickers = false;
-                                    });
-                                  },
-                                  onPlayMiniGame: () {
-                                    _showGameSelectionDialog();
-                                  },
-                                  onShareMusic: () {
-                                    MusicSearchDialog.show(
-                                      context,
-                                      onMusicSelected: (url, title) {
-                                        _chatHandler.sendMessage(
-                                          context,
-                                          musicUrl: url,
-                                          musicTitle: title,
-                                        );
-                                        setState(() {
-                                          _isDrawerVisible = false;
-                                        });
-                                      },
-                                    );
-                                  },
-                                  onTripJournal: () async {
-                                    await _fetchUserTripJournals();
-                                    TripJournalDialog.show(
-                                      context,
-                                      initialEntries: [],
-                                      onJournalsAdded: (entries) async {
-                                        if (entries.isNotEmpty) {
-                                          await _chatHandler
-                                              .sendTripJournalMessage(
-                                                context,
-                                                entries,
-                                              );
-                                          setState(() {
-                                            _isDrawerVisible = false;
-                                          });
-                                        }
-                                      },
-                                      pastJournals: chatState.userTripJournals,
-                                      actionButtonText: 'Send Journal',
-                                    );
-                                  },
-                                  onStickerSearch: (query) {
-                                    _chatHandler.searchStickers(query);
-                                  },
-                                  stickerList: _chatState.stickerList,
-                                  showStickers: _showStickers,
-                                  toggleStickers: (bool value) {
-                                    setState(() {
-                                      _showStickers = value;
-                                    });
-                                  },
-                                  flowerCount: _localFlowerCount,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
+                  _buildBottomDrawer(),
               ],
             ),
           ),
@@ -686,198 +700,212 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     );
   }
 
-  void _showGameInvitationDialog(
-    String invitationId,
-    Map<String, dynamic> data,
-  ) {
-    final gameType = data['gameType'] as String;
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder:
-          (context) => AlertDialog(
-            title: Text("Game Invitation"),
-            content: Text("Your partner wants to play $gameType with you!"),
-            actions: [
-              TextButton(
-                onPressed: () async {
-                  await _gameInvitationService.respondToInvitation(
-                    invitationId,
-                    false,
-                  );
-                  Navigator.pop(context); // Just close the dialog
-                },
-                child: Text("Decline"),
-              ),
-              TextButton(
-                onPressed: () async {
-                  await _gameInvitationService.respondToInvitation(
-                    invitationId,
-                    true,
-                  );
-                  Navigator.pop(context); // Close the dialog
-                  _navigateToGame(gameType, data['chatRoomId']);
-                },
-                child: Text("Accept"),
-              ),
-            ],
-          ),
-    );
-  }
-
-  void _navigateToGame(String gameType, String chatRoomId) {
-    if (gameType == 'Draw & Guess') {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder:
-              (context) => MiniGameScreen(
-                chatRoomId: chatRoomId,
-                currentUserId: widget.currentUserId,
-                opponentId: _chatState.otherUserId ?? '',
-                isDrawer: true,
-              ),
-        ),
-      );
-    } else if (gameType == 'Tic Tac Toe') {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder:
-              (context) => MiniGame2Screen(
-                chatRoomId: chatRoomId,
-                currentUserId: widget.currentUserId,
-                opponentId: _chatState.otherUserId ?? '',
-                isPlayerX: true,
-              ),
-        ),
-      );
-    }
-  }
-
-  void _handleGameSelection(String gameType) {
-    if (_chatState.otherUserId == null) return;
-
-    String? currentInvitationId;
-
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder:
-          (context) => AlertDialog(
-            title: Text("Sending Invitation"),
-            content: Text(
-              "Waiting for your partner to accept the game invitation...",
+  Widget _buildMainChatUI(ChatState chatState, AuthState authState) {
+    return Column(
+      children: [
+        if (chatState.showFlowerAnimation)
+          Center(
+            child: Image.asset(
+              'assets/flower.gif',
+              width: 120,
+              height: 120,
             ),
-            actions: [
-              TextButton(
-                onPressed: () async {
-                  if (currentInvitationId != null) {
-                    await _gameInvitationService.cancelInvitation(
-                      currentInvitationId!,
-                    );
-                  }
-                  Navigator.pop(context);
-                },
-                child: Text("Cancel"),
-              ),
-            ],
           ),
-    );
 
-    _gameInvitationService
-        .sendInvitation(
-          chatRoomId: widget.chatRoomId,
-          senderId: widget.currentUserId,
-          receiverId: _chatState.otherUserId!,
-          gameType: gameType,
-        )
-        .then((invitationId) {
-          currentInvitationId = invitationId;
-        });
+        ChatListView(
+          chatState: chatState,
+          currentUserId: widget.currentUserId,
+          currentUserAvatarImg: authState.currentUser?.avatarImg,
+          isDrawerVisible: _isDrawerVisible,
+          calculateDrawerHeight: _calculateDrawerHeight,
+          showStickers: _showStickers,
+        ),
+        
+        ChatInput(
+          onSendMessage: _handleSendMessage,
+          onTypingChanged: _chatEventHandler.updateTyping,
+          onPlusButtonPressed: () {
+            setState(() {
+              _isDrawerVisible = !_isDrawerVisible;
+              _isCountdownWarningVisible = false;
+            });
+          },
+          onResetInactivityTimer: () {
+            _chatEventHandler.resetInactivityTimer(context);
+            setState(() {
+              _isCountdownWarningVisible = false;
+            });
+          },
+        ),
+      ],
+    );
   }
 
-  void _showGameSelectionDialog() {
-    showDialog(
-      context: context,
-      builder:
-          (context) => AlertDialog(
-            title: Text("Select Game"),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                ListTile(
-                  leading: Icon(Icons.draw, color: Colors.blue),
-                  title: Text("Draw & Guess"),
-                  subtitle: Text("Draw and let your partner guess"),
-                  onTap: () {
-                    Navigator.pop(context);
-                    _handleGameSelection("Draw & Guess");
-                  },
-                ),
-                Divider(),
-                ListTile(
-                  leading: Icon(Icons.grid_on, color: Colors.green),
-                  title: Text("Tic Tac Toe"),
-                  subtitle: Text("Classic X and O game"),
-                  onTap: () {
-                    Navigator.pop(context);
-                    _handleGameSelection("Tic Tac Toe");
-                  },
-                ),
-              ],
+  PreferredSizeWidget _buildAppBar(AuthState authState) {
+    return AppBar(
+      title: Row(
+        children: [
+          CircleAvatar(
+            radius: 18,
+            backgroundImage:
+                (authState.currentUser?.avatarImg != null &&
+                        authState.currentUser!.avatarImg.isNotEmpty)
+                    ? NetworkImage(authState.currentUser!.avatarImg)
+                    : const AssetImage('assets/default_pic.jpg')
+                        as ImageProvider,
+          ),
+          const SizedBox(width: 8),
+          const Text("Chat"),
+        ],
+      ),
+      flexibleSpace: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Colors.blueAccent, Colors.lightBlueAccent],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
+      ),
+      leading: IconButton(
+        icon: const Icon(Icons.arrow_back),
+        onPressed: () => _confirmEndChat(),
+      ),
+      actions: [
+        if (_chatState.otherUserId != null)
+          IconButton(
+            icon: const Icon(Icons.flag, color: Colors.red),
+            onPressed: () => _showReportDialog(),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildBottomDrawer() {
+    return Positioned(
+      bottom: 0,
+      left: 0,
+      right: 0,
+      child: SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ChatInput(
+              onSendMessage: _handleSendMessage,
+              onTypingChanged: _chatEventHandler.updateTyping,
+              onPlusButtonPressed: () {
+                setState(() {
+                  _isDrawerVisible = !_isDrawerVisible;
+                  _isCountdownWarningVisible = false;
+                });
+              },
+              onResetInactivityTimer: () {
+                _chatEventHandler.resetInactivityTimer(context);
+                setState(() {
+                  _isCountdownWarningVisible = false;
+                });
+              },
             ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: Text("Cancel"),
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 300),
+              height: _calculateDrawerHeight(
+                context,
+                _showStickers,
               ),
-            ],
-          ),
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(20),
+                  topRight: Radius.circular(20),
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black26,
+                    blurRadius: 10,
+                    offset: Offset(0, -2),
+                  ),
+                ],
+              ),
+              child: SingleChildScrollView(
+                child: SizedBox(
+                  height: _calculateDrawerHeight(
+                    context,
+                    _showStickers,
+                  ),
+                  child: BottomDrawer(
+                    onFlowerSelected: (_) async {
+                      await _sendFlower();
+                      setState(() {
+                        _isDrawerVisible = false;
+                      });
+                    },
+                    onStickerSelected: (sticker) {
+                      _chatEventHandler.sendMessage(
+                        context,
+                        stickerUrl: sticker,
+                      );
+                      setState(() {
+                        _isDrawerVisible = false;
+                        _showStickers = false;
+                      });
+                    },
+                    onPlayMiniGame: () {
+                      _showGameSelectionDialog();
+                    },
+                    onShareMusic: () {
+                      MusicSearchDialog.show(
+                        context,
+                        onMusicSelected: (url, title) {
+                          _chatEventHandler.sendMessage(
+                            context,
+                            musicUrl: url,
+                            musicTitle: title,
+                          );
+                          setState(() {
+                            _isDrawerVisible = false;
+                          });
+                        },
+                      );
+                    },
+                    onTripJournal: () async {
+                      await _fetchUserTripJournals();
+                      TripJournalDialog.show(
+                        context,
+                        initialEntries: [],
+                        onJournalsAdded: (entries) async {
+                          if (entries.isNotEmpty) {
+                            await _chatEventHandler
+                                .sendTripJournalMessage(
+                                  context,
+                                  entries,
+                                );
+                            setState(() {
+                              _isDrawerVisible = false;
+                            });
+                          }
+                        },
+                        pastJournals: _chatState.userTripJournals,
+                        actionButtonText: 'Send Journal',
+                      );
+                    },
+                    onStickerSearch: (query) {
+                      _chatEventHandler.searchStickers(query);
+                    },
+                    stickerList: _chatState.stickerList,
+                    showStickers: _showStickers,
+                    toggleStickers: (bool value) {
+                      setState(() {
+                        _showStickers = value;
+                      });
+                    },
+                    flowerCount: _localFlowerCount,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
-  }
-
-  // Add a helper method to handle chat exit consistently
-  Future<void> _handleChatExit({required bool showSummary}) async {
-    if (showSummary) {
-      await _showChatSummary();
-      _chatState.markSummaryShown();
-      _isSummaryBeingShown = false;
-    }
-    
-    // Stop music playback when chat ends
-    if (_chatState.isMusicPlaying) {
-      _chatState.setMusicPlaying(false);
-    }
-    
-    await _chatHandler.handleExit();
-    if (mounted) {
-      Navigator.popUntil(context, (route) => route.isFirst);
-    }
-  }
-
-  // Add a helper method to show the countdown warning
-  void _showCountdownWarning() {
-    // Only show if not already shown
-    if (!_isCountdownWarningVisible) {
-      _isCountdownWarningVisible = true;
-      
-      // Clear any existing snackbars
-      ScaffoldMessenger.of(context).clearSnackBars();
-      
-      // Use the CustomSnackBar component with action button
-      CustomSnackBar.show(
-        context: context,
-        message: '⚠️ Chat inactive! Will close in ${_chatState.countdownSeconds} seconds.',
-        status: 'WARNING',
-        duration: const Duration(seconds: 10),
-        actionLabel: 'Keep Chatting',
-        onActionPressed: () {
-          // Reset the inactivity timer
-          _chatHandler.resetInactivityTimer(context);
-          _isCountdownWarningVisible = false;
-        },
-      );
-    }
   }
 }
