@@ -26,6 +26,7 @@ class TripJournalEntry {
   TextEditingController descriptionController;
   DateTime? date;
   Set<String> activities;
+  FocusNode locationFocusNode;
 
   TripJournalEntry({
     String? initialLocation,
@@ -37,7 +38,8 @@ class TripJournalEntry {
          text: initialDescription ?? '',
        ),
        date = initialDate,
-       activities = initialActivities ?? {};
+       activities = initialActivities ?? {},
+       locationFocusNode = FocusNode();
 }
 
 class TripJournalDialog extends StatefulWidget {
@@ -92,13 +94,21 @@ class _TripJournalDialogState extends State<TripJournalDialog> {
   final _formKey = GlobalKey<FormState>();
   late List<TripJournalEntry> _entries;
   static const int maxEntries = 7;
+  
+  // PageView controller for horizontal swiping
+  late PageController _pageController;
+  int _currentPage = 0;
 
   late List<bool> _dateErrors;
 
   bool _canAddMoreDays() {
-    if (_entries.isEmpty) return false;
-    return _entries.last.date != null;
-  }
+  if (_entries.isEmpty) return false;
+  
+  // Check if the last entry has both a date and a non-empty location
+  final lastEntry = _entries.last;
+  return lastEntry.date != null && 
+         lastEntry.locationController.text.trim().isNotEmpty;
+}
 
   @override
   void initState() {
@@ -123,6 +133,9 @@ class _TripJournalDialogState extends State<TripJournalDialog> {
 
     // Initialize date errors
     _dateErrors = List.generate(_entries.length, (index) => false);
+    
+    // Initialize page controller
+    _pageController = PageController(initialPage: 0);
   }
 
   void _showPastJournals() {
@@ -182,7 +195,7 @@ class _TripJournalDialogState extends State<TripJournalDialog> {
     if (picked != null) {
       setState(() {
         _entries[index].date = picked;
-        _dateErrors[index] = false; // Clear error if date picke
+        _dateErrors[index] = false; // Clear error if date picked
         if (index == 0) {
           // Update all subsequent dates
           for (int i = 1; i < _entries.length; i++) {
@@ -195,36 +208,54 @@ class _TripJournalDialogState extends State<TripJournalDialog> {
   }
 
   void _handleAdd() {
-    final formValid = _formKey.currentState!.validate();
-    bool allDatesValid = true;
-    setState(() {
-      // Validate dates
-      for (int i = 0; i < _entries.length; i++) {
-        if (_entries[i].date == null) {
-          _dateErrors[i] = true;
-          allDatesValid = false;
-        } else {
-          _dateErrors[i] = false;
-        }
-      }
-    });
-
-    if (formValid && allDatesValid) {
-      final result =
-          _entries
-              .map(
-                (e) => {
-                  'location': e.locationController.text,
-                  'description': e.descriptionController.text,
-                  'date': e.date,
-                  'activities': e.activities.toList(),
-                },
-              )
-              .toList();
-      widget.onJournalsAdded(result);
-      Navigator.pop(context);
+  // Validate the form first (this will check the location fields since they have validators)
+  final formValid = _formKey.currentState!.validate();
+  bool allDatesValid = true;
+  
+  // Check if any location is empty and navigate to the first empty location
+  int firstEmptyLocationIndex = -1;
+  for (int i = 0; i < _entries.length; i++) {
+    if (_entries[i].locationController.text.trim().isEmpty) {
+      firstEmptyLocationIndex = i;
+      break;
     }
   }
+  
+  // If there's an empty location, navigate to it and focus
+  if (firstEmptyLocationIndex != -1) {
+    _navigateToPage(firstEmptyLocationIndex);
+    _entries[firstEmptyLocationIndex].locationFocusNode.requestFocus();
+    return; // Stop the submission process
+  }
+  
+  setState(() {
+    // Validate dates
+    for (int i = 0; i < _entries.length; i++) {
+      if (_entries[i].date == null) {
+        _dateErrors[i] = true;
+        allDatesValid = false;
+      } else {
+        _dateErrors[i] = false;
+      }
+    }
+  });
+
+  if (formValid && allDatesValid) {
+    final result =
+        _entries
+            .map(
+              (e) => {
+                'location': e.locationController.text,
+                'description': e.descriptionController.text,
+                'date': e.date,
+                'activities': e.activities.toList(),
+              },
+            )
+            .toList();
+    widget.onJournalsAdded(result);
+    Navigator.pop(context);
+  }
+}
 
   void _addEntry() {
     if (_entries.length < maxEntries && _canAddMoreDays()) {
@@ -239,14 +270,46 @@ class _TripJournalDialogState extends State<TripJournalDialog> {
         );
         _dateErrors.add(false); // Add error flag for new entry
       });
+      
+      // Navigate to the newly added page
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _pageController.animateToPage(
+          _entries.length - 1,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+        
+        // Focus on the location field of the newly added entry
+        _entries.last.locationFocusNode.requestFocus();
+      });
     }
   }
 
   void _removeEntry(int index) {
+    if (_entries.length <= 1) return; // Don't remove the last entry
+    
     setState(() {
+      // Dispose the focus node before removing the entry
+      _entries[index].locationFocusNode.dispose();
       _entries.removeAt(index);
       _dateErrors.removeAt(index);
+      
+      // Adjust current page if needed
+      if (_currentPage >= _entries.length) {
+        _currentPage = _entries.length - 1;
+        _pageController.jumpToPage(_currentPage);
+      }
     });
+  }
+
+  void _navigateToPage(int page) {
+    if (page >= 0 && page < _entries.length) {
+      _pageController.animateToPage(
+        page,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+      );
+    }
   }
 
   @override
@@ -254,7 +317,9 @@ class _TripJournalDialogState extends State<TripJournalDialog> {
     for (var entry in _entries) {
       entry.locationController.dispose();
       entry.descriptionController.dispose();
+      entry.locationFocusNode.dispose();
     }
+    _pageController.dispose();
     super.dispose();
   }
 
@@ -318,7 +383,6 @@ class _TripJournalDialogState extends State<TripJournalDialog> {
                           ),
                           Row(
                             children: [
-                              // Add this IconButton for past journals
                               IconButton(
                                 icon: const Icon(
                                   Icons.history,
@@ -343,34 +407,115 @@ class _TripJournalDialogState extends State<TripJournalDialog> {
                     ],
                   ),
                 ),
-                // Main Content
-                Expanded(
-                  child: SingleChildScrollView(
-                    child: Padding(
-                      padding: const EdgeInsets.only(
-                        left: 20,
-                        right: 20,
-                        top: 20,
-                        bottom: 80, // Added padding for floating buttons
+                
+                // Day navigation indicator
+                Container(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.05),
+                        blurRadius: 4,
+                        offset: const Offset(0, 2),
                       ),
-                      child: Form(
-                        key: _formKey,
-                        child: Column(
-                          children: [
-                            ListView.separated(
-                              shrinkWrap: true,
-                              physics: const NeverScrollableScrollPhysics(),
-                              itemCount: _entries.length,
-                              separatorBuilder:
-                                  (_, __) => const SizedBox(height: 16),
-                              itemBuilder: (context, index) {
-                                final entry = _entries[index];
-                                return _buildJournalEntry(entry, index);
-                              },
-                            ),
-                          ],
+                    ],
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      // Previous day button
+                      IconButton(
+                        icon: Icon(
+                          Icons.arrow_back_ios_rounded,
+                          color: _currentPage > 0 
+                              ? Colors.blue.shade700 
+                              : Colors.grey.shade400,
+                          size: 20,
+                        ),
+                        onPressed: _currentPage > 0 
+                            ? () => _navigateToPage(_currentPage - 1)
+                            : null,
+                      ),
+                      
+                      // Day indicators
+                      Expanded(
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: List.generate(_entries.length, (index) {
+                            return GestureDetector(
+                              onTap: () => _navigateToPage(index),
+                              child: Container(
+                                margin: const EdgeInsets.symmetric(horizontal: 4),
+                                width: 32,
+                                height: 32,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: _currentPage == index
+                                      ? Colors.blue.shade700
+                                      : Colors.blue.shade50,
+                                  border: Border.all(
+                                    color: Colors.blue.shade200,
+                                    width: 1.5,
+                                  ),
+                                ),
+                                child: Center(
+                                  child: Text(
+                                    "${index + 1}",
+                                    style: TextStyle(
+                                      color: _currentPage == index
+                                          ? Colors.white
+                                          : Colors.blue.shade700,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            );
+                          }),
                         ),
                       ),
+                      
+                      // Next day button
+                      IconButton(
+                        icon: Icon(
+                          Icons.arrow_forward_ios_rounded,
+                          color: _currentPage < _entries.length - 1 
+                              ? Colors.blue.shade700 
+                              : Colors.grey.shade400,
+                          size: 20,
+                        ),
+                        onPressed: _currentPage < _entries.length - 1 
+                            ? () => _navigateToPage(_currentPage + 1)
+                            : null,
+                      ),
+                    ],
+                  ),
+                ),
+                
+                // Main Content - PageView for swiping
+                Expanded(
+                  child: Form(
+                    key: _formKey,
+                    child: PageView.builder(
+                      controller: _pageController,
+                      itemCount: _entries.length,
+                      onPageChanged: (index) {
+                        setState(() {
+                          _currentPage = index;
+                        });
+                      },
+                      itemBuilder: (context, index) {
+                        return SingleChildScrollView(
+                          padding: const EdgeInsets.only(
+                            left: 20,
+                            right: 20,
+                            top: 20,
+                            bottom: 80, // Added padding for floating buttons
+                          ),
+                          child: _buildJournalEntry(_entries[index], index),
+                        );
+                      },
                     ),
                   ),
                 ),
@@ -503,6 +648,7 @@ class _TripJournalDialogState extends State<TripJournalDialog> {
                 // Location Field
                 TextFormField(
                   controller: entry.locationController,
+                  focusNode: entry.locationFocusNode,
                   decoration: InputDecoration(
                     labelText: "Location",
                     hintText: "Enter location",

@@ -12,6 +12,7 @@ import '../UIComponents/trip_journal_create_dialog.dart';
 import '../UIComponents/fetch_url_thumbail.dart';
 import '../UIComponents/custom_snackbar.dart';
 import '../UIComponents/custom_dialog.dart';
+import '../UIComponents/post_music_preview.dart';
 
 class CreatePostScreen extends StatefulWidget {
   final String userId;
@@ -93,8 +94,8 @@ class CreatePostScreenState extends State<CreatePostScreen>
 
         // Update the text controller with the loaded content
         if (mounted) {
-        final state = Provider.of<CreatePostState>(context, listen: false);
-        _textController.text = state.postContent;
+          final state = Provider.of<CreatePostState>(context, listen: false);
+          _textController.text = state.postContent;
         }
       } else {
         // Clear the draft if user chooses not to load it
@@ -102,12 +103,12 @@ class CreatePostScreenState extends State<CreatePostScreen>
 
         // --- Reset UI state here ---
         if (mounted) {
-        final createPostState = Provider.of<CreatePostState>(
-          context,
-          listen: false,
-        );
-        createPostState.reset();
-        _textController.clear();
+          final createPostState = Provider.of<CreatePostState>(
+            context,
+            listen: false,
+          );
+          createPostState.reset();
+          _textController.clear();
         }
         setState(() {
           _cachedMetadata = null;
@@ -659,10 +660,10 @@ class CreatePostScreenState extends State<CreatePostScreen>
                           return Container(
                             padding: const EdgeInsets.all(16),
                             decoration: BoxDecoration(
-                              color: Colors.blue.withOpacity(0.05),
+                              color: Colors.blue.withValues(alpha: 0.05),
                               borderRadius: BorderRadius.circular(12),
                               border: Border.all(
-                                color: Colors.blue.withOpacity(0.2),
+                                color: Colors.blue.withValues(alpha: 0.2),
                                 width: 1,
                               ),
                             ),
@@ -715,21 +716,61 @@ class CreatePostScreenState extends State<CreatePostScreen>
                       Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: Colors.blue.withOpacity(0.05),
+                          color: Colors.blue.withValues(alpha: 0.05),
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                            color: Colors.blue.withOpacity(0.2),
+                            color: Colors.blue.withValues(alpha: 0.2),
                             width: 1,
                           ),
                         ),
                         child: Row(
                           children: [
-                            CircleAvatar(
-                              radius: 20,
-                              backgroundColor: Colors.blue.withOpacity(0.1),
-                              child: const Icon(
-                                Icons.music_note,
-                                color: Colors.blue,
+                            // Thumbnail section
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: SizedBox(
+                                width: 40,
+                                height: 40,
+                                child: Builder(
+                                  builder: (context) {
+                                    final videoId = const PostMusicPreview(
+                                      musicUrl: '',
+                                      musicTitle: '',
+                                    ).extractYoutubeId(
+                                      createPostState.selectedMusicUrl,
+                                    );
+
+                                    return videoId != null
+                                        ? Image.network(
+                                          "https://img.youtube.com/vi/$videoId/mqdefault.jpg",
+                                          fit: BoxFit.cover,
+                                          errorBuilder: (
+                                            context,
+                                            error,
+                                            stackTrace,
+                                          ) {
+                                            return Container(
+                                              color: Colors.blue.withValues(
+                                                alpha: 0.1,
+                                              ),
+                                              child: const Icon(
+                                                Icons.music_note,
+                                                color: Colors.blue,
+                                                size: 24,
+                                              ),
+                                            );
+                                          },
+                                        )
+                                        : Container(
+                                          color: Colors.blue.withValues(alpha: 0.1),
+                                          child: const Icon(
+                                            Icons.music_note,
+                                            color: Colors.blue,
+                                            size: 24,
+                                          ),
+                                        );
+                                  },
+                                ),
                               ),
                             ),
                             const SizedBox(width: 12),
@@ -766,7 +807,6 @@ class CreatePostScreenState extends State<CreatePostScreen>
                           ],
                         ),
                       ),
-
                     // Trip Journal info display (multi-entry)
                     if (createPostState.tripJournals.isNotEmpty)
                       Padding(
@@ -777,10 +817,10 @@ class CreatePostScreenState extends State<CreatePostScreen>
                               margin: const EdgeInsets.only(bottom: 8),
                               padding: const EdgeInsets.all(14),
                               decoration: BoxDecoration(
-                                color: Colors.green.withOpacity(0.05),
+                                color: Colors.green.withValues(alpha: 0.05),
                                 borderRadius: BorderRadius.circular(12),
                                 border: Border.all(
-                                  color: Colors.green.withOpacity(0.2),
+                                  color: Colors.green.withValues(alpha: 0.2),
                                   width: 1,
                                 ),
                               ),
@@ -831,7 +871,7 @@ class CreatePostScreenState extends State<CreatePostScreen>
               color: Colors.white,
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
+                  color: Colors.black.withValues(alpha: 0.05),
                   blurRadius: 5,
                   offset: const Offset(0, -1),
                 ),
