@@ -15,6 +15,7 @@ import 'viewmodels/state/bottle_note_state.dart';
 import 'viewmodels/state/sharing_state.dart';
 import 'viewmodels/state/create_post_state.dart';
 import 'viewmodels/state/music_player_state.dart';
+import 'viewmodels/state/do_mission_state.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -32,6 +33,7 @@ void main() async {
         ChangeNotifierProvider(create: (_) => SharingState()),
         ChangeNotifierProvider(create: (_) => CreatePostState()),
         ChangeNotifierProvider(create: (_) => MusicPlayerState()),
+        ChangeNotifierProvider(create: (_) => MissionState()),
         // Add more providers as needed
       ],
       child: const MyApp(),

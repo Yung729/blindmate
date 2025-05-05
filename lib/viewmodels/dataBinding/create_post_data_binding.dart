@@ -6,6 +6,8 @@ import '../../services/post_service.dart';
 import '../../services/trip_journal_service.dart';
 import '../../services/draft_post_service.dart';
 import '../state/create_post_state.dart';
+import 'package:blindmate/viewmodels/eventHandlers/mission_event_handler.dart';
+import 'package:blindmate/viewmodels/state/do_mission_state.dart';
 
 class CreatePostDataBinding {
   final CreatePostState createPostState;
@@ -14,8 +16,16 @@ class CreatePostDataBinding {
   final GeminiModerationService _moderationService = GeminiModerationService();
   final MissionService _missionService = MissionService();
   final DraftPostService _draftService = DraftPostService();
+  late MissionEventHandler? _missionEventHandler;
 
-  CreatePostDataBinding({required this.createPostState});
+  CreatePostDataBinding({
+    required CreatePostState createPostState,
+    MissionState? missionState,
+  }) : createPostState = createPostState {
+    if (missionState != null) {
+      _missionEventHandler = MissionEventHandler(missionState: missionState);
+    }
+  }
 
   // Check if a draft exists
   Future<bool> hasDraft() async {
@@ -136,11 +146,13 @@ class CreatePostDataBinding {
     // Clear the draft after successfully posting
     await _draftService.clearDraft();
 
-    await _missionService.trackUserMissionProgress(
+    if (_missionEventHandler != null) {
+      await _missionEventHandler?.trackMissionProgress(
       category: 'post',
       type: 'action',
       actionCount: 1,
     );
+    }
 
     return newPost;
   }

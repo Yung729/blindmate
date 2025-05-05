@@ -8,6 +8,7 @@ import 'package:flutter/services.dart';
 import '../../viewmodels/uiValidation/bottle_note_validator.dart';
 import '../../viewmodels/eventHandlers/bottle_note_event_handler.dart';
 import '../../viewmodels/state/bottle_note_state.dart';
+import '../../viewmodels/state/do_mission_state.dart';
 import 'package:provider/provider.dart';
 
 const int maxContentLength = 200; // Define the max length as a constant
@@ -32,6 +33,7 @@ class _BottleNoteHomeScreenState extends State<BottleNoteHomeScreen>
     _contentController = TextEditingController();
     _eventHandler = BottleNoteEventHandler(
       state: context.read<BottleNoteState>(),
+      missionState: context.read<MissionState>(),
     );
 
     // Initialize animation controller

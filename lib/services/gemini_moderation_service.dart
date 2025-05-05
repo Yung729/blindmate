@@ -126,6 +126,7 @@ Query:
   1. Chat Actions:
      - Number of safe messages sent (safeMessageCount) or just message total
      - Number of stickers sent (stickerCount)
+     - Number of music sent (musicCount)
      - Mini-games played
      - Music shares in chat
 

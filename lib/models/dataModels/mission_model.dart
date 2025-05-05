@@ -32,20 +32,39 @@ class MissionModel {
   });
 
   factory MissionModel.fromMap(Map<String, dynamic> map, String id) {
+    var createdAtValue = map['createdAt'];
+    Timestamp createdAt;
+    
+    if (createdAtValue is Timestamp) {
+      createdAt = createdAtValue;
+    } else if (createdAtValue is DateTime) {
+      createdAt = Timestamp.fromDate(createdAtValue);
+    } else if (createdAtValue == null) {
+      print("Warning: createdAt is null for mission $id, using current timestamp");
+      createdAt = Timestamp.now();
+    } else {
+      print("Warning: unexpected createdAt type for mission $id: ${createdAtValue.runtimeType}");
+      createdAt = Timestamp.now();
+    }
+    
     return MissionModel(
       id: id,
-      title: map['title'],
-      description: map['description'],
-      type: map['type'],
-      category: map['category'],
-      difficulty: map['difficulty'],
-      requirements: Requirement.fromMap(map['requirements']),
-      rewards: Reward.fromMap(map['rewards']),
+      title: map['title'] ?? 'Untitled Mission',
+      description: map['description'] ?? 'No description',
+      type: map['type'] ?? 'action',
+      category: map['category'] ?? 'misc',
+      difficulty: map['difficulty'] ?? 'easy',
+      requirements: map['requirements'] != null 
+          ? Requirement.fromMap(map['requirements']) 
+          : Requirement(metric: 'count', target: 1),
+      rewards: map['rewards'] != null 
+          ? Reward.fromMap(map['rewards']) 
+          : Reward(xp: 10),
       status: map['status'] ?? true,
       finished: map['finished'] ?? false,
       assignedUser: map['assignedUser'] ?? '',
       progress: map['progress'] ?? 0,
-      createdAt: map['createdAt'] ?? Timestamp.now(),
+      createdAt: createdAt,
     );
   }
 

@@ -1,6 +1,6 @@
 import 'package:blindmate/models/dataModels/user_model.dart';
-import 'package:blindmate/services/do_mission_service.dart';
-import 'package:blindmate/viewmodels/eventHandlers/do_mission_event_handler.dart';
+import 'package:blindmate/viewmodels/state/do_mission_state.dart';
+import 'package:blindmate/viewmodels/eventHandlers/mission_event_handler.dart';
 import 'package:blindmate/viewmodels/state/auth_state.dart';
 import 'package:blindmate/viewmodels/state/survey_dialog_state.dart';
 import 'package:blindmate/viewmodels/dataBinding/survey_dialog_data_binding.dart';
@@ -28,7 +28,7 @@ class _HomeScreenState extends State<HomeScreen>
   late final SurveyDialogDataBinding _dataBinding;
   late AnimationController _animationController;
   late Animation<double> _swingAnimation;
-  late final MissionEventHandler _missionEventHandler;
+  late MissionEventHandler _missionEventHandler;
 
   @override
   void initState() {
@@ -36,7 +36,8 @@ class _HomeScreenState extends State<HomeScreen>
     authState = context.read<AuthState>();
     _surveyDialogState = SurveyDialogState();
     _dataBinding = SurveyDialogDataBinding(surveyDialogState: _surveyDialogState);
-    _missionEventHandler = MissionEventHandler();
+    final missionState = context.read<MissionState>();
+    _missionEventHandler = MissionEventHandler(missionState: missionState);
 
     // Initialize animation controller
     _animationController = AnimationController(
@@ -51,7 +52,7 @@ class _HomeScreenState extends State<HomeScreen>
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await init(context);
-      await _missionEventHandler.handleGenerateAndStoreMissions();
+      await _missionEventHandler.initialize();
     });
   }
 

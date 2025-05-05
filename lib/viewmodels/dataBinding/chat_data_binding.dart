@@ -1,5 +1,7 @@
 import 'package:blindmate/models/api/giphy_service.dart';
 import 'package:blindmate/services/gemini_moderation_service.dart';
+import 'package:blindmate/viewmodels/eventHandlers/mission_event_handler.dart';
+import 'package:blindmate/viewmodels/state/do_mission_state.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import '../../services/chat_service.dart';
@@ -15,8 +17,13 @@ class ChatDataBinding {
   final UserTripJournalService _tripJournalService = UserTripJournalService();
   final MissionService _missionService = MissionService();
   final ChatState chatState;
+  late MissionEventHandler _missionEventHandler;
 
-  ChatDataBinding({required this.chatState});
+  ChatDataBinding({required this.chatState, MissionState? missionState}) {
+    if (missionState != null) {
+      _missionEventHandler = MissionEventHandler(missionState: missionState);
+    }
+  }
 
   void initialize(String chatRoomId, String userId) async {
     // Initialize network connections
@@ -98,11 +105,13 @@ class ChatDataBinding {
     String? moderationResult;
 
     // Track mission progress for all message types
-    _missionService.trackUserMissionProgress(
-      category: "chat",
-      type: "action",
-      actionCount: 1,
-    );
+    if (_missionEventHandler != null) {
+      await _missionEventHandler.trackMissionProgress(
+        category: "chat",
+        type: "action",
+        actionCount: 1,
+      );
+    }
 
     // Determine message type and handle accordingly
     if (message.tripJournals != null && message.tripJournals!.isNotEmpty) {

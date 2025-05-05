@@ -13,46 +13,59 @@ class MissionService {
   ) async {
     for (final mission in missions) {
       final missionData = mission.toMap();
-      missionData['createdAt'] = DateTime.now();
+      missionData['createdAt'] = Timestamp.now();
       await missionsRef.add(missionData);
     }
   }
 
+  /// Checks if we need to generate new missions for today
   Future<bool> isDateAfterCreated() async {
     final currentUser = FirebaseAuth.instance.currentUser;
     if (currentUser == null) throw Exception("No user is logged in.");
 
-    final missions =
-        await FirebaseFirestore.instance
-            .collection('mission')
-            .where('assignedUser', isEqualTo: currentUser.uid)
-            .orderBy('createdAt', descending: true)
-            .limit(1)
-            .get();
-
+    // Get today's date (just the date part, no time)
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
-
-    final createdAt =
-        missions.docs.isEmpty
-            ? null
-            : (missions.docs.first.data()['createdAt'] as Timestamp?)?.toDate();
-    if (createdAt != null) {
-      final createdDate = DateTime(
-        createdAt.year,
-        createdAt.month,
-        createdAt.day,
-      );
-      if (today.isAtSameMomentAs(createdDate)) {
-        print("Found a mission already created today. Skip regeneration.");
-        return false;
-      }
+    
+    // First check if user already has active missions
+    final activeMissions = await fetchStatusTrueMissions(currentUser.uid);
+    if (activeMissions.isNotEmpty) {
+      print("Found ${activeMissions.length} active missions for user. No need to regenerate.");
+      return false;
     }
 
-    print(
-      "No missions found for user ${currentUser.uid}. Regeneration required.",
-    );
-    return true;
+    // Get the most recent mission's creation date
+    final missions = await FirebaseFirestore.instance
+        .collection('mission')
+        .where('assignedUser', isEqualTo: currentUser.uid)
+        .orderBy('createdAt', descending: true)
+        .limit(1)
+        .get();
+
+    if (missions.docs.isEmpty) {
+      print("No missions found for user ${currentUser.uid}. Generation required.");
+      return true;
+    }
+
+    final createdAt = (missions.docs.first.data()['createdAt'] as Timestamp?)?.toDate();
+    if (createdAt == null) {
+      print("Creation date missing for existing mission. Generation required.");
+      return true;
+    }
+    
+    // Compare only date parts
+    final createdDate = DateTime(createdAt.year, createdAt.month, createdAt.day);
+    
+    if (today.isAtSameMomentAs(createdDate)) {
+      print("Found missions already created today. Skip regeneration.");
+      return false;
+    } else if (today.isAfter(createdDate)) {
+      print("Last mission was created before today. Regeneration required.");
+      return true;
+    } else {
+      print("Unexpected date comparison result. Using safe default (no regeneration).");
+      return false;
+    }
   }
 
   Future<void> clearMissionList() async {
@@ -61,11 +74,15 @@ class MissionService {
       throw Exception("No user is logged in.");
     }
 
-    final missions =
-        await FirebaseFirestore.instance
-            .collection('mission')
-            .where('assignedUser', isEqualTo: currentUser.uid)
-            .get();
+    // Get today's date (just the date part, no time)
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+
+    final missions = await FirebaseFirestore.instance
+        .collection('mission')
+        .where('assignedUser', isEqualTo: currentUser.uid)
+        .where('status', isEqualTo: true)
+        .get();
 
     int updatedCount = 0;
     List<String> expiredMissionIds = [];
@@ -78,7 +95,6 @@ class MissionService {
       }
 
       final createdAt = createdAtTimestamp.toDate();
-      final now = DateTime.now();
 
       // Compare only date (ignoring time)
       final createdDateOnly = DateTime(
@@ -86,9 +102,9 @@ class MissionService {
         createdAt.month,
         createdAt.day,
       );
-      final nowDateOnly = DateTime(now.year, now.month, now.day);
 
-      if (nowDateOnly.isAfter(createdDateOnly)) {
+      // Only deactivate missions created before today
+      if (createdDateOnly.isBefore(today)) {
         await doc.reference.update({'status': false});
         expiredMissionIds.add(doc.id);
         updatedCount++;
@@ -99,23 +115,41 @@ class MissionService {
     if (expiredMissionIds.isNotEmpty) {
       print("🗂️ Updated mission IDs: ${expiredMissionIds.join(', ')}");
     }
-
-    print("Expired outdated missions for user ${currentUser.uid}.");
   }
 
   Future<List<MissionModel>> fetchStatusTrueMissions(String userId) async {
-    final querySnapshot =
-        await missionsRef
-            .where('assignedUser', isEqualTo: userId)
-            .where('status', isEqualTo: true)
-            .get();
-    return querySnapshot.docs
-        .map((doc) => MissionModel.fromMap(doc.data(), doc.id))
-        .toList();
+    // Get today's date (just the date part, no time)
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final tomorrow = today.add(const Duration(days: 1));
+    
+    final querySnapshot = await missionsRef
+        .where('assignedUser', isEqualTo: userId)
+        .where('status', isEqualTo: true)
+        .where('finished', isEqualTo: false)
+        .get();
+        
+    // Filter out missions not created today
+    final missions = querySnapshot.docs.map((doc) {
+      return MissionModel.fromMap(doc.data(), doc.id);
+    }).where((mission) {
+      // Convert timestamp to date only (no time)
+      final missionDate = DateTime(
+        mission.createdAt.toDate().year,
+        mission.createdAt.toDate().month,
+        mission.createdAt.toDate().day,
+      );
+      
+      // Keep only missions created today
+      return missionDate.isAtSameMomentAs(today);
+    }).toList();
+    
+    print("Found ${missions.length} active missions for today for user: $userId");
+    return missions;
   }
 
   Future<List<MissionModel>> fetchFinishedMissions(String userId) async {
-        final querySnapshot =
+    final querySnapshot =
         await missionsRef
             .where('assignedUser', isEqualTo: userId)
             .where('finished', isEqualTo: true)
@@ -128,6 +162,18 @@ class MissionService {
   /// Main function to generate missions, store in Firebase, and update app state.
   Future<void> generateAndStoreMissions() async {
     try {
+      final currentUser = FirebaseAuth.instance.currentUser;
+      if (currentUser == null) throw Exception("No user is logged in.");
+      
+      // First check if user already has active missions for today
+      final activeMissions = await fetchStatusTrueMissions(currentUser.uid);
+      
+      // If user already has active missions, don't generate new ones
+      if (activeMissions.isNotEmpty) {
+        print("✅ User already has ${activeMissions.length} active missions. Skipping generation.");
+        return;
+      }
+      
       bool shouldRegenerate = await isDateAfterCreated();
 
       if (shouldRegenerate) {
@@ -135,32 +181,33 @@ class MissionService {
       }
       print("Should regenerate missions today? $shouldRegenerate");
 
-      final geminiService = GeminiModerationService();
-      final geminiJson = await geminiService.generateMissionJsonFromPrompt();
+      // Only proceed with generation if we should regenerate AND user has no active missions
+      if (shouldRegenerate) {
+        final geminiService = GeminiModerationService();
+        final geminiJson = await geminiService.generateMissionJsonFromPrompt();
 
-      final parsed = json.decode(geminiJson);
+        final parsed = json.decode(geminiJson);
 
-      if (parsed['missions'] == null || parsed['missions'] is! List) {
-        throw Exception(
-          'No missions found in the Gemini response or invalid format',
-        );
+        if (parsed['missions'] == null || parsed['missions'] is! List) {
+          throw Exception(
+            'No missions found in the Gemini response or invalid format',
+          );
+        }
+
+        final assignedUserId = currentUser.uid;
+
+        // 2. Build list of MissionModel with added fields
+        final missions =
+            (parsed['missions'] as List).map((e) {
+              e['status'] = true;
+              e['assignedUser'] = assignedUserId;
+              e['progress'] = 0;
+              return MissionModel.fromMap(e, e['id']);
+            }).toList();
+
+        await saveGeneratedMissionsToFirebase(missions);
+        print("✅ Generated ${missions.length} new missions for user: $assignedUserId");
       }
-
-      final currentUser = FirebaseAuth.instance.currentUser;
-      final assignedUserId =
-          currentUser?.uid ?? ''; 
-
-      // 2. Build list of MissionModel with added fields
-      final missions =
-          (parsed['missions'] as List).map((e) {
-            e['status'] = true;
-            e['assignedUser'] = assignedUserId;
-            e['progress'] = 0;
-            return MissionModel.fromMap(e, e['id']);
-          }).toList();
-
-      await saveGeneratedMissionsToFirebase(missions);
-
     } catch (e) {
       print('❌ Error during mission generation: $e');
       rethrow;
@@ -168,76 +215,32 @@ class MissionService {
   }
 
   // Function to award XP to the user when the mission is finished
-  Future<void> awardUserXP(String userId, int xp) async {
+  Future<void> awardUserFragment(String userId, int fragment) async {
     try {
       // Update the user's fragmentNumber (XP) in Firestore
       await FirebaseFirestore.instance.collection('users').doc(userId).update({
         'fragmentNumber': FieldValue.increment(
-          xp,
+          fragment,
         ), // Add XP to user's fragmentNumber
       });
-      print("Awarded $xp XP to user: $userId");
+      print("Awarded $fragment fragment to user: $userId");
     } catch (e) {
       print("Error awarding XP to the user: $e");
     }
   }
 
-  Future<void> trackUserMissionProgress({
-    required String category,
-    required String type,
-    int actionCount = 1,
-    int actionTime = 0,
-  }) async {
-    final currentUser = FirebaseAuth.instance.currentUser;
-
-    if (currentUser == null) {
-      throw Exception("No user is logged in.");
-    }
-
-    final missions =
-        await missionsRef
-            .where('assignedUser', isEqualTo: currentUser.uid)
-            .where('category', isEqualTo: category)
-            .where('type', isEqualTo: type)
-            .where('status', isEqualTo: true)
-            .where('finished', isEqualTo: false)
-            .get();
-
-    if (missions.docs.isEmpty) {
-      print(
-        "No missions found for user ${currentUser.uid} with category: $category and type: $type.",
-      );
-      return;
-    }
-
-    for (var mission in missions.docs) {
-      // Get mission data
-      final missionData = mission.data();
-      final currentProgress = missionData['progress'] ?? 0;
-      final target = missionData['requirements']['target'] ?? 0;
-      final rewardXp = missionData['rewards']['xp'] ?? 0;
-
-      if (currentProgress + (type == 'time' ? actionTime : actionCount) >=
-          target) {
-        // Mark mission as finished
-        await missionsRef.doc(mission.id).update({
-          'progress': target, // Set progress to target value
-          'finished': true, // Mark as finished
-        });
-
-        // Award the user XP (e.g., increment their 'fragmentNumber' field in the user document)
-        await awardUserXP(currentUser.uid, rewardXp);
-
-        print("Mission completed: ${mission.id}, XP awarded: $rewardXp");
-      } else {
-        // Update progress incrementally
-        await missionsRef.doc(mission.id).update({
-          'progress': FieldValue.increment(
-            type == 'time' ? actionTime : actionCount,
-          ),
-        });
-        print("Updated mission progress for mission ID: ${mission.id}");
-      }
+  /// Update a specific mission's progress by its ID
+  Future<void> updateMissionProgress(String missionId, int progress, bool finished) async {
+    try {
+      await missionsRef.doc(missionId).update({
+        'progress': progress,
+        'finished': finished,
+      });
+      
+      print("Updated mission ID: $missionId, progress: $progress, finished: $finished");
+    } catch (e) {
+      print("Error updating mission progress: $e");
+      rethrow;
     }
   }
 }

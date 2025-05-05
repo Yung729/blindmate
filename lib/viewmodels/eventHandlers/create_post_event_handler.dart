@@ -3,6 +3,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../dataBinding/create_post_data_binding.dart';
 import '../state/create_post_state.dart';
+import '../state/do_mission_state.dart';
 
 class CreatePostEventHandler {
   final CreatePostState createPostState;
@@ -18,6 +19,26 @@ class CreatePostEventHandler {
     required this.userName,
     required this.userAvatar,
   });
+
+  // Alternative constructor that creates the data binding
+  factory CreatePostEventHandler.withMissionState({
+    required CreatePostState createPostState,
+    required MissionState missionState,
+    required String userId,
+    required String userName,
+    required String userAvatar,
+  }) {
+    return CreatePostEventHandler(
+      createPostState: createPostState,
+      dataBinding: CreatePostDataBinding(
+        createPostState: createPostState,
+        missionState: missionState,
+      ),
+      userId: userId,
+      userName: userName,
+      userAvatar: userAvatar,
+    );
+  }
 
   // Draft management methods
   Future<bool> hasDraft() async {

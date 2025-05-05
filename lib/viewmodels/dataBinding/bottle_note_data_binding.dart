@@ -7,6 +7,8 @@ import 'package:uuid/uuid.dart';
 import '../../models/dataModels/bottle_note_model.dart';
 import '../../models/dataModels/reply_model.dart';
 import '../state/bottle_note_state.dart';
+import 'package:blindmate/viewmodels/eventHandlers/mission_event_handler.dart';
+import 'package:blindmate/viewmodels/state/do_mission_state.dart';
 
 class BottleNoteDataBinding {
   final BottleNoteService _bottleNoteService = BottleNoteService();
@@ -15,8 +17,16 @@ class BottleNoteDataBinding {
   String? selectedSticker;
   final Pool _pool = Pool();
   final MissionService _missionService = MissionService();
+  late MissionEventHandler? _missionEventHandler;
 
-  BottleNoteDataBinding({required this.bottleNoteState});
+  BottleNoteDataBinding({
+    required this.bottleNoteState,
+    MissionState? missionState,
+  }) {
+    if (missionState != null) {
+      _missionEventHandler = MissionEventHandler(missionState: missionState);
+    }
+  }
 
   Future<void> initialize() async {
     await loadNotes();
@@ -46,11 +56,13 @@ class BottleNoteDataBinding {
 
     if (moderationResult == 'UNSAFE') return;
 
-    await _missionService.trackUserMissionProgress(
-      category: 'note',
-      type: 'action',
-      actionCount: 1,
-    );
+    if (_missionEventHandler != null) {
+      await _missionEventHandler?.trackMissionProgress(
+        category: 'note',
+        type: 'action',
+        actionCount: 1,
+      );
+    }
 
     final newNote = BottleNote(
       noteId: const Uuid().v4(),

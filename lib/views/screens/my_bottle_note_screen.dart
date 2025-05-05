@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../viewmodels/state/bottle_note_state.dart';
 import '../../viewmodels/eventHandlers/bottle_note_event_handler.dart';
+import '../../viewmodels/state/do_mission_state.dart';
 import '../UIComponents/custom_dialog.dart';
 import '../UIComponents/custom_snackbar.dart';
 
@@ -21,7 +22,10 @@ class _MyBottleNotesScreenState extends State<MyBottleNotesScreen> {
   void initState() {
     super.initState();
     final state = context.read<BottleNoteState>();
-    _eventHandler = BottleNoteEventHandler(state: state);
+    _eventHandler = BottleNoteEventHandler(
+      state: state,
+      missionState: context.read<MissionState>(),
+    );
     _loadMyNotes();
   }
 

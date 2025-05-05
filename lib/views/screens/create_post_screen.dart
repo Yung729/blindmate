@@ -4,6 +4,7 @@ import '../../viewmodels/dataBinding/create_post_data_binding.dart';
 import '../../viewmodels/eventHandlers/create_post_event_handler.dart';
 import '../../viewmodels/state/create_post_state.dart';
 import '../../viewmodels/state/auth_state.dart';
+import '../../viewmodels/state/do_mission_state.dart';
 import '../../viewmodels/uiValidation/post_validator.dart';
 import '../UIComponents/loading_indicator.dart';
 import '../UIComponents/url_input_dialog.dart';
@@ -61,15 +62,21 @@ class CreatePostScreenState extends State<CreatePostScreen>
       context,
       listen: false,
     );
-    final dataBinding = CreatePostDataBinding(createPostState: createPostState);
+    
+    // Get mission state
+    final missionState = Provider.of<MissionState>(
+      context,
+      listen: false,
+    );
 
     // Fetch avatar from AuthState for event handler
     final authState = Provider.of<AuthState>(context, listen: false);
     final userAvatar = authState.currentUser?.avatarImg ?? '';
 
-    _eventHandler = CreatePostEventHandler(
+    // Use factory constructor with mission state
+    _eventHandler = CreatePostEventHandler.withMissionState(
       createPostState: createPostState,
-      dataBinding: dataBinding,
+      missionState: missionState,
       userId: widget.userId,
       userName: widget.userName,
       userAvatar: userAvatar,

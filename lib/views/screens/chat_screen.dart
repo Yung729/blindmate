@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:blindmate/services/reward_service.dart';
 import 'package:blindmate/viewmodels/dataBinding/matching_data_binding.dart';
-import 'package:blindmate/viewmodels/eventHandlers/do_mission_event_handler.dart';
+import 'package:blindmate/viewmodels/eventHandlers/mission_event_handler.dart';
 import 'package:blindmate/viewmodels/eventHandlers/matching_event_handler.dart';
 import 'package:blindmate/viewmodels/state/matching_state.dart';
 import 'package:blindmate/views/UIComponents/custom_dialog.dart';
@@ -20,6 +20,7 @@ import 'mini_game_screen.dart';
 import '../../viewmodels/state/auth_state.dart';
 import '../../services/game_invitation_service.dart';
 import '../UIComponents/trip_journal_create_dialog.dart';
+import 'package:blindmate/viewmodels/state/do_mission_state.dart';
 
 class ChatScreen extends StatefulWidget {
   final String chatRoomId;
@@ -51,7 +52,7 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   // Services
   final RewardService _rewardService = RewardService();
   final GameInvitationService _gameInvitationService = GameInvitationService();
-  final MissionEventHandler _missionEventHandler = MissionEventHandler();
+  late MissionEventHandler _missionEventHandler;
   
   // Local tracking
   int _localFlowerCount = 0;
@@ -82,9 +83,13 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   void _initializeViewModels() {
     // Initialize state
     _chatState = context.read<ChatState>();
+    final missionState = context.read<MissionState>();
     
     // Initialize data bindings
-    _chatDataBinding = ChatDataBinding(chatState: _chatState);
+    _chatDataBinding = ChatDataBinding(
+      chatState: _chatState,
+      missionState: missionState,
+    );
     
     // Initialize matchingHandler, needed by chatEventHandler
     final matchingState = context.read<MatchingState>();
@@ -93,6 +98,9 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       matchingState: matchingState,
       dataBinding: matchingDataBinding,
     );
+
+    // Initialize mission event handler with mission state
+    _missionEventHandler = MissionEventHandler(missionState: missionState);
 
     // Initialize event handler
     _chatEventHandler = ChatEventHandler(
@@ -306,7 +314,7 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
           DateTime.now().difference(_chatStartTime!).inSeconds;
 
       // Track chat time-based mission progress
-      await _missionEventHandler.handleTrackMissionProgress(
+      await _missionEventHandler.trackMissionProgress(
         category: 'chat',
         type: 'time',
         actionTime: durationInSeconds,

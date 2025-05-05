@@ -3,13 +3,19 @@ import '../state/bottle_note_state.dart';
 import '../dataBinding/bottle_note_data_binding.dart';
 import '../../models/dataModels/reply_model.dart';
 import 'package:flutter/foundation.dart';
+import '../state/do_mission_state.dart';
 
 class BottleNoteEventHandler {
   final BottleNoteState state;
   final BottleNoteDataBinding dataBinding;
 
-  BottleNoteEventHandler({required this.state})
-    : dataBinding = BottleNoteDataBinding(bottleNoteState: state);
+  BottleNoteEventHandler({
+    required this.state, 
+    MissionState? missionState,
+  }) : dataBinding = BottleNoteDataBinding(
+         bottleNoteState: state,
+         missionState: missionState,
+       );
 
   Future<void> init() async {
     await dataBinding.initialize();
