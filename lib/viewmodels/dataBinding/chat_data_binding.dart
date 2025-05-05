@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'package:blindmate/models/api/giphy_service.dart';
 import 'package:blindmate/services/gemini_moderation_service.dart';
+import 'package:blindmate/services/reward_service.dart';
 import 'package:blindmate/viewmodels/eventHandlers/mission_event_handler.dart';
 import 'package:blindmate/viewmodels/state/do_mission_state.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -8,14 +10,13 @@ import '../../services/chat_service.dart';
 import '../../models/dataModels/message_model.dart';
 import '../state/chat_state.dart';
 import '../../services/trip_journal_service.dart';
-import '../../services/do_mission_service.dart';
 
 class ChatDataBinding {
   final ChatService _chatService = ChatService();
   final GiphyService _giphyService = GiphyService();
   final GeminiModerationService _moderationService = GeminiModerationService();
   final UserTripJournalService _tripJournalService = UserTripJournalService();
-  final MissionService _missionService = MissionService();
+  final RewardService _rewardService = RewardService();
   final ChatState chatState;
   late MissionEventHandler _missionEventHandler;
 
@@ -104,20 +105,16 @@ class ChatDataBinding {
     MessageModel messageToSend;
     String? moderationResult;
 
-    // Track mission progress for all message types
-    if (_missionEventHandler != null) {
-      await _missionEventHandler.trackMissionProgress(
-        category: "chat",
-        type: "action",
-        actionCount: 1,
-      );
-    }
+    await _missionEventHandler.trackMissionProgress(
+      category: "chat",
+      type: "action",
+      actionCount: 1,
+    );
 
     // Determine message type and handle accordingly
     if (message.tripJournals != null && message.tripJournals!.isNotEmpty) {
-      
       moderationResult = 'SAFE';
-      
+
       messageToSend = MessageModel(
         messageId: message.messageId,
         senderId: message.senderId,
@@ -164,7 +161,6 @@ class ChatDataBinding {
       }
     } else if ((message.musicUrl != null && message.musicUrl!.isNotEmpty) ||
         (message.stickerUrl != null && message.stickerUrl!.isNotEmpty)) {
-      
       moderationResult = 'SAFE';
       messageToSend = MessageModel(
         messageId: message.messageId,
@@ -249,10 +245,10 @@ class ChatDataBinding {
     users.remove(currentUserId);
 
     _chatService.closeConnection();
-    
+
     // Always close the chat room regardless of remaining users
     await closeChatRoom(chatRoomId);
-    
+
     clearChatState();
   }
 
@@ -292,5 +288,106 @@ class ChatDataBinding {
       print('Error in chat data binding - fetchUserTripJournals: $e');
       return [];
     }
+  }
+
+  // UI State Management Methods
+
+  void setCurrentUserId(String userId) {
+    chatState.setCurrentUserId(userId);
+  }
+
+  void setBanned(bool banned) {
+    chatState.setBanned(banned);
+  }
+
+  void setPartnerLeft(bool left) {
+    chatState.setPartnerLeft(left);
+  }
+
+  void setInactive(bool inactive) {
+    chatState.setInactive(inactive);
+  }
+
+  void setCountdownWarningVisible(bool visible) {
+    chatState.setCountdownWarningVisible(visible);
+  }
+
+  void setSummaryBeingShown(bool shown) {
+    chatState.setSummaryBeingShown(shown);
+  }
+
+  void setSummaryCountdownSeconds(int seconds) {
+    chatState.setSummaryCountdownSeconds(seconds);
+  }
+
+  void setSummaryTimerActive(bool active) {
+    chatState.setSummaryTimerActive(active);
+  }
+
+  void markSummaryShown() {
+    chatState.markSummaryShown();
+  }
+
+  void setDrawerVisible(bool visible) {
+    chatState.setDrawerVisible(visible);
+  }
+
+  void setShowStickers(bool show) {
+    chatState.setShowStickers(show);
+  }
+
+  void setShowFlowerAnimation(bool show) {
+    chatState.setShowFlowerAnimation(show);
+  }
+
+  void setMusicPlaying(bool isPlaying) {
+    chatState.setMusicPlaying(isPlaying);
+  }
+
+  void setCountdownSeconds(int seconds) {
+    chatState.setCountdownSeconds(seconds);
+  }
+
+  // Method to send flower and update UI state
+  Future<int> sendFlower(
+    String userId,
+    String chatRoomId,
+    BuildContext context,
+  ) async {
+    final updatedCount = await _rewardService.sendFlower(
+      userId,
+      chatRoomId,
+      context,
+    );
+
+    if (updatedCount >= 0) {
+      // Show animation for 2 seconds
+      setShowFlowerAnimation(true);
+      Future.delayed(const Duration(seconds: 2), () {
+        setShowFlowerAnimation(false);
+      });
+    }
+
+    return updatedCount;
+  }
+
+  // Listen to flower events from the recipient
+  StreamSubscription<QuerySnapshot> listenForFlowerEvents(
+    String chatRoomId,
+    void Function(QuerySnapshot) handleEvent,
+  ) {
+    return _rewardService.listenToFlowerEvents(chatRoomId).listen(handleEvent);
+  }
+
+  void setErrorMessage(String? message) {
+    chatState.setErrorMessage(message);
+  }
+
+  void setUserTripJournals(List<Map<String, dynamic>> journals) {
+    chatState.userTripJournals = journals;
+  }
+  
+  void setIsLoadingTripJournals(bool loading) {
+    chatState.isLoadingTripJournals = loading;
   }
 }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../models/dataModels/message_model.dart';
 
 class ChatState extends ChangeNotifier {
+  // Message & Chat Data
   List<MessageModel> messages = [];
   String? otherUserId;
   String? currentUserId;
@@ -9,13 +10,19 @@ class ChatState extends ChangeNotifier {
   bool isOtherUserTyping = false;
   bool partnerLeft = false;
   List<String> stickerList = [];
+  int unsafeMessageCount = 0;
+  int safeMessageCount = 0;
+  int warningMessageCount = 0;
+  
+  // UI States
+  bool isDrawerVisible = false;
+  bool showStickers = false;
+  bool isCountdownWarningVisible = false;
+  bool isSummaryBeingShown = false;
   bool isLoadingStickers = false;
   bool isTyping = false;
   bool isChatOpen = true;
   String? errorMessage;
-  int unsafeMessageCount = 0;
-  int safeMessageCount = 0;
-  int warningMessageCount = 0;
   bool _hasSummaryShown = false;
   bool isInactive = false;
   bool isBanned = false;
@@ -23,6 +30,8 @@ class ChatState extends ChangeNotifier {
   bool _showFlowerAnimation = false;
   bool _isMusicPlaying = false;
   int _countdownSeconds = 0;
+  bool _isSummaryTimerActive = false;
+  int _summaryCountdownSeconds = 10; // 10 seconds countdown for summary dialog
 
   bool get reportedUser => _reportedUser;
 
@@ -30,6 +39,27 @@ class ChatState extends ChangeNotifier {
 
   List<Map<String, dynamic>> _userTripJournals = [];
   bool _isLoadingTripJournals = false;
+
+  // Setter methods for UI states
+  void setDrawerVisible(bool visible) {
+    isDrawerVisible = visible;
+    notifyListeners();
+  }
+
+  void setShowStickers(bool show) {
+    showStickers = show;
+    notifyListeners();
+  }
+
+  void setCountdownWarningVisible(bool visible) {
+    isCountdownWarningVisible = visible;
+    notifyListeners();
+  }
+
+  void setSummaryBeingShown(bool shown) {
+    isSummaryBeingShown = shown;
+    notifyListeners();
+  }
 
   // Getter and setter for userTripJournals
   List<Map<String, dynamic>> get userTripJournals => _userTripJournals;
@@ -184,6 +214,13 @@ class ChatState extends ChangeNotifier {
     isBanned = false;
     _reportedUser = false;
     isChatOpen = true;
+    _countdownSeconds = 0;
+    _summaryCountdownSeconds = 10;
+    _isSummaryTimerActive = false;
+    isDrawerVisible = false;
+    showStickers = false;
+    isCountdownWarningVisible = false;
+    isSummaryBeingShown = false;
     notifyListeners();
   }
 
@@ -191,6 +228,22 @@ class ChatState extends ChangeNotifier {
 
   void setShowFlowerAnimation(bool show) {
     _showFlowerAnimation = show;
+    notifyListeners();
+  }
+
+  // Add getter and setter for summary timer state
+  bool get isSummaryTimerActive => _isSummaryTimerActive;
+  
+  void setSummaryTimerActive(bool isActive) {
+    _isSummaryTimerActive = isActive;
+    notifyListeners();
+  }
+  
+  // Add getter and setter for summary countdown seconds
+  int get summaryCountdownSeconds => _summaryCountdownSeconds;
+  
+  void setSummaryCountdownSeconds(int seconds) {
+    _summaryCountdownSeconds = seconds;
     notifyListeners();
   }
 }

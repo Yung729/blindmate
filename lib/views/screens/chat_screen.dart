@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'package:blindmate/services/reward_service.dart';
 import 'package:blindmate/viewmodels/dataBinding/matching_data_binding.dart';
 import 'package:blindmate/viewmodels/eventHandlers/mission_event_handler.dart';
 import 'package:blindmate/viewmodels/eventHandlers/matching_event_handler.dart';
@@ -43,23 +42,14 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   late ChatEventHandler _chatEventHandler;
   late MatchingEventHandler _matchingEventHandler;
   
-  // UI State
-  bool _isDrawerVisible = false;
-  bool _showStickers = false;
-  bool _isCountdownWarningVisible = false;
-  bool _isSummaryBeingShown = false;
-  
-  // Services
-  final RewardService _rewardService = RewardService();
-  final GameInvitationService _gameInvitationService = GameInvitationService();
-  late MissionEventHandler _missionEventHandler;
-  
   // Local tracking
   int _localFlowerCount = 0;
-  DateTime? _chatStartTime;
+
+  // Services
+  final GameInvitationService _gameInvitationService = GameInvitationService();
+  late MissionEventHandler _missionEventHandler;
 
   // Subscriptions
-  StreamSubscription? _flowerEventSubscription;
   StreamSubscription? _gameInvitationSubscription;
   StreamSubscription? _gameInvitationResponseSubscription;
   StreamSubscription? _gameInvitationCancellationSubscription;
@@ -69,7 +59,6 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     super.initState();
     _initializeViewModels();
     _setupEventListeners();
-    _chatStartTime = DateTime.now();
     
     WidgetsBinding.instance.addObserver(this);
     
@@ -123,11 +112,6 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     // Listen for chat state changes
     _chatState.addListener(_handleChatStateChanges);
 
-    // Listen to flower events
-    _flowerEventSubscription = _rewardService
-        .listenToFlowerEvents(widget.chatRoomId)
-        .listen(_handleFlowerEvent);
-
     // Listen for game invitations
     _gameInvitationSubscription = _gameInvitationService
         .listenForInvitations(widget.currentUserId)
@@ -145,42 +129,24 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   }
 
   void _handleChatStateChanges() {
-    if (!mounted || _chatState.hasSummaryShown || _isSummaryBeingShown) {
+    if (!mounted || _chatState.hasSummaryShown || _chatState.isSummaryBeingShown) {
       return;
     }
 
     if (_chatState.isBanned) {
       _showBanDialog();
     } else if (_chatState.reportedUser) {
-      _handleChatExit(showSummary: true);
+      _chatEventHandler.handleChatExit(context, showSummary: true);
     } else if (_chatState.partnerLeft) {
       if (!_chatState.isBanned) {
-        _handleChatExit(showSummary: true);
+        _chatEventHandler.handleChatExit(context, showSummary: true);
       }
     } else if (_chatState.isInactive) {
       // Auto close without showing dialog
-      _handleChatExit(showSummary: true);
+      _chatEventHandler.handleChatExit(context, showSummary: true);
     } else if (_chatState.countdownSeconds > 0) {
       // Show the countdown warning
-      _showCountdownWarning();
-    }
-  }
-
-  void _handleFlowerEvent(dynamic snapshot) {
-    if (snapshot.docs.isNotEmpty) {
-      final event = snapshot.docs.first.data() as Map<String, dynamic>;
-      if (event['senderId'] != widget.currentUserId) {
-        // Use microtask for better performance
-        Future.microtask(() {
-          // Show flower animation for the other user
-          _chatState.setShowFlowerAnimation(true);
-          Future.delayed(const Duration(seconds: 2), () {
-            if (mounted) {
-              _chatState.setShowFlowerAnimation(false);
-            }
-          });
-        });
-      }
+      _chatEventHandler.showCountdownWarning(context);
     }
   }
 
@@ -229,14 +195,13 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     WidgetsBinding.instance.removeObserver(this);
     _chatState.removeListener(_handleChatStateChanges);
     _chatEventHandler.dispose();
-    _flowerEventSubscription?.cancel();
     _gameInvitationSubscription?.cancel();
     _gameInvitationResponseSubscription?.cancel();
     _gameInvitationCancellationSubscription?.cancel();
 
-    // Set music as stopped in the ChatState and close any active player
+    // Stop music playback when screen is closed
     if (_chatState.isMusicPlaying) {
-      _chatState.setMusicPlaying(false);
+      _chatDataBinding.setMusicPlaying(false);
     }
 
     super.dispose();
@@ -250,7 +215,7 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
         !_chatState.hasSummaryShown) {
       // Stop music playback when app goes to background
       if (_chatState.isMusicPlaying) {
-        _chatState.setMusicPlaying(false);
+        _chatDataBinding.setMusicPlaying(false);
       }
       _chatEventHandler.handleExit();
     }
@@ -260,11 +225,9 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   void didChangeMetrics() {
     super.didChangeMetrics();
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
-    if (bottomInset > 0 && _isDrawerVisible && !_showStickers) {
+    if (bottomInset > 0 && _chatState.isDrawerVisible && !_chatState.showStickers) {
       // Keyboard is visible and drawer is open, but not in sticker mode
-      setState(() {
-        _isDrawerVisible = false;
-      });
+      _chatEventHandler.updateDrawerVisibility(false);
     }
   }
 
@@ -285,12 +248,12 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
           status: "SUCCESS",
         );
       }
-      await _handleChatExit(showSummary: true);
+      await _chatEventHandler.handleChatExit(context, showSummary: true);
     }
   }
 
   Future<void> _showBanDialog() async {
-    if (_chatState.hasSummaryShown || _isSummaryBeingShown) return;
+    if (_chatState.hasSummaryShown || _chatState.isSummaryBeingShown) return;
 
     showErrorDialog(
       context,
@@ -298,85 +261,31 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       "Please be mindful of our community guidelines.",
       onOk: () async {
         Navigator.pop(context); // Close the dialog
-        await _handleChatExit(showSummary: true);
+        await _chatEventHandler.handleChatExit(context, showSummary: true);
       },
     );
   }
 
   Future<void> _confirmEndChat() async {
-    final shouldEnd = await showConfirmDialog(
+    await _chatEventHandler.confirmEndChat(
       context,
-      "End Chat?",
-      "Are you sure you want to leave this chat? This action cannot be undone.",
+      _missionEventHandler.trackMissionProgress,
     );
-    if (shouldEnd) {
-      final durationInSeconds =
-          DateTime.now().difference(_chatStartTime!).inSeconds;
-
-      // Track chat time-based mission progress
-      await _missionEventHandler.trackMissionProgress(
-        category: 'chat',
-        type: 'time',
-        actionTime: durationInSeconds,
-      );
-      
-      await _handleChatExit(showSummary: true);
-    }
   }
 
-  Future<void> _showChatSummary() async {
-    // Check both the state flag and local flag to prevent multiple dialogs
-    if (_chatState.hasSummaryShown || _isSummaryBeingShown) return;
-
-    // Set local flag to prevent concurrent calls
-    _isSummaryBeingShown = true;
-
-    await showCustomDialog(
-      context: context,
-      title: "Your Chat Summary",
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text("Safe messages: ${_chatState.safeMessageCount} 👍"),
-          const SizedBox(height: 4),
-          Text("Warning messages: ${_chatState.warningMessageCount} ⚠️"),
-          const SizedBox(height: 4),
-          Text("Unsafe messages: ${_chatState.unsafeMessageCount} 🚫"),
-          const SizedBox(height: 8),
-          Text(
-            "Total messages: ${_chatState.messages.where((m) => m.senderId == widget.currentUserId).length}",
-          ),
-        ],
-      ),
-      actions: [
-        TextButton(
-          onPressed: () {
-            Navigator.pop(context);
-          },
-          child: const Text("Close"),
-        ),
-      ],
-      barrierDismissible: false,
-    );
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _updateFlowerCount();
+    _handleErrorMessages();
   }
 
   Future<void> _sendFlower() async {
-    final updatedCount = await _rewardService.sendFlower(
-      widget.currentUserId,
-      widget.chatRoomId,
-      context,
-    );
+    final updatedCount = await _chatEventHandler.sendFlower(context);
 
     if (updatedCount >= 0) {
       setState(() {
         _localFlowerCount = updatedCount;
-      });
-      _chatState.setShowFlowerAnimation(true);
-      Future.delayed(const Duration(seconds: 2), () {
-        if (mounted) {
-          _chatState.setShowFlowerAnimation(false);
-        }
       });
     } else if (updatedCount == -1) {
       CustomSnackBar.show(
@@ -392,13 +301,6 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
         status: "WARNING",
       );
     }
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    _updateFlowerCount();
-    _handleErrorMessages();
   }
 
   void _updateFlowerCount() {
@@ -425,7 +327,7 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
           duration: const Duration(seconds: 2),
         );
         // Clear the error message after showing
-        chatState.setErrorMessage(null);
+        _chatEventHandler.clearErrorMessage();
       });
     }
   }
@@ -459,24 +361,12 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       text: text,
     );
     _chatEventHandler.resetInactivityTimer(context);
-    setState(() {
-      _isCountdownWarningVisible = false;
-    });
   }
   
   // Trip journals
   
   Future<void> _fetchUserTripJournals() async {
-    _chatState.isLoadingTripJournals = true;
-    final journals = await _chatDataBinding.fetchUserTripJournals(
-      widget.currentUserId,
-    );
-    if (mounted) {
-      setState(() {
-        _chatState.userTripJournals = journals;
-        _chatState.isLoadingTripJournals = false;
-      });
-    }
+    await _chatEventHandler.fetchUserTripJournals(widget.currentUserId);
   }
   
   // Game handling
@@ -627,48 +517,6 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
         });
   }
 
-  Future<void> _handleChatExit({required bool showSummary}) async {
-    if (showSummary) {
-      await _showChatSummary();
-      _chatState.markSummaryShown();
-      _isSummaryBeingShown = false;
-    }
-    
-    // Stop music playback when chat ends
-    if (_chatState.isMusicPlaying) {
-      _chatState.setMusicPlaying(false);
-    }
-    
-    await _chatEventHandler.handleExit();
-    if (mounted) {
-      Navigator.popUntil(context, (route) => route.isFirst);
-    }
-  }
-
-  void _showCountdownWarning() {
-    // Only show if not already shown
-    if (!_isCountdownWarningVisible) {
-      _isCountdownWarningVisible = true;
-      
-      // Clear any existing snackbars
-      ScaffoldMessenger.of(context).clearSnackBars();
-      
-      // Use the CustomSnackBar component with action button
-      CustomSnackBar.show(
-        context: context,
-        message: '⚠️ Chat inactive! Will close in ${_chatState.countdownSeconds} seconds.',
-        status: 'WARNING',
-        duration: const Duration(seconds: 10),
-        actionLabel: 'Keep Chatting',
-        onActionPressed: () {
-          // Reset the inactivity timer
-          _chatEventHandler.resetInactivityTimer(context);
-          _isCountdownWarningVisible = false;
-        },
-      );
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Consumer2<ChatState, AuthState>(
@@ -680,6 +528,14 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
             if (!mounted) return;
             _updateFlowerCount();
             _handleErrorMessages();
+          });
+        }
+
+        // Check for state changes that require UI updates
+        if (chatState.countdownSeconds > 0 && !chatState.isCountdownWarningVisible) {
+          Future.microtask(() {
+            if (!mounted) return;
+            _chatEventHandler.showCountdownWarning(context);
           });
         }
 
@@ -698,7 +554,7 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                 _buildMainChatUI(chatState, authState),
 
                 // Bottom drawer overlay
-                if (_isDrawerVisible)
+                if (chatState.isDrawerVisible)
                   _buildBottomDrawer(),
               ],
             ),
@@ -724,25 +580,21 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
           chatState: chatState,
           currentUserId: widget.currentUserId,
           currentUserAvatarImg: authState.currentUser?.avatarImg,
-          isDrawerVisible: _isDrawerVisible,
+          isDrawerVisible: chatState.isDrawerVisible,
           calculateDrawerHeight: _calculateDrawerHeight,
-          showStickers: _showStickers,
+          showStickers: chatState.showStickers,
         ),
         
         ChatInput(
           onSendMessage: _handleSendMessage,
           onTypingChanged: _chatEventHandler.updateTyping,
           onPlusButtonPressed: () {
-            setState(() {
-              _isDrawerVisible = !_isDrawerVisible;
-              _isCountdownWarningVisible = false;
-            });
+            _chatEventHandler.updateDrawerVisibility(!chatState.isDrawerVisible);
+            _chatEventHandler.updateCountdownWarningVisibility(false);
           },
           onResetInactivityTimer: () {
             _chatEventHandler.resetInactivityTimer(context);
-            setState(() {
-              _isCountdownWarningVisible = false;
-            });
+            _chatEventHandler.updateCountdownWarningVisibility(false);
           },
         ),
       ],
@@ -802,23 +654,19 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
               onSendMessage: _handleSendMessage,
               onTypingChanged: _chatEventHandler.updateTyping,
               onPlusButtonPressed: () {
-                setState(() {
-                  _isDrawerVisible = !_isDrawerVisible;
-                  _isCountdownWarningVisible = false;
-                });
+                _chatEventHandler.updateDrawerVisibility(!_chatState.isDrawerVisible);
+                _chatEventHandler.updateCountdownWarningVisibility(false);
               },
               onResetInactivityTimer: () {
                 _chatEventHandler.resetInactivityTimer(context);
-                setState(() {
-                  _isCountdownWarningVisible = false;
-                });
+                _chatEventHandler.updateCountdownWarningVisibility(false);
               },
             ),
             AnimatedContainer(
               duration: const Duration(milliseconds: 300),
               height: _calculateDrawerHeight(
                 context,
-                _showStickers,
+                _chatState.showStickers,
               ),
               decoration: const BoxDecoration(
                 color: Colors.white,
@@ -838,24 +686,20 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                 child: SizedBox(
                   height: _calculateDrawerHeight(
                     context,
-                    _showStickers,
+                    _chatState.showStickers,
                   ),
                   child: BottomDrawer(
                     onFlowerSelected: (_) async {
                       await _sendFlower();
-                      setState(() {
-                        _isDrawerVisible = false;
-                      });
+                      _chatEventHandler.updateDrawerVisibility(false);
                     },
                     onStickerSelected: (sticker) {
                       _chatEventHandler.sendMessage(
                         context,
                         stickerUrl: sticker,
                       );
-                      setState(() {
-                        _isDrawerVisible = false;
-                        _showStickers = false;
-                      });
+                      _chatEventHandler.updateDrawerVisibility(false);
+                      _chatEventHandler.updateStickerVisibility(false);
                     },
                     onPlayMiniGame: () {
                       _showGameSelectionDialog();
@@ -869,9 +713,7 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                             musicUrl: url,
                             musicTitle: title,
                           );
-                          setState(() {
-                            _isDrawerVisible = false;
-                          });
+                          _chatEventHandler.updateDrawerVisibility(false);
                         },
                       );
                     },
@@ -887,9 +729,7 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                                   context,
                                   entries,
                                 );
-                            setState(() {
-                              _isDrawerVisible = false;
-                            });
+                            _chatEventHandler.updateDrawerVisibility(false);
                           }
                         },
                         pastJournals: _chatState.userTripJournals,
@@ -900,11 +740,9 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                       _chatEventHandler.searchStickers(query);
                     },
                     stickerList: _chatState.stickerList,
-                    showStickers: _showStickers,
+                    showStickers: _chatState.showStickers,
                     toggleStickers: (bool value) {
-                      setState(() {
-                        _showStickers = value;
-                      });
+                      _chatEventHandler.updateStickerVisibility(value);
                     },
                     flowerCount: _localFlowerCount,
                   ),
