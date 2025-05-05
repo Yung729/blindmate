@@ -2,7 +2,6 @@ import 'package:blindmate/views/UIComponents/custom_button.dart';
 import 'package:blindmate/views/UIComponents/empty_message.dart';
 import 'package:blindmate/models/dataModels/rewards_model.dart';
 import 'package:blindmate/models/dataModels/user_model.dart';
-import 'package:blindmate/models/dataModels/user_reward_model.dart';
 import 'package:blindmate/views/UIComponents/image_frame.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -18,7 +17,6 @@ class SwitchAvatarScreen extends StatefulWidget {
 }
 
 class _SwitchAvatarScreenState extends State<SwitchAvatarScreen> {
-  List<UserReward> redeemRewardId = [];
   List<RewardModel> uniqueRewards = [];
   bool _isLoading = true;
   late final RedeemRewardEventHandler rewardEventHandler;
@@ -37,22 +35,6 @@ class _SwitchAvatarScreenState extends State<SwitchAvatarScreen> {
   Future<void> _fetchUserRewards(String userId) async {
     uniqueRewards = (await rewardEventHandler
         .handleFetchUserRewards(context, widget.user!.userId))!;
-    // List<RewardModel> allFetchedRewards = [];
-
-    // for (var reward in userRewardList) {
-    //   if (reward != null) {
-    //     allFetchedRewards.add(reward);
-    //   }
-    // }
-
-    // // Remove duplicates based on redeemRewardId
-    // Set<String> seenIds = {};
-    // uniqueRewards =
-    //     allFetchedRewards.where((reward) {
-    //       bool seen = seenIds.contains(reward.redeemRewardId);
-    //       if (!seen) seenIds.add(reward.redeemRewardId);
-    //       return !seen;
-    //     }).toList();
 
     setState(() {
       _isLoading = false;
@@ -72,11 +54,7 @@ class _SwitchAvatarScreenState extends State<SwitchAvatarScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Avatar',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 10),
             Expanded(
               child:
                   _isLoading
@@ -87,176 +65,129 @@ class _SwitchAvatarScreenState extends State<SwitchAvatarScreen> {
                       ? EmptyRewardsMessage(
                         message: "You have not redeemed any rewards!",
                       )
-                      : SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        child: Row(
-                          children:
-                              uniqueRewards.map((reward) {
-                                bool isCurrentAvatar =
-                                    widget.user?.avatarImg == reward.imageUrl;
-                                return Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 8.0,
-                                  ),
-                                  child: GestureDetector(
-                                    onTap:
-                                        isCurrentAvatar
-                                            ? null
-                                            : () async {
-                                              final confirm = await showDialog<
-                                                bool
-                                              >(
-                                                context: context,
-                                                builder:
-                                                    (context) => AlertDialog(
-                                                      title: const Text(
-                                                        'Switch Avatar',
-                                                      ),
-                                                      content: const Text(
-                                                        'Are you sure you want to use this avatar?',
-                                                      ),
-                                                      actions: [
-                                                        TextButton(
-                                                          onPressed:
-                                                              () =>
-                                                                  Navigator.of(
-                                                                    context,
-                                                                  ).pop(false),
-                                                          child: const Text(
-                                                            'Cancel',
-                                                          ),
-                                                        ),
-                                                        TextButton(
-                                                          onPressed:
-                                                              () =>
-                                                                  Navigator.of(
-                                                                    context,
-                                                                  ).pop(true),
-                                                          child: const Text(
-                                                            'Yes',
-                                                            style: TextStyle(
-                                                              color: Colors.red,
-                                                            ),
-                                                          ),
-                                                        ),
-                                                      ],
-                                                    ),
-                                              );
-
-                                              if (confirm == true) {
-                                                await rewardEventHandler.switchAvatar(
-                                                  widget.user!.userId,
-                                                  reward.imageUrl ?? '',
-                                                );
-
-                                                // Update global AuthState so all screens react
-                                                if (mounted) {
-                                                  Provider.of<AuthState>(
-                                                    context,
-                                                    listen: false,
-                                                  ).updateAvatar(
-                                                    reward.imageUrl ?? '',
-                                                  );
-                                                }
-
-                                                setState(() {
-                                                  widget.user!.avatarImg =
-                                                      reward.imageUrl ?? '';
-                                                });
-                                              }
-                                            },
-                                    child: Column(
-                                      children: [
-                                        NetworkImageBox(
-                                          imageUrl: reward.imageUrl,
-                                          title: reward.rewardTitle,
+                      : GridView.builder(
+                          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 2,
+                            childAspectRatio: 0.75,
+                            crossAxisSpacing: 12,
+                            mainAxisSpacing: 12,
+                          ),
+                          itemCount: uniqueRewards.length,
+                          itemBuilder: (context, index) {
+                            final reward = uniqueRewards[index];
+                            bool isCurrentAvatar = widget.user?.avatarImg == reward.imageUrl;
+                            
+                            return GestureDetector(
+                              onTap: isCurrentAvatar
+                                  ? null
+                                  : () async {
+                                      final confirm = await showDialog<bool>(
+                                        context: context,
+                                        builder: (context) => AlertDialog(
+                                          title: const Text('Switch Avatar'),
+                                          content: const Text('Are you sure you want to use this avatar?'),
+                                          actions: [
+                                            TextButton(
+                                              onPressed: () => Navigator.of(context).pop(false),
+                                              child: const Text('Cancel'),
+                                            ),
+                                            TextButton(
+                                              onPressed: () => Navigator.of(context).pop(true),
+                                              child: const Text(
+                                                'Yes',
+                                                style: TextStyle(color: Colors.red),
+                                              ),
+                                            ),
+                                          ],
                                         ),
-                                        CustomButton(
-                                          text:
-                                              isCurrentAvatar
-                                                  ? 'Current'
-                                                  : 'Apply',
-                                          onPressed:
-                                              isCurrentAvatar
-                                                  ? null
-                                                  : () async {
-                                                    final confirm = await showDialog<
-                                                      bool
-                                                    >(
-                                                      context: context,
-                                                      builder:
-                                                          (
-                                                            context,
-                                                          ) => AlertDialog(
-                                                            title: const Text(
-                                                              'Switch Avatar',
-                                                            ),
-                                                            content: const Text(
-                                                              'Are you sure you want to use this avatar?',
-                                                            ),
-                                                            actions: [
-                                                              TextButton(
-                                                                onPressed:
-                                                                    () => Navigator.of(
-                                                                      context,
-                                                                    ).pop(true),
-                                                                child:
-                                                                    const Text(
-                                                                      'Yes',
-                                                                    ),
-                                                              ),
-                                                              TextButton(
-                                                                onPressed:
-                                                                    () => Navigator.of(
-                                                                      context,
-                                                                    ).pop(
-                                                                      false,
-                                                                    ),
-                                                                child: const Text(
-                                                                  'Cancel',
-                                                                  style: TextStyle(
-                                                                    color:
-                                                                        Colors
-                                                                            .red,
-                                                                  ),
-                                                                ),
-                                                              ),
-                                                            ],
-                                                          ),
-                                                    );
+                                      );
 
-                                                    if (confirm == true) {
-                                                      
+                                      if (confirm == true) {
+                                        // Get updated user including refreshed avatar
+                                        final updatedUser = await rewardEventHandler.switchAvatar(
+                                          widget.user!.userId,
+                                          reward.imageUrl,
+                                        );
 
-                                                      if (mounted) {
-                                                        Provider.of<AuthState>(
-                                                          context,
-                                                          listen: false,
-                                                        ).updateAvatar(
-                                                          reward.imageUrl ?? '',
-                                                        );
-                                                      }
-
-                                                      setState(() {
-                                                        widget.user!.avatarImg =
-                                                            reward.imageUrl ??
-                                                            '';
-                                                      });
-                                                    }
-                                                  },
-                                          horizontalPadding: 12,
-                                          verticalPadding: 8,
-                                          fontSize: 12,
-                                          borderRadius: 20,
-                                          width: 80,
-                                        ),
-                                      ],
-                                    ),
+                                        // Update global AuthState so all screens react
+                                        if (mounted && updatedUser != null) {
+                                          final authState = Provider.of<AuthState>(
+                                            context,
+                                            listen: false,
+                                          );
+                                          // Update the entire user object, not just the avatar
+                                          authState.setCurrentUser(updatedUser);
+                                          
+                                          // Update local state
+                                          setState(() {
+                                            // Use the updated user data from Firebase
+                                            widget.user!.avatarImg = updatedUser.avatarImg;
+                                          });
+                                        }
+                                      }
+                                    },
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  NetworkImageBox(
+                                    imageUrl: reward.imageUrl,
+                                    title: reward.rewardTitle,
                                   ),
-                                );
-                              }).toList(),
+                                  CustomButton(
+                                    text: isCurrentAvatar ? 'Current' : 'Apply',
+                                    onPressed: isCurrentAvatar ? null : () async {
+                                      final confirm = await showDialog<bool>(
+                                        context: context,
+                                        builder: (context) => AlertDialog(
+                                          title: const Text('Switch Avatar'),
+                                          content: const Text('Are you sure you want to use this avatar?'),
+                                          actions: [
+                                            TextButton(
+                                              onPressed: () => Navigator.of(context).pop(false),
+                                              child: const Text('Cancel'),
+                                            ),
+                                            TextButton(
+                                              onPressed: () => Navigator.of(context).pop(true),
+                                              child: const Text(
+                                                'Yes',
+                                                style: TextStyle(color: Colors.red),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      );
+
+                                      if (confirm == true) {
+                                        final updatedUser = await rewardEventHandler.switchAvatar(
+                                          widget.user!.userId,
+                                          reward.imageUrl,
+                                        );
+
+                                        if (mounted && updatedUser != null) {
+                                          final authState = Provider.of<AuthState>(
+                                            context,
+                                            listen: false,
+                                          );
+                                          authState.setCurrentUser(updatedUser);
+                                          
+                                          setState(() {
+                                            widget.user!.avatarImg = updatedUser.avatarImg;
+                                          });
+                                        }
+                                      }
+                                    },
+                                    horizontalPadding: 12,
+                                    verticalPadding: 8,
+                                    fontSize: 12,
+                                    borderRadius: 20,
+                                    width: 80,
+                                    backgroundColor: isCurrentAvatar ? Colors.green : Colors.blue,
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
                         ),
-                      ),
             ),
           ],
         ),

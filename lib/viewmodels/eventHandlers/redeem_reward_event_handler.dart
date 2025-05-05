@@ -2,7 +2,7 @@ import 'package:blindmate/viewmodels/dataBinding/redeem_reward_data_binding.dart
 import 'package:flutter/material.dart';
 import 'package:blindmate/models/dataModels/user_model.dart';
 import 'package:blindmate/models/dataModels/rewards_model.dart';
-import 'package:blindmate/models/dataModels/user_reward_model.dart';
+import 'package:blindmate/services/auth_service.dart';
 
 class RedeemRewardEventHandler {
   final UserModel user;
@@ -79,11 +79,20 @@ class RedeemRewardEventHandler {
     }
   }
 
-  Future<void> switchAvatar(String userId, String imageUrl) async {
+  Future<UserModel?> switchAvatar(String userId, String imageUrl) async {
     try {
+      // Update avatar in Firebase
       await dataBinding.switchAvatar(userId, imageUrl);
+      
+      // Fetch updated user data from Firebase to ensure UI reflects the change
+      final authService = AuthService();
+      final updatedUser = await authService.loadUserData();
+      
+      // Return the updated user data
+      return updatedUser;
     } catch (e) {
       print("Error in switching avatar: $e");
+      return null;
     }
   }
 }

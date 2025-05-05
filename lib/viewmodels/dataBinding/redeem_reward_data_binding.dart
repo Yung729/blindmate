@@ -1,5 +1,4 @@
 import 'package:blindmate/models/dataModels/rewards_model.dart';
-import 'package:blindmate/models/dataModels/user_reward_model.dart';
 import 'package:blindmate/services/reward_service.dart';
 import 'package:flutter/material.dart';
 import 'package:blindmate/models/dataModels/user_model.dart';
@@ -67,10 +66,12 @@ class RedeemRewardDataBinding {
 
   Future<void> switchAvatar(String userId, String imageUrl) async {
     try {
+      // Update the avatar in Firebase
       await rewardService.updateUserAvatar(userId, imageUrl);
       print("Avatar switched successfully!");
     } catch (e) {
       print("Error switching avatar: $e");
+      rethrow; // Rethrow so the caller can handle the error
     }
   }
 }

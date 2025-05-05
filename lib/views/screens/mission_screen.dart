@@ -1,4 +1,3 @@
-import 'package:blindmate/models/dataModels/mission_model.dart';
 import 'package:blindmate/viewmodels/eventHandlers/mission_event_handler.dart';
 import 'package:blindmate/viewmodels/state/auth_state.dart';
 import 'package:blindmate/viewmodels/state/do_mission_state.dart';
@@ -100,12 +99,9 @@ class _DoMissionScreenState extends State<DoMissionScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   IconButton(
-                    icon: const Text(
-                      '三',
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                      ),
+                    icon: const Icon(
+                      Icons.history,
+                      size: 24,
                     ),
                     onPressed: () {
                       Navigator.push(

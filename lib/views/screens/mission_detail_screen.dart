@@ -14,8 +14,6 @@ class _MissionDetailScreenState extends State<MissionDetailScreen> {
   @override
   Widget build(BuildContext context) {
     final mission = widget.mission;
-    double progress =
-        (mission.progress ?? 0) / (mission.requirements.target ?? 1);
 
     return Scaffold(
       appBar: AppBar(

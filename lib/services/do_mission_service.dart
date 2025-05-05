@@ -27,13 +27,6 @@ class MissionService {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     
-    // First check if user already has active missions
-    final activeMissions = await fetchStatusTrueMissions(currentUser.uid);
-    if (activeMissions.isNotEmpty) {
-      print("Found ${activeMissions.length} active missions for user. No need to regenerate.");
-      return false;
-    }
-
     // Get the most recent mission's creation date
     final missions = await FirebaseFirestore.instance
         .collection('mission')
@@ -123,26 +116,21 @@ class MissionService {
     final today = DateTime(now.year, now.month, now.day);
     final tomorrow = today.add(const Duration(days: 1));
     
+    // Create Timestamp objects for today's start and end
+    final todayStart = Timestamp.fromDate(today);
+    final todayEnd = Timestamp.fromDate(tomorrow);
+    
     final querySnapshot = await missionsRef
         .where('assignedUser', isEqualTo: userId)
         .where('status', isEqualTo: true)
         .where('finished', isEqualTo: false)
+        .where('createdAt', isGreaterThanOrEqualTo: todayStart)
+        .where('createdAt', isLessThan: todayEnd)
         .get();
         
-    // Filter out missions not created today
-    final missions = querySnapshot.docs.map((doc) {
-      return MissionModel.fromMap(doc.data(), doc.id);
-    }).where((mission) {
-      // Convert timestamp to date only (no time)
-      final missionDate = DateTime(
-        mission.createdAt.toDate().year,
-        mission.createdAt.toDate().month,
-        mission.createdAt.toDate().day,
-      );
-      
-      // Keep only missions created today
-      return missionDate.isAtSameMomentAs(today);
-    }).toList();
+    final missions = querySnapshot.docs
+        .map((doc) => MissionModel.fromMap(doc.data(), doc.id))
+        .toList();
     
     print("Found ${missions.length} active missions for today for user: $userId");
     return missions;
@@ -174,40 +162,37 @@ class MissionService {
         return;
       }
       
-      bool shouldRegenerate = await isDateAfterCreated();
-
-      if (shouldRegenerate) {
-        await clearMissionList();
+      // Check if we need to generate missions today (based on date)
+      bool shouldGenerate = await isDateAfterCreated();
+      if (!shouldGenerate) {
+        print("❌ No need to generate missions today based on date check.");
+        return;
       }
-      print("Should regenerate missions today? $shouldRegenerate");
 
-      // Only proceed with generation if we should regenerate AND user has no active missions
-      if (shouldRegenerate) {
-        final geminiService = GeminiModerationService();
-        final geminiJson = await geminiService.generateMissionJsonFromPrompt();
+      // Deactivate old missions before generating new ones
+      await clearMissionList();
+      
+      // Generate new missions
+      final geminiService = GeminiModerationService();
+      final geminiJson = await geminiService.generateMissionJsonFromPrompt();
 
-        final parsed = json.decode(geminiJson);
-
-        if (parsed['missions'] == null || parsed['missions'] is! List) {
-          throw Exception(
-            'No missions found in the Gemini response or invalid format',
-          );
-        }
-
-        final assignedUserId = currentUser.uid;
-
-        // 2. Build list of MissionModel with added fields
-        final missions =
-            (parsed['missions'] as List).map((e) {
-              e['status'] = true;
-              e['assignedUser'] = assignedUserId;
-              e['progress'] = 0;
-              return MissionModel.fromMap(e, e['id']);
-            }).toList();
-
-        await saveGeneratedMissionsToFirebase(missions);
-        print("✅ Generated ${missions.length} new missions for user: $assignedUserId");
+      final parsed = json.decode(geminiJson);
+      if (parsed['missions'] == null || parsed['missions'] is! List) {
+        throw Exception('No missions found in the Gemini response or invalid format');
       }
+
+      final assignedUserId = currentUser.uid;
+
+      // Build list of MissionModel with added fields
+      final missions = (parsed['missions'] as List).map((e) {
+        e['status'] = true;
+        e['assignedUser'] = assignedUserId;
+        e['progress'] = 0;
+        return MissionModel.fromMap(e, e['id']);
+      }).toList();
+
+      await saveGeneratedMissionsToFirebase(missions);
+      print("✅ Generated ${missions.length} new missions for user: $assignedUserId");
     } catch (e) {
       print('❌ Error during mission generation: $e');
       rethrow;

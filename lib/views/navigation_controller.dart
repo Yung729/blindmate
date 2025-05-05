@@ -12,7 +12,7 @@ import 'package:percent_indicator/percent_indicator.dart';
 import 'package:provider/provider.dart';
 import 'screens/home_screen.dart';
 import 'screens/sharing_screen.dart';
-import 'screens/do_mission_screen.dart';
+import 'screens/mission_screen.dart';
 
 class NavigationController extends StatefulWidget {
   const NavigationController({super.key});
@@ -27,7 +27,7 @@ class _NavigationControllerState extends State<NavigationController> {
   int _currentIndex = 0;
 
   // Define the question_circle_fill icon
-  static const IconData question_circle_fill = IconData(
+  static const IconData questionCircleFill = IconData(
     0xf790,
     fontFamily: 'CupertinoIcons',
     fontPackage: 'cupertino_icons',
@@ -568,7 +568,7 @@ class _NavigationControllerState extends State<NavigationController> {
                                   GestureDetector(
                                     onTap: () => _showLevelGuidanceDialog(context),
                                     child: const Icon(
-                                      question_circle_fill,
+                                      questionCircleFill,
                                       color: Colors.black,
                                       size: 20,
                                     ),

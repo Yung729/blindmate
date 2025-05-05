@@ -1,6 +1,5 @@
 import 'package:blindmate/models/dataModels/user_model.dart';
 import 'package:flutter/material.dart';
-import 'package:blindmate/models/dataModels/mission_model.dart';
 import 'package:blindmate/viewmodels/eventHandlers/mission_event_handler.dart';
 import 'package:blindmate/viewmodels/state/do_mission_state.dart';
 import 'package:provider/provider.dart';

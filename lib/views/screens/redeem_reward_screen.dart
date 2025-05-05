@@ -9,6 +9,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import '../../models/dataModels/user_model.dart';
 import 'package:blindmate/views/UIComponents/crystal_box.dart';
+import 'package:provider/provider.dart';
+import 'package:blindmate/viewmodels/state/auth_state.dart';
 
 class RedeemRewardScreen extends StatefulWidget {
   final UserModel user;
@@ -51,10 +53,19 @@ class _RedeemRewardScreenState extends State<RedeemRewardScreen> {
   }
 
   Future<void> _loadUserData() async {
-    final user = await RedeemRewardScreen.fetchUserData();
-    setState(() {
-      _currentUser = user;
-    });
+    // Try to get the current user from AuthState first
+    final authState = Provider.of<AuthState>(context, listen: false);
+    if (authState.currentUser != null) {
+      setState(() {
+        _currentUser = authState.currentUser;
+      });
+    } else {
+      // Fallback to fetching from Firebase
+      final user = await RedeemRewardScreen.fetchUserData();
+      setState(() {
+        _currentUser = user;
+      });
+    }
   }
 
   Future<void> _loadRewards() async {
@@ -85,13 +96,14 @@ class _RedeemRewardScreenState extends State<RedeemRewardScreen> {
       print("Redeemed reward IDs: $redeemedRewardIds");
 
       // Filter out rewards that have been redeemed
-      final unredeemedRewards = allFetchedRewards.where((reward) {
-        // Always include flowers
-        if (reward.rewardTitle == 'flower') return true;
+      final unredeemedRewards =
+          allFetchedRewards.where((reward) {
+            // Always include flowers
+            if (reward.rewardTitle == 'flower') return true;
 
-        // Only include unredeemed non-flower rewards
-        return !redeemedRewardIds.contains(reward.redeemRewardId);
-      }).toList();
+            // Only include unredeemed non-flower rewards
+            return !redeemedRewardIds.contains(reward.redeemRewardId);
+          }).toList();
 
       print("All rewards count: ${allFetchedRewards.length}");
       print("Unredeemed rewards count: ${unredeemedRewards.length}");
@@ -261,9 +273,9 @@ class RewardSection extends StatelessWidget {
                           (reward) => Padding(
                             padding: const EdgeInsets.only(right: 12.0),
                             child: RewardButton(
-                              imagePath: reward.imageUrl ?? '',
-                              title: reward.rewardTitle ?? '',
-                              cost: reward.fragmentCost ?? 0,
+                              imagePath: reward.imageUrl,
+                              title: reward.rewardTitle,
+                              cost: reward.fragmentCost,
                               onPressed: () async {
                                 final confirm = await _confirmRedemption(
                                   context,
@@ -293,9 +305,9 @@ class RewardSection extends StatelessWidget {
                       (reward) => Padding(
                         padding: const EdgeInsets.only(right: 12.0),
                         child: RewardButton(
-                          imagePath: reward.imageUrl ?? '',
-                          title: reward.rewardTitle ?? '',
-                          cost: reward.fragmentCost ?? 0,
+                          imagePath: reward.imageUrl,
+                          title: reward.rewardTitle,
+                          cost: reward.fragmentCost,
                           onPressed: () async {
                             final confirm = await _confirmRedemption(
                               context,

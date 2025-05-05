@@ -58,13 +58,12 @@ class MissionDataBinding {
   /// Generate new missions if needed (once per day)
   Future<void> generateDailyMissionsIfNeeded() async {
     try {
-      // Check if we need to generate new missions today
-      final shouldGenerate = await _missionService.isDateAfterCreated();
+      final currentUser = FirebaseAuth.instance.currentUser;
+      if (currentUser == null) return;
       
-      if (shouldGenerate) {
-        // Generate new missions
-        await _missionService.generateAndStoreMissions();
-      }
+      // The generateAndStoreMissions method already has all the necessary checks
+      // to determine if missions need to be generated
+      await _missionService.generateAndStoreMissions();
     } catch (e) {
       debugPrint("❌ Failed to generate daily missions: $e");
     }
