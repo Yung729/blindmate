@@ -42,6 +42,7 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   late TextEditingController _messageController;
   bool _isDrawerVisible = false;
   bool _showStickers = false;
+  bool _isCountdownWarningVisible = false;
   final RewardService _rewardService = RewardService();
   final GameInvitationService _gameInvitationService = GameInvitationService();
   int _localFlowerCount = 0;
@@ -116,7 +117,11 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
           _handleChatExit(showSummary: true);
         }
       } else if (_chatState.isInactive) {
-        _showInactivityDialog();
+        // Auto close without showing dialog
+        _handleChatExit(showSummary: true);
+      } else if (_chatState.countdownSeconds > 0) {
+        // Show the countdown warning
+        _showCountdownWarning();
       }
     });
 
@@ -322,29 +327,6 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
             Navigator.pop(context);
           },
           child: const Text("Close"),
-        ),
-      ],
-      barrierDismissible: false,
-    );
-  }
-
-  Future<void> _showInactivityDialog() async {
-    if (_chatState.hasSummaryShown || _isSummaryBeingShown) return;
-
-    await showCustomDialog(
-      context: context,
-      title: "Chat Inactive",
-      content: const Text(
-        "No messages were sent for 10 minutes. This chat will now close.",
-      ),
-      actions: [
-        TextButton(
-          onPressed: () async {
-            Navigator.pop(context);
-            // We don't need to call closeChatRoom again as it was already called by the timer
-            await _handleChatExit(showSummary: true);
-          },
-          child: const Text("OK"),
         ),
       ],
       barrierDismissible: false,
@@ -802,8 +784,11 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                 onPressed: () {
                   // Dismiss keyboard when opening drawer
                   FocusScope.of(context).unfocus();
+                  // Reset inactivity timer on interaction
+                  _chatHandler.resetInactivityTimer(context);
                   setState(() {
                     _isDrawerVisible = !_isDrawerVisible;
+                    _isCountdownWarningVisible = false;
                   });
                 },
               ),
@@ -835,6 +820,9 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                           } else {
                             _chatHandler.updateTyping(false);
                           }
+                          // Reset inactivity timer when typing
+                          _chatHandler.resetInactivityTimer(context);
+                          _isCountdownWarningVisible = false;
                         },
                         onSubmitted: (_) => _chatHandler.resetInactivityTimer(context),
                         decoration: InputDecoration(
@@ -864,7 +852,11 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                                     text: _messageController.text,
                                   );
                                   _messageController.clear();
-                                  setState(() {}); // Update send button state
+                                  // Reset inactivity timer and clear countdown warning
+                                  _chatHandler.resetInactivityTimer(context);
+                                  setState(() {
+                                    _isCountdownWarningVisible = false;
+                                  });
                                 }
                                 : null,
                       ),
@@ -1046,6 +1038,31 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     await _chatHandler.handleExit();
     if (mounted) {
       Navigator.popUntil(context, (route) => route.isFirst);
+    }
+  }
+
+  // Add a helper method to show the countdown warning
+  void _showCountdownWarning() {
+    // Only show if not already shown
+    if (!_isCountdownWarningVisible) {
+      _isCountdownWarningVisible = true;
+      
+      // Clear any existing snackbars
+      ScaffoldMessenger.of(context).clearSnackBars();
+      
+      // Use the CustomSnackBar component with action button
+      CustomSnackBar.show(
+        context: context,
+        message: '⚠️ Chat inactive! Will close in ${_chatState.countdownSeconds} seconds.',
+        status: 'WARNING',
+        duration: const Duration(seconds: 10),
+        actionLabel: 'Keep Chatting',
+        onActionPressed: () {
+          // Reset the inactivity timer
+          _chatHandler.resetInactivityTimer(context);
+          _isCountdownWarningVisible = false;
+        },
+      );
     }
   }
 }

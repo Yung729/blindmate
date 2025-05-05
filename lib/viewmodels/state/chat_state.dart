@@ -22,6 +22,7 @@ class ChatState extends ChangeNotifier {
   bool _reportedUser = false;
   bool _showFlowerAnimation = false;
   bool _isMusicPlaying = false;
+  int _countdownSeconds = 0;
 
   bool get reportedUser => _reportedUser;
 
@@ -42,6 +43,17 @@ class ChatState extends ChangeNotifier {
   set isLoadingTripJournals(bool value) {
     _isLoadingTripJournals = value;
     notifyListeners();
+  }
+
+  // Add getter for countdown seconds
+  int get countdownSeconds => _countdownSeconds;
+
+  // Add setter for countdown seconds
+  void setCountdownSeconds(int seconds) {
+    if (_countdownSeconds != seconds) {
+      _countdownSeconds = seconds;
+      notifyListeners();
+    }
   }
 
   void setMusicPlaying(bool isPlaying) {

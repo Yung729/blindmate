@@ -6,6 +6,8 @@ class CustomSnackBar {
     required String message,
     String? status,
     Duration duration = const Duration(seconds: 2),
+    String? actionLabel,
+    VoidCallback? onActionPressed,
   }) {
     Color backgroundColor;
     switch (status?.toUpperCase()) {
@@ -31,6 +33,13 @@ class CustomSnackBar {
         behavior: SnackBarBehavior.floating,
         margin: const EdgeInsets.all(4),
         duration: duration,
+        action: actionLabel != null && onActionPressed != null
+            ? SnackBarAction(
+                label: actionLabel,
+                textColor: Colors.white,
+                onPressed: onActionPressed,
+              )
+            : null,
       ),
     );
   }

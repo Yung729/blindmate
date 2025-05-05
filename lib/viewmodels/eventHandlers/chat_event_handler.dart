@@ -17,6 +17,10 @@ class ChatEventHandler {
   bool _isChatOpen = true;
   Timer? _inactivityTimer;
   Timer? _typingTimer;
+  Timer? _warningTimer;
+  Timer? _countdownTimer;
+  int _countdownSeconds = 10;
+  static const int inactivityDurationMinutes = 1;
 
   StreamSubscription? typingStatusSubscription;
   StreamSubscription? chatUpdatesSubscription;
@@ -126,15 +130,27 @@ class ChatEventHandler {
     _startInactivityTimer(context);
   }
 
-  // Reset the inactivity timer when there's user activity
+  // Reset all timers when there's user activity
   void resetInactivityTimer(BuildContext context) {
     _inactivityTimer?.cancel();
+    _warningTimer?.cancel();
+    _countdownTimer?.cancel();
+    
+    // Reset the countdown counter
+    _countdownSeconds = 10;
+    
+    // Reset the countdown state to zero (to hide any UI warnings)
+    chatState.setCountdownSeconds(0);
+    
+    // Start the timers again
     _startInactivityTimer(context);
   }
 
   // Clean up resources when chat is closed
   void dispose() {
     _inactivityTimer?.cancel();
+    _warningTimer?.cancel();
+    _countdownTimer?.cancel();
     _typingTimer?.cancel();
     typingStatusSubscription?.cancel();
     chatUpdatesSubscription?.cancel();
@@ -142,12 +158,47 @@ class ChatEventHandler {
 
   // Start or restart the inactivity timer
   void _startInactivityTimer(BuildContext? context) {
-    const inactivityDuration = Duration(minutes: 1);
+    const inactivityDuration = Duration(minutes: inactivityDurationMinutes);
+    const warningDuration = Duration(minutes: inactivityDurationMinutes - 1, seconds: 50);
     
+    // Cancel any existing timers
     _inactivityTimer?.cancel();
+    _warningTimer?.cancel();
+    _countdownTimer?.cancel();
+    
+    // Main inactivity timer - will close the chat after 10 minutes
     _inactivityTimer = Timer(inactivityDuration, () {
       if (chatState.isChatOpen) {
         chatState.setInactive(true);
+        // Close the chat room to notify the other user
+        dataBinding.closeChatRoom(chatRoomId);
+      }
+    });
+    
+    // Warning timer - will show a countdown 10 seconds before timeout
+    _warningTimer = Timer(warningDuration, () {
+      if (chatState.isChatOpen) {
+        // Reset the countdown
+        _countdownSeconds = 10;
+        // Start the countdown timer
+        _startCountdownTimer(context);
+      }
+    });
+  }
+  
+  void _startCountdownTimer(BuildContext? context) {
+    _countdownTimer?.cancel();
+    
+    // Create countdown timer that ticks every second
+    _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      _countdownSeconds--;
+      
+      // Send the countdown update to state
+      chatState.setCountdownSeconds(_countdownSeconds);
+      
+      // When countdown reaches zero, cancel the timer
+      if (_countdownSeconds <= 0) {
+        _countdownTimer?.cancel();
       }
     });
   }
