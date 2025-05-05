@@ -7,14 +7,12 @@ import 'loading_indicator.dart';
 class FloatingYoutubePlayer extends StatefulWidget {
   final String youtubeUrl;
   final String? title;
-  final Key playerKey;
 
   const FloatingYoutubePlayer({
-    Key? key,
+    super.key,
     required this.youtubeUrl,
     this.title,
-    required this.playerKey,
-  }) : super(key: playerKey);
+  });
 
   @override
   State<FloatingYoutubePlayer> createState() => _FloatingYoutubePlayerState();
@@ -26,8 +24,8 @@ class _FloatingYoutubePlayerState extends State<FloatingYoutubePlayer>
   String? _videoId;
   bool _isPlaying = false;
   bool _isReady = false;
-  bool _isInitializing = false;
-  bool _isLoading = false;
+  bool _isInitializing = true; // Start with initializing set to true
+  bool _isLoading = true; // Start with loading set to true
   double _sliderValue = 0.0;
   bool _isDisposed = false;
 
@@ -47,25 +45,31 @@ class _FloatingYoutubePlayerState extends State<FloatingYoutubePlayer>
     if (widget.youtubeUrl != oldWidget.youtubeUrl) {
       _safeDisposeController();
       _videoId = YoutubePlayer.convertUrlToId(widget.youtubeUrl);
-      _initializePlayer();
       if (mounted) {
         setState(() {
           _isPlaying = false;
           _isReady = false;
-          _isInitializing = false;
-          _isLoading = false;
+          _isInitializing = true; // Set to true when URL changes
+          _isLoading = true; // Set to true when URL changes
           _sliderValue = 0.0;
         });
       }
+      _initializePlayer();
     }
   }
 
   void _initializePlayer() {
     if (_videoId == null || _isDisposed) return;
+    
+    setState(() {
+      _isInitializing = true;
+      _isLoading = true;
+    });
+    
     _controller = YoutubePlayerController(
       initialVideoId: _videoId!,
       flags: const YoutubePlayerFlags(
-        autoPlay: true,
+        autoPlay: true, 
         mute: false,
         hideControls: true,
         enableCaption: false,
@@ -90,7 +94,7 @@ class _FloatingYoutubePlayerState extends State<FloatingYoutubePlayer>
           _controller!.pause();
         }
         
-        // Use Future.delayed to ensure proper disposal sequence
+        // Use Future.microtask to ensure proper disposal sequence
         Future.microtask(() {
           try {
             _controller?.dispose();
@@ -115,6 +119,15 @@ class _FloatingYoutubePlayerState extends State<FloatingYoutubePlayer>
         setState(() {
           _sliderValue = value.position.inSeconds.toDouble();
 
+          // Update ready state when player is initialized
+          if (!_isReady && value.isReady) {
+            _isReady = true;
+            // Even when ready, keep loading state true until actually playing
+            if (!value.isPlaying) {
+              _isLoading = true;
+            }
+          }
+
           // Update loading state based on player state
           if (value.isPlaying) {
             _isLoading = false;
@@ -132,6 +145,12 @@ class _FloatingYoutubePlayerState extends State<FloatingYoutubePlayer>
             }
           } else {
             _isPlaying = false;
+            
+            // Keep loading state true if not yet played
+            if (!value.hasPlayed) {
+              _isLoading = true;
+            }
+            
             final musicState = Provider.of<MusicPlayerState>(
               context,
               listen: false,
@@ -140,6 +159,8 @@ class _FloatingYoutubePlayerState extends State<FloatingYoutubePlayer>
                 musicState.isPlaying) {
               musicState.pauseMusic();
             }
+            
+            // Handle errors and video end
             if (value.hasError) {
               _isLoading = false;
               _isInitializing = false;
@@ -149,11 +170,6 @@ class _FloatingYoutubePlayerState extends State<FloatingYoutubePlayer>
               _isInitializing = false;
             }
           }
-
-          // Update ready state when player is initialized
-          if (!_isReady && value.isReady) {
-            _isReady = true;
-          }
         });
       }
     } catch (e) {
@@ -162,7 +178,7 @@ class _FloatingYoutubePlayerState extends State<FloatingYoutubePlayer>
   }
 
   Future<void> _handlePlayPause() async {
-    if (_isInitializing || _isLoading || _controller == null || _isDisposed) return;
+    if (_controller == null || _isDisposed) return;
 
     final musicState = Provider.of<MusicPlayerState>(context, listen: false);
 
@@ -172,7 +188,12 @@ class _FloatingYoutubePlayerState extends State<FloatingYoutubePlayer>
         if (mounted) {
           setState(() {
             _isPlaying = false;
-            _isLoading = false;
+            // We'll keep loading state true if it hasn't been played before
+            if (!_controller!.value.hasPlayed) {
+              _isLoading = true;
+            } else {
+              _isLoading = false;
+            }
             _isInitializing = false;
           });
         }
@@ -227,7 +248,7 @@ class _FloatingYoutubePlayerState extends State<FloatingYoutubePlayer>
       debugPrint('Error in play/pause handler: $e');
       if (mounted) {
         setState(() {
-          _isLoading = false;
+          _isLoading = true; // Keep loading indicator visible on error
           _isInitializing = false;
         });
       }
@@ -260,6 +281,11 @@ class _FloatingYoutubePlayerState extends State<FloatingYoutubePlayer>
     
     return Consumer<MusicPlayerState>(
       builder: (context, musicState, child) {
+        // Determine if we should show loading state
+        bool shouldShowLoading = _isInitializing || _isLoading || 
+            (_controller != null && !_controller!.value.isPlaying && 
+             !_controller!.value.hasPlayed);
+        
         // Keep player state in sync with global music state
         if (!_isDisposed && _controller != null &&
             musicState.currentMusicUrl == widget.youtubeUrl) {
@@ -267,9 +293,7 @@ class _FloatingYoutubePlayerState extends State<FloatingYoutubePlayer>
               !_controller!.value.isPlaying &&
               _controller!.value.isReady) {
             WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (mounted && !_isDisposed && !_isLoading &&
-                  !_isInitializing &&
-                  _controller != null &&
+              if (mounted && !_isDisposed && _controller != null &&
                   _controller!.value.isReady) {
                 _controller!.play();
               }
@@ -305,7 +329,7 @@ class _FloatingYoutubePlayerState extends State<FloatingYoutubePlayer>
               borderRadius: BorderRadius.circular(12),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.2),
+                  color: Colors.black.withValues(alpha: 0.2),
                   blurRadius: 8,
                   offset: const Offset(0, 2),
                 ),
@@ -349,7 +373,7 @@ class _FloatingYoutubePlayerState extends State<FloatingYoutubePlayer>
                               begin: Alignment.centerLeft,
                               end: Alignment.centerRight,
                               colors: [
-                                Colors.black.withOpacity(0.7),
+                                Colors.black.withValues(alpha: 0.7),
                                 Colors.transparent,
                               ],
                             ),
@@ -369,6 +393,15 @@ class _FloatingYoutubePlayerState extends State<FloatingYoutubePlayer>
                       child: YoutubePlayer(
                         controller: _controller!,
                         showVideoProgressIndicator: false,
+                        onReady: () {
+                          if (mounted && !_isDisposed) {
+                            setState(() {
+                              _isReady = true;
+                              // Keep loading true until first play
+                              _isInitializing = false;
+                            });
+                          }
+                        },
                         onEnded: (metaData) {
                           if (mounted && !_isDisposed) {
                             // Hide the widget by stopping music when the song ends
@@ -420,20 +453,19 @@ class _FloatingYoutubePlayerState extends State<FloatingYoutubePlayer>
                                     height: 32,
                                     child: IconButton(
                                       padding: EdgeInsets.zero,
-                                      icon:
-                                          (_isInitializing || _isLoading)
-                                              ? UIComponents.loadingIndicator(
-                                                width: 24,
-                                                height: 24,
-                                                strokeWidth: 2,
-                                              )
-                                              : Icon(
-                                                _isPlaying
-                                                    ? Icons.pause_rounded
-                                                    : Icons.play_arrow_rounded,
-                                                color: Colors.white,
-                                                size: 24,
-                                              ),
+                                      icon: shouldShowLoading
+                                          ? UIComponents.loadingIndicator(
+                                              width: 24,
+                                              height: 24,
+                                              strokeWidth: 2,
+                                            )
+                                          : Icon(
+                                              _isPlaying
+                                                  ? Icons.pause_rounded
+                                                  : Icons.play_arrow_rounded,
+                                              color: Colors.white,
+                                              size: 24,
+                                            ),
                                       onPressed: _handlePlayPause,
                                     ),
                                   ),
@@ -461,10 +493,10 @@ class _FloatingYoutubePlayerState extends State<FloatingYoutubePlayer>
                                                             ),
                                                         activeTrackColor: Colors.white,
                                                         inactiveTrackColor:
-                                                            Colors.white.withOpacity(0.3),
+                                                            Colors.white.withValues(alpha: 0.3),
                                                         thumbColor: Colors.white,
                                                         overlayColor:
-                                                            Colors.white.withOpacity(0.2),
+                                                            Colors.white.withValues(alpha: 0.2),
                                                       ),
                                                       child: Slider(
                                                         value: _sliderValue,
@@ -504,7 +536,7 @@ class _FloatingYoutubePlayerState extends State<FloatingYoutubePlayer>
                                                             style: TextStyle(
                                                               fontSize: 10,
                                                               color: Colors.white
-                                                                  .withOpacity(0.7),
+                                                                  .withValues(alpha: 0.7),
                                                             ),
                                                           ),
                                                           Text(
@@ -513,7 +545,7 @@ class _FloatingYoutubePlayerState extends State<FloatingYoutubePlayer>
                                                             style: TextStyle(
                                                               fontSize: 10,
                                                               color: Colors.white
-                                                                  .withOpacity(0.7),
+                                                                  .withValues(alpha: 0.7),
                                                             ),
                                                           ),
                                                         ],

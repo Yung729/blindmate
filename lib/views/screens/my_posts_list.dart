@@ -240,7 +240,7 @@ class _MyPostsListState extends State<MyPostsList> {
                           isSelected
                               ? [
                                 BoxShadow(
-                                  color: Colors.red.withOpacity(0.08),
+                                  color: Colors.red.withValues(alpha: 0.08),
                                   blurRadius: 8,
                                   offset: const Offset(0, 2),
                                 ),
@@ -343,7 +343,7 @@ class _MyPostsListState extends State<MyPostsList> {
         if (_showTripJournalsPanel)
           Positioned.fill(
             child: Container(
-              color: Colors.black.withOpacity(0.5),
+              color: Colors.black.withValues(alpha: 0.5),
               child: Padding(
                 padding: EdgeInsets.only(
                   bottom: MediaQuery.of(context).viewInsets.bottom,
@@ -493,7 +493,7 @@ class _CustomRoundCheckbox extends StatelessWidget {
               value
                   ? [
                     BoxShadow(
-                      color: Colors.red.withOpacity(0.15),
+                      color: Colors.red.withValues(alpha: 0.15),
                       blurRadius: 6,
                       offset: const Offset(0, 2),
                     ),
