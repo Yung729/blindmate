@@ -7,7 +7,6 @@ import '../state/chat_state.dart';
 import '../dataBinding/chat_data_binding.dart';
 import '../uiValidation/chat_validator.dart';
 import '../../views/UIComponents/custom_dialog.dart';
-import '../../views/UIComponents/custom_snackbar.dart';
 
 class ChatEventHandler {
   final ChatState chatState;
@@ -24,7 +23,7 @@ class ChatEventHandler {
   Timer? _countdownTimer;
   int _countdownSeconds = 10;
   Timer? _summaryTimer;
-  static const int inactivityDurationMinutes = 10;
+  static const int inactivityDurationMinutes = 1;
 
   StreamSubscription? typingStatusSubscription;
   StreamSubscription? chatUpdatesSubscription;
@@ -148,30 +147,7 @@ class ChatEventHandler {
     }
   }
 
-  // Show a warning dialog for countdown before automatically closing the chat
-  void showCountdownWarning(BuildContext context) {
-    // Only show if not already shown
-    if (!chatState.isCountdownWarningVisible) {
-      dataBinding.setCountdownWarningVisible(true);
-      
-      // Clear any existing snackbars
-      ScaffoldMessenger.of(context).clearSnackBars();
-      
-      // Use the CustomSnackBar component with action button
-      CustomSnackBar.show(
-        context: context,
-        message: '⚠️ Chat inactive! Will close in ${chatState.countdownSeconds} seconds.',
-        status: 'WARNING',
-        duration: const Duration(seconds: 10),
-        actionLabel: 'Keep Chatting',
-        onActionPressed: () {
-          // Reset the inactivity timer
-          resetInactivityTimer(context);
-          dataBinding.setCountdownWarningVisible(false);
-        },
-      );
-    }
-  }
+
 
   // Show the chat summary dialog with auto-close functionality
   Future<void> showChatSummary(BuildContext context) async {
@@ -341,6 +317,9 @@ class ChatEventHandler {
     // Reset the countdown state to zero (to hide any UI warnings)
     dataBinding.setCountdownSeconds(0);
     
+    // Explicitly hide the countdown warning
+    dataBinding.setCountdownWarningVisible(false);
+    
     // Start the timers again
     _startInactivityTimer(context);
   }
@@ -392,6 +371,9 @@ class ChatEventHandler {
   void _startCountdownTimer(BuildContext context) {
     _countdownTimer?.cancel();
     
+    // Make the warning visible
+    dataBinding.setCountdownWarningVisible(true);
+    
     // Create countdown timer that ticks every second
     _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
       _countdownSeconds--;
@@ -404,10 +386,6 @@ class ChatEventHandler {
         _countdownTimer?.cancel();
       }
       
-      // Show countdown warning in UI if not already shown
-      if (_countdownSeconds > 0 && !chatState.isCountdownWarningVisible) {
-        showCountdownWarning(context);
-      }
     });
   }
 

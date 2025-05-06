@@ -58,14 +58,17 @@ class ChatDataBinding {
   }
 
   Future<void> loadStickers(String query) async {
+    var isPositive = false;
     try {
       chatState.setIsLoadingStickers(true);
 
       // Check if the sticker search query is positive using Gemini
-      final isPositive = await _moderationService.isStickerSearchPositive(
-        query,
-      );
-      debugPrint("🔍 Sticker search query: '$query' isPositive: $isPositive");
+      if (query != 'happy') {
+        isPositive = await _moderationService.isStickerSearchPositive(query);
+
+        debugPrint("🔍 Sticker search query: '$query' isPositive: $isPositive");
+      }
+
       if (isPositive || query == 'happy') {
         List<String> stickers = await _giphyService.fetchStickers(query);
         setStickers(stickers);
@@ -386,7 +389,7 @@ class ChatDataBinding {
   void setUserTripJournals(List<Map<String, dynamic>> journals) {
     chatState.userTripJournals = journals;
   }
-  
+
   void setIsLoadingTripJournals(bool loading) {
     chatState.isLoadingTripJournals = loading;
   }
