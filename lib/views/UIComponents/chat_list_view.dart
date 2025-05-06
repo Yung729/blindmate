@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:blindmate/views/UIComponents/chat_bubble.dart';
 import 'package:blindmate/views/UIComponents/typing_bubble.dart';
 import 'package:blindmate/viewmodels/state/chat_state.dart';
-import 'package:blindmate/views/UIComponents/trip_journal_card.dart';
 
 class ChatListView extends StatelessWidget {
   final ChatState chatState;
