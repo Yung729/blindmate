@@ -106,21 +106,7 @@ class ChatListView extends StatelessWidget {
     // Show avatar if it's the last message from this sender
     final showAvatar = nextMessage == null || nextMessage.senderId != message.senderId;
 
-    // --- Trip Journal Support ---
-    if (message.tripJournals != null && message.tripJournals!.isNotEmpty) {
-      // Show trip journal card in chat bubble
-      return Padding(
-        padding: const EdgeInsets.symmetric(vertical: 6.0, horizontal: 8.0),
-        child: ChatBubble(
-          isMe: isMe,
-          avatarUrl: isMe ? currentUserAvatarImg : chatState.otherUserAvatarImg,
-          timestamp: message.timestamp,
-          showAvatar: showAvatar,
-          child: TripJournalBookCard(journals: message.tripJournals!),
-        ),
-      );
-    }
-
+  
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 1.0),
       child: ChatBubble(
@@ -129,6 +115,7 @@ class ChatListView extends StatelessWidget {
         stickerUrl: message.stickerUrl,
         musicUrl: message.musicUrl,
         musicTitle: message.musicTitle,
+        tripJournals: message.tripJournals,
         avatarUrl: isMe ? currentUserAvatarImg : chatState.otherUserAvatarImg,
         timestamp: message.timestamp,
         showAvatar: showAvatar,

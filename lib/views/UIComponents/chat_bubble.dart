@@ -1,3 +1,4 @@
+import 'package:blindmate/views/UIComponents/trip_journal_card.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import './persistent_youtube_player.dart';
@@ -13,6 +14,7 @@ class ChatBubble extends StatefulWidget {
   final DateTime? timestamp;
   final bool showAvatar;
   final String? moderationStatus;
+  final List<Map<String, dynamic>>? tripJournals;
 
   const ChatBubble({
     Key? key,
@@ -26,6 +28,7 @@ class ChatBubble extends StatefulWidget {
     this.timestamp,
     this.showAvatar = true,
     this.moderationStatus,
+    this.tripJournals,
   }) : super(key: key);
 
   @override
@@ -109,6 +112,7 @@ class _ChatBubbleState extends State<ChatBubble> with SingleTickerProviderStateM
   @override
   Widget build(BuildContext context) {
     bool isMusicMessage = widget.musicUrl != null && widget.musicUrl!.isNotEmpty;
+    bool isTripJournal = widget.tripJournals != null && widget.tripJournals!.isNotEmpty;
     final screenWidth = MediaQuery.of(context).size.width;
     final bubbleMaxWidth = screenWidth * 0.7;
 
@@ -141,32 +145,35 @@ class _ChatBubbleState extends State<ChatBubble> with SingleTickerProviderStateM
                     crossAxisAlignment: widget.isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
                     children: [
                      
-                      isMusicMessage
-                          ? _buildMusicContent(context)
-                          : Container(
-                              constraints: BoxConstraints(maxWidth: bubbleMaxWidth),
-                              padding: EdgeInsets.symmetric(
-                                vertical: screenWidth * 0.015 + 4,
-                                horizontal: screenWidth * 0.03 + 6,
-                              ),
-                              decoration: BoxDecoration(
-                                gradient: _getGradientForMessage(),
-                                borderRadius: BorderRadius.only(
-                                  topLeft: Radius.circular(widget.isMe ? 16 : 4),
-                                  topRight: Radius.circular(widget.isMe ? 4 : 16),
-                                  bottomLeft: const Radius.circular(16),
-                                  bottomRight: const Radius.circular(16),
-                                ),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withOpacity(0.1),
-                                    blurRadius: 3,
-                                    offset: const Offset(0, 2),
-                                  ),
-                                ],
-                              ),
-                              child: _buildContent(),
+                      if (isMusicMessage)
+                        _buildMusicContent(context)
+                      else if (isTripJournal) 
+                        _buildTripJournalContent()
+                      else
+                        Container(
+                          constraints: BoxConstraints(maxWidth: bubbleMaxWidth),
+                          padding: EdgeInsets.symmetric(
+                            vertical: screenWidth * 0.015 + 4,
+                            horizontal: screenWidth * 0.03 + 6,
+                          ),
+                          decoration: BoxDecoration(
+                            gradient: _getGradientForMessage(),
+                            borderRadius: BorderRadius.only(
+                              topLeft: Radius.circular(widget.isMe ? 16 : 4),
+                              topRight: Radius.circular(widget.isMe ? 4 : 16),
+                              bottomLeft: const Radius.circular(16),
+                              bottomRight: const Radius.circular(16),
                             ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.1),
+                                blurRadius: 3,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: _buildContent(),
+                        ),
                       if (widget.timestamp != null)
                         Padding(
                           padding: const EdgeInsets.only(top: 4),
@@ -292,6 +299,16 @@ class _ChatBubbleState extends State<ChatBubble> with SingleTickerProviderStateM
           title: widget.musicTitle,
           playerKey: playerKey,
         ),
+      );
+    }
+    return const SizedBox.shrink();
+  }
+
+  Widget _buildTripJournalContent() {
+    if (widget.tripJournals != null && widget.tripJournals!.isNotEmpty) {
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 4),
+        child: TripJournalBookCard(journals: widget.tripJournals!),
       );
     }
     return const SizedBox.shrink();
