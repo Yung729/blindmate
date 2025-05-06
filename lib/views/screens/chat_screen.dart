@@ -233,7 +233,10 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     // If keyboard newly appears (was not visible before and is visible now)
     // and drawer is visible, close the drawer
     if (bottomInset > 0 && !_isKeyboardVisible && _chatState.isDrawerVisible) {
-      _chatEventHandler.updateDrawerVisibility(false);
+      // Only close drawer if we're not showing stickers (sticker search needs keyboard)
+      if (!_chatState.showStickers) {
+        _chatEventHandler.updateDrawerVisibility(false);
+      }
     }
 
     // Update keyboard visibility tracking
