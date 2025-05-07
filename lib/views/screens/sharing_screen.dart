@@ -211,7 +211,6 @@ class SharingScreenState extends State<SharingScreen> {
                                   setState(() => _expandedPosts.remove(postId));
                                 });
                               },
-                              onViewTripJournal: _showTripJournalDialog,
                               onDeleteSelected: _handleDeleteSelected,
                               onToggleVisibility: _handleToggleVisibility,
                               isMusicPlaying: isMusicPlaying,
