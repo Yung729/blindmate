@@ -39,7 +39,7 @@ class GameEventHandler2 {
   void _startInactivityTimer() {
     _inactivityTimer?.cancel();
     _inactivityTimer = Timer.periodic(Duration(seconds: _inactivityThreshold), (timer) {
-      if (!_gameState.winnerDialogShown) {
+      if (!_gameState.winnerDialogShown && !_gameState.isGameEnded) {
         _handleOpponentTimeout();
       }
     });
@@ -51,13 +51,17 @@ class GameEventHandler2 {
   }
 
   Future<void> _handleOpponentTimeout() async {
-    await _dataBinding.setWinner(_chatRoomId, _currentUserId);
-    _gameState.setWinner(_currentUserId);
-    _gameState.setWinnerDialogShown(true);
+    if (!_gameState.isGameEnded) {
+      await _dataBinding.setWinner(_chatRoomId, _currentUserId);
+      _gameState.setWinner(_currentUserId);
+      _gameState.setWinnerDialogShown(true);
+      _gameState.setIsGameEnded(true);
+      await _cleanupGame();
+    }
   }
 
   Future<void> handleMove(int index) async {
-    if (!_gameState.isCurrentPlayer || _gameState.board[index].isNotEmpty) return;
+    if (!_gameState.isCurrentPlayer || _gameState.board[index].isNotEmpty || _gameState.isGameEnded) return;
 
     final newBoard = List<String>.from(_gameState.board);
     newBoard[index] = _gameState.isPlayerX ? 'X' : 'O';
@@ -68,6 +72,8 @@ class GameEventHandler2 {
       await _dataBinding.setWinner(_chatRoomId, winner);
       _gameState.setWinner(winner);
       _gameState.setWinnerDialogShown(true);
+      _gameState.setIsGameEnded(true);
+      await _cleanupGame();
       return;
     }
 
@@ -76,6 +82,8 @@ class GameEventHandler2 {
       await _dataBinding.setWinner(_chatRoomId, 'draw');
       _gameState.setWinner('draw');
       _gameState.setWinnerDialogShown(true);
+      _gameState.setIsGameEnded(true);
+      await _cleanupGame();
       return;
     }
 
@@ -120,16 +128,23 @@ class GameEventHandler2 {
   }
 
   Future<void> handleExitGame() async {
-    await _dataBinding.setWinner(_chatRoomId, _opponentId);
-    _gameState.setWinner(_opponentId);
-    _gameState.setWinnerDialogShown(true);
+    if (!_gameState.isGameEnded) {
+      await _dataBinding.setWinner(_chatRoomId, _opponentId);
+      _gameState.setWinner(_opponentId);
+      _gameState.setWinnerDialogShown(true);
+      _gameState.setIsGameEnded(true);
+      await _cleanupGame();
+    }
+  }
+
+  Future<void> _cleanupGame() async {
+    _inactivityTimer?.cancel();
     await _dataBinding.clearGame(_chatRoomId);
     _gameState.reset();
   }
 
   Future<void> resetGame() async {
-    await _dataBinding.clearGame(_chatRoomId);
-    _gameState.reset();
+    await _cleanupGame();
   }
 
   void dispose() {

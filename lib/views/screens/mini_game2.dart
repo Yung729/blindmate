@@ -87,52 +87,70 @@ class _MiniGame2ScreenState extends State<MiniGame2Screen> {
     }
   }
 
+  void _navigateBackToChat() {
+    if (mounted) {
+      Navigator.of(context).pop();
+    }
+  }
+
   void _showOpponentLeftDialog() {
+    if (!mounted) return;
+
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder:
-          (context) => AlertDialog(
-            title: Text("Opponent Left"),
-            content: Text("Your opponent has left the game."),
-            actions: [
-              TextButton(
-                onPressed: () async {
-                  await _eventHandler.resetGame();
+      builder: (context) => WillPopScope(
+        onWillPop: () async => false,
+        child: AlertDialog(
+          title: Text("Opponent Left"),
+          content: Text("Your opponent has left the game. You win!"),
+          actions: [
+            TextButton(
+              onPressed: () async {
+                await _eventHandler.resetGame();
+                _navigateBackToChat();
+                // Ensure we return to chat screen
+                if (mounted) {
                   Navigator.of(context).pop();
-                  Navigator.pop(context);
-                },
-                child: const Text("OK"),
-              ),
-            ],
-          ),
+                }
+              },
+              child: const Text("Back to Chat"),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
   void _showInactivityDialog() {
-    if (_gameState.isInactiveWarningShown) return;
+    if (_gameState.isInactiveWarningShown || !mounted) return;
 
     _gameState.setInactiveWarningShown(true);
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder:
-          (context) => AlertDialog(
-            title: Text("Game Inactive"),
-            content: Text(
-              "No moves were made for 2 minutes. The game will end.",
-            ),
-            actions: [
-              TextButton(
-                onPressed: () async {
-                  await _eventHandler.resetGame();
-                  Navigator.of(context).pop();
-                  Navigator.pop(context);
-                },
-                child: const Text("OK"),
-              ),
-            ],
+      builder: (context) => WillPopScope(
+        onWillPop: () async => false,
+        child: AlertDialog(
+          title: Text("Game Inactive"),
+          content: Text(
+            "No moves were made for 2 minutes. The game will end.",
           ),
+          actions: [
+            TextButton(
+              onPressed: () async {
+                await _eventHandler.resetGame();
+                _navigateBackToChat();
+                // Ensure we return to chat screen
+                if (mounted) {
+                  Navigator.of(context).pop();
+                }
+              },
+              child: const Text("Back to Chat"),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -173,12 +191,14 @@ class _MiniGame2ScreenState extends State<MiniGame2Screen> {
             return _buildLoadingScreen();
           }
 
+          // Handle winner dialog
           if (gameState.winner != null && gameState.winnerDialogShown) {
             WidgetsBinding.instance.addPostFrameCallback((_) {
               _showWinnerDialog(gameState.winner!);
             });
           }
 
+          // Handle inactivity dialog
           if (gameState.isInactive && !gameState.isInactiveWarningShown) {
             WidgetsBinding.instance.addPostFrameCallback((_) {
               _showInactivityDialog();
@@ -209,29 +229,25 @@ class _MiniGame2ScreenState extends State<MiniGame2Screen> {
             final shouldExit = await showDialog<bool>(
               context: context,
               barrierDismissible: false,
-              builder:
-                  (context) => AlertDialog(
-                    title: Text("Exit Game"),
-                    content: Text("Are you sure you want to exit the game?"),
-                    actions: [
-                      TextButton(
-                        onPressed: () => Navigator.of(context).pop(false),
-                        child: Text("Cancel"),
-                      ),
-                      TextButton(
-                        onPressed: () => Navigator.of(context).pop(true),
-                        child: Text("Exit"),
-                      ),
-                    ],
+              builder: (context) => AlertDialog(
+                title: Text("Exit Game"),
+                content: Text("Are you sure you want to exit the game? Your opponent will win."),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(false),
+                    child: Text("Cancel"),
                   ),
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(true),
+                    child: Text("Exit"),
+                  ),
+                ],
+              ),
             );
 
             if (shouldExit == true && mounted) {
               await _eventHandler.handleExitGame();
-              if (mounted) {
-                Navigator.of(context).pop();
-                Navigator.pop(context);
-              }
+              _navigateBackToChat();
             }
           },
         ),
@@ -328,41 +344,51 @@ class _MiniGame2ScreenState extends State<MiniGame2Screen> {
     final isSelf = winnerId == widget.currentUserId;
     final winnerName = isSelf ? "You" : "Opponent";
     final loserName = isSelf ? "Opponent" : "You";
+    final isDraw = winnerId == 'draw';
+
+    // Ensure we're not showing multiple dialogs
+    if (!mounted) return;
 
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder:
-          (context) => AlertDialog(
-            title: Text("🏁 Game Over"),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
+      builder: (context) => WillPopScope(
+        onWillPop: () async => false,
+        child: AlertDialog(
+          title: Text(isDraw ? "Game Draw!" : "Game Over!"),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (!isDraw) ...[
                 Text(
-                  winnerId == 'draw'
-                      ? "🤝 It's a draw!"
-                      : "🎉 $winnerName won the game!",
+                  "🎉 $winnerName won the game!",
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
-                if (winnerId != 'draw') ...[
-                  SizedBox(height: 8),
-                  Text("😢 $loserName lost!", style: TextStyle(fontSize: 16)),
-                ],
+                SizedBox(height: 8),
+                Text("😢 $loserName lost!", style: TextStyle(fontSize: 16)),
+              ] else ...[
+                Text(
+                  "🤝 It's a draw!",
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
               ],
-            ),
-            actions: [
-              TextButton(
-                onPressed: () async {
-                  await _eventHandler.resetGame();
-                  if (mounted) {
-                    Navigator.of(context).pop();
-                    Navigator.pop(context);
-                  }
-                },
-                child: const Text("OK"),
-              ),
             ],
           ),
+          actions: [
+            TextButton(
+              onPressed: () async {
+                await _eventHandler.resetGame();
+                _navigateBackToChat();
+                // Ensure we return to chat screen
+                if (isSelf) {
+                  Navigator.of(context).pop();
+                }
+              },
+              child: const Text("Back to Chat"),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

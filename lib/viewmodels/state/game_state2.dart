@@ -26,13 +26,17 @@ class GameState2 extends ChangeNotifier {
   bool get isInactiveWarningShown => _isInactiveWarningShown;
 
   void setBoard(List<String> board) {
-    _board = board;
-    notifyListeners();
+    if (!_isGameEnded) {
+      _board = board;
+      notifyListeners();
+    }
   }
 
   void setCell(int index, String value) {
-    _board[index] = value;
-    notifyListeners();
+    if (!_isGameEnded) {
+      _board[index] = value;
+      notifyListeners();
+    }
   }
 
   void setRoles(Map<String, String> roles) {
@@ -51,8 +55,10 @@ class GameState2 extends ChangeNotifier {
   }
 
   void setIsCurrentPlayer(bool isCurrentPlayer) {
-    _isCurrentPlayer = isCurrentPlayer;
-    notifyListeners();
+    if (!_isGameEnded) {
+      _isCurrentPlayer = isCurrentPlayer;
+      notifyListeners();
+    }
   }
 
   void setIsInitialized(bool initialized) {
@@ -66,8 +72,13 @@ class GameState2 extends ChangeNotifier {
   }
 
   void setIsGameEnded(bool ended) {
-    _isGameEnded = ended;
-    notifyListeners();
+    if (_isGameEnded != ended) {
+      _isGameEnded = ended;
+      if (ended) {
+        _inactivityTimer?.cancel();
+      }
+      notifyListeners();
+    }
   }
 
   void setInactive(bool inactive) {
@@ -85,21 +96,26 @@ class GameState2 extends ChangeNotifier {
   }
 
   void startInactivityTimer() {
-    _inactivityTimer?.cancel();
-    _inactivityTimer = Timer(const Duration(minutes: 2), () {
-      if (!_isGameEnded && !_isInactive) {
-        setInactive(true);
-      }
-    });
+    if (!_isGameEnded) {
+      _inactivityTimer?.cancel();
+      _inactivityTimer = Timer(const Duration(minutes: 2), () {
+        if (!_isGameEnded && !_isInactive) {
+          setInactive(true);
+        }
+      });
+    }
   }
 
   void resetInactivityTimer() {
-    _inactivityTimer?.cancel();
-    startInactivityTimer();
+    if (!_isGameEnded) {
+      _inactivityTimer?.cancel();
+      startInactivityTimer();
+    }
   }
 
   void dispose() {
     _inactivityTimer?.cancel();
+    super.dispose();
   }
 
   void reset() {
