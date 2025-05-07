@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:metadata_fetch/metadata_fetch.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+
 Future<Map<String, String>?> fetchUrlMetadata(String url) async {
   try {
     final metadata = await MetadataFetch.extract(url);

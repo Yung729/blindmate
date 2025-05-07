@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'fetch_url_thumbail.dart';
+import '../../utils/fetch_url_thumbail.dart';
 
 class PostUrlPreview extends StatefulWidget {
   final String linkUrl;

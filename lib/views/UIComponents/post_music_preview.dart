@@ -53,7 +53,7 @@ class PostMusicPreview extends StatelessWidget {
               borderRadius: BorderRadius.circular(8.0),
               child: videoId != null
                   ? Image.network(
-                      "http://img.youtube.com/vi/$videoId/mqdefault.jpg",
+                      "https://img.youtube.com/vi/$videoId/mqdefault.jpg",
                       fit: BoxFit.cover,
                       errorBuilder: (context, error, stackTrace) {
                         return const Center(

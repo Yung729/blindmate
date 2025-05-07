@@ -59,8 +59,7 @@ class CreatePostEventHandler {
 
   Future<List<Map<String, dynamic>>> loadUserTripJournals() async {
     try {
-      final journals = await dataBinding.fetchUserTripJournals(userId);
-      return journals;
+      return await dataBinding.fetchUserTripJournals(userId);
     } catch (e) {
       print('Error in event handler - loadUserTripJournals: $e');
       return [];
