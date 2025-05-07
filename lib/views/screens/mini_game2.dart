@@ -93,31 +93,32 @@ class _MiniGame2ScreenState extends State<MiniGame2Screen> {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => WillPopScope(
-        onWillPop: () async => false,
-        child: AlertDialog(
-          title: Text("Opponent Left"),
-          content: Text("Your opponent has left the game. You win!"),
-          actions: [
-            TextButton(
-              onPressed: () async {
-                // First dismiss the dialog
-                Navigator.of(context).pop();
-                
-                // Force cleanup and state reset
-                _gameSubscription?.cancel();
-                await _eventHandler.resetGame();
-                
-                // Only one navigation needed for opponent left
-                if (mounted) {
-                  Navigator.of(context).pop();
-                }
-              },
-              child: const Text("Back to Chat"),
+      builder:
+          (context) => WillPopScope(
+            onWillPop: () async => false,
+            child: AlertDialog(
+              title: Text("Opponent Left"),
+              content: Text("Your opponent has left the game. You win!"),
+              actions: [
+                TextButton(
+                  onPressed: () async {
+                    // First dismiss the dialog
+                    Navigator.of(context).pop();
+
+                    // Force cleanup and state reset
+                    _gameSubscription?.cancel();
+                    await _eventHandler.resetGame();
+
+                    // Only one navigation needed for opponent left
+                    if (mounted) {
+                      Navigator.of(context).pop();
+                    }
+                  },
+                  child: const Text("Back to Chat"),
+                ),
+              ],
             ),
-          ],
-        ),
-      ),
+          ),
     );
   }
 
@@ -128,33 +129,34 @@ class _MiniGame2ScreenState extends State<MiniGame2Screen> {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => WillPopScope(
-        onWillPop: () async => false,
-        child: AlertDialog(
-          title: Text("Game Inactive"),
-          content: Text(
-            "No moves were made for 2 minutes. The game will end.",
-          ),
-          actions: [
-            TextButton(
-              onPressed: () async {
-                // First dismiss the dialog
-                Navigator.of(context).pop();
-                
-                // Force cleanup and state reset
-                _gameSubscription?.cancel();
-                await _eventHandler.resetGame();
-                
-                // Only one navigation needed for inactivity
-                if (mounted) {
-                  Navigator.of(context).pop();
-                }
-              },
-              child: const Text("Back to Chat"),
+      builder:
+          (context) => WillPopScope(
+            onWillPop: () async => false,
+            child: AlertDialog(
+              title: Text("Game Inactive"),
+              content: Text(
+                "No moves were made for 2 minutes. The game will end.",
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () async {
+                    // First dismiss the dialog
+                    Navigator.of(context).pop();
+
+                    // Force cleanup and state reset
+                    _gameSubscription?.cancel();
+                    await _eventHandler.resetGame();
+
+                    // Only one navigation needed for inactivity
+                    if (mounted) {
+                      Navigator.of(context).pop();
+                    }
+                  },
+                  child: const Text("Back to Chat"),
+                ),
+              ],
             ),
-          ],
-        ),
-      ),
+          ),
     );
   }
 
@@ -200,10 +202,9 @@ class _MiniGame2ScreenState extends State<MiniGame2Screen> {
             // Return game screen to show content under dialog
             return _buildGameScreen(gameState);
           }
-          
+
           // Only show loading when no end-game conditions and not initialized
           if (!gameState.isInitialized && !gameState.isGameEnded) {
-            _gameState.setIsLoading(true);
             return _buildLoadingScreen();
           }
 
@@ -238,27 +239,30 @@ class _MiniGame2ScreenState extends State<MiniGame2Screen> {
             final shouldExit = await showDialog<bool>(
               context: context,
               barrierDismissible: false,
-              builder: (context) => AlertDialog(
-                title: Text("Exit Game"),
-                content: Text("Are you sure you want to exit the game? Your opponent will win."),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.of(context).pop(false),
-                    child: Text("Cancel"),
+              builder:
+                  (context) => AlertDialog(
+                    title: Text("Exit Game"),
+                    content: Text(
+                      "Are you sure you want to exit the game? Your opponent will win.",
+                    ),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.of(context).pop(false),
+                        child: Text("Cancel"),
+                      ),
+                      TextButton(
+                        onPressed: () => Navigator.of(context).pop(true),
+                        child: Text("Exit"),
+                      ),
+                    ],
                   ),
-                  TextButton(
-                    onPressed: () => Navigator.of(context).pop(true),
-                    child: Text("Exit"),
-                  ),
-                ],
-              ),
             );
 
             if (shouldExit == true && mounted) {
               // First handle game exit with forced cleanup
               _gameSubscription?.cancel();
               await _eventHandler.handleExitGame();
-              
+
               // When user exits, only need one navigation
               if (mounted) {
                 Navigator.of(context).pop();
@@ -367,53 +371,55 @@ class _MiniGame2ScreenState extends State<MiniGame2Screen> {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => WillPopScope(
-        onWillPop: () async => false,
-        child: AlertDialog(
-          title: Text(isDraw ? "Game Draw!" : "Game Over!"),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (!isDraw) ...[
-                Text(
-                  "🎉 $winnerName won the game!",
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-                SizedBox(height: 8),
-                Text("😢 $loserName lost!", style: TextStyle(fontSize: 16)),
-              ] else ...[
-                Text(
-                  "🤝 It's a draw!",
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+      builder:
+          (context) => WillPopScope(
+            onWillPop: () async => false,
+            child: AlertDialog(
+              title: Text(isDraw ? "Game Draw!" : "Game Over!"),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (!isDraw) ...[
+                    Text(
+                      "🎉 $winnerName won the game!",
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    SizedBox(height: 8),
+                    Text("😢 $loserName lost!", style: TextStyle(fontSize: 16)),
+                  ] else ...[
+                    Text(
+                      "🤝 It's a draw!",
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () async {
+                    // First dismiss the dialog
+                    Navigator.of(context).pop();
+
+                    // Force cleanup and state reset
+                    _gameSubscription?.cancel();
+                    await _eventHandler.resetGame();
+
+                    // Force navigation back no matter what
+                    if (mounted) {
+                      Navigator.of(context).pop();
+                    }
+                  },
+                  child: const Text("Back to Chat"),
                 ),
               ],
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () async {
-                // First dismiss the dialog
-                Navigator.of(context).pop();
-                
-                // Force cleanup and state reset
-                _gameSubscription?.cancel();
-                await _eventHandler.resetGame();
-                
-                // Force navigation back no matter what
-                if (mounted) {
-                  Navigator.of(context).pop();
-                }
-                
-                // For winner only, ensure navigation to chat
-                if (isSelf && _gameState.isLoading) {
-                  Navigator.of(context).pop();
-                }
-              },
-              child: const Text("Back to Chat"),
             ),
-          ],
-        ),
-      ),
+          ),
     );
   }
 }

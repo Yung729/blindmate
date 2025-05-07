@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import '../state/game_state.dart';
 import '../dataBinding/game_data_binding.dart';
 import '../../models/dataModels/game_model.dart';
-import 'dart:ui' show Offset;
 import '../../utils/game_utils.dart';
 
 class GameEventHandler {
@@ -214,27 +213,25 @@ class GameEventHandler {
   }
 
   Future<void> resetGame() async {
-    await _dataBinding.clearGame(_chatRoomId);
+    await _cleanupGame();
+    _gameState.setIsGameEnded(
+      true,
+    ); // Ensure game ended state persists after reset for UI
+  }
+
+  Future<void> _cleanupGame() async {
+    _inactivityTimer?.cancel();
     _gameState.reset();
+    await _dataBinding.resetGame(_chatRoomId);
   }
 
   Future<void> handleExitGame() async {
-    // First set the opponent as winner
-    await _dataBinding.setWinner(_chatRoomId, _opponentId);
-
-    // Update local state to show winner dialog
-    _gameState.setWinner(_opponentId);
-    _gameState.setWinnerDialogShown(true);
-
-    // Update scores to reflect the win
-    // _gameState.incrementScore(_opponentId);
-    await _dataBinding.updateScores(_chatRoomId, _gameState.scores);
-
-    // Clear the game state from Firestore
-    await _dataBinding.clearGame(_chatRoomId);
-
-    // Reset local state
-    _gameState.reset();
+    if (!_gameState.isGameEnded) {
+      await _dataBinding.setWinner(_chatRoomId, _opponentId);
+      _gameState.setWinner(_opponentId);
+      _gameState.setWinnerDialogShown(true);
+      _gameState.setIsGameEnded(true);
+    }
   }
 
   void dispose() {

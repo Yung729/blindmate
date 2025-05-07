@@ -38,7 +38,9 @@ class GameEventHandler2 {
 
   void _startInactivityTimer() {
     _inactivityTimer?.cancel();
-    _inactivityTimer = Timer.periodic(Duration(seconds: _inactivityThreshold), (timer) {
+    _inactivityTimer = Timer.periodic(Duration(seconds: _inactivityThreshold), (
+      timer,
+    ) {
       if (!_gameState.winnerDialogShown && !_gameState.isGameEnded) {
         _handleOpponentTimeout();
       }
@@ -61,7 +63,10 @@ class GameEventHandler2 {
   }
 
   Future<void> handleMove(int index) async {
-    if (!_gameState.isCurrentPlayer || _gameState.board[index].isNotEmpty || _gameState.isGameEnded) return;
+    if (!_gameState.isCurrentPlayer ||
+        _gameState.board[index].isNotEmpty ||
+        _gameState.isGameEnded)
+      return;
 
     final newBoard = List<String>.from(_gameState.board);
     newBoard[index] = _gameState.isPlayerX ? 'X' : 'O';
@@ -90,38 +95,51 @@ class GameEventHandler2 {
     // Update board and switch turns
     await _dataBinding.updateBoard(_chatRoomId, newBoard);
     _gameState.setBoard(newBoard);
-    
+
     // Switch current player
-    final newCurrentPlayer = _gameState.isCurrentPlayer ? _opponentId : _currentUserId;
+    final newCurrentPlayer =
+        _gameState.isCurrentPlayer ? _opponentId : _currentUserId;
     await _dataBinding.updateGame(_chatRoomId, {
       'currentPlayer': newCurrentPlayer,
     });
     _gameState.setIsCurrentPlayer(newCurrentPlayer == _currentUserId);
-    
+
     _resetInactivityTimer();
   }
 
   String? _checkWinner(List<String> board) {
     // Check rows
     for (int i = 0; i < 9; i += 3) {
-      if (board[i].isNotEmpty && board[i] == board[i + 1] && board[i] == board[i + 2]) {
-        return _gameState.roles[_currentUserId] == board[i] ? _currentUserId : _opponentId;
+      if (board[i].isNotEmpty &&
+          board[i] == board[i + 1] &&
+          board[i] == board[i + 2]) {
+        return _gameState.roles[_currentUserId] == board[i]
+            ? _currentUserId
+            : _opponentId;
       }
     }
 
     // Check columns
     for (int i = 0; i < 3; i++) {
-      if (board[i].isNotEmpty && board[i] == board[i + 3] && board[i] == board[i + 6]) {
-        return _gameState.roles[_currentUserId] == board[i] ? _currentUserId : _opponentId;
+      if (board[i].isNotEmpty &&
+          board[i] == board[i + 3] &&
+          board[i] == board[i + 6]) {
+        return _gameState.roles[_currentUserId] == board[i]
+            ? _currentUserId
+            : _opponentId;
       }
     }
 
     // Check diagonals
     if (board[0].isNotEmpty && board[0] == board[4] && board[0] == board[8]) {
-      return _gameState.roles[_currentUserId] == board[0] ? _currentUserId : _opponentId;
+      return _gameState.roles[_currentUserId] == board[0]
+          ? _currentUserId
+          : _opponentId;
     }
     if (board[2].isNotEmpty && board[2] == board[4] && board[2] == board[6]) {
-      return _gameState.roles[_currentUserId] == board[2] ? _currentUserId : _opponentId;
+      return _gameState.roles[_currentUserId] == board[2]
+          ? _currentUserId
+          : _opponentId;
     }
 
     return null;
@@ -133,21 +151,23 @@ class GameEventHandler2 {
       _gameState.setWinner(_opponentId);
       _gameState.setWinnerDialogShown(true);
       _gameState.setIsGameEnded(true);
-      await _cleanupGame();
     }
   }
 
   Future<void> _cleanupGame() async {
     _inactivityTimer?.cancel();
-    await _dataBinding.clearGame(_chatRoomId);
     _gameState.reset();
+    await _dataBinding.resetGame(_chatRoomId);
   }
 
   Future<void> resetGame() async {
     await _cleanupGame();
+    _gameState.setIsGameEnded(
+      true,
+    ); // Ensure game ended state persists after reset for UI
   }
 
   void dispose() {
     _inactivityTimer?.cancel();
   }
-} 
+}

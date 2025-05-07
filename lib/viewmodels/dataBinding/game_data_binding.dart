@@ -1,16 +1,13 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../services/game_service.dart';
 import '../state/game_state.dart';
 import '../../models/dataModels/game_model.dart';
 import '../../utils/game_utils.dart';
 import 'package:flutter/material.dart';
-import 'dart:ui' show Offset;
 
 class GameDataBinding {
   final GameService _gameService;
   final GameState _gameState;
   final String _currentUserId; // <-- ADD this
-  
 
   GameDataBinding({
     required GameService gameService,
@@ -71,7 +68,7 @@ class GameDataBinding {
       if (!snapshot.exists) return;
 
       final data = snapshot.data() as Map<String, dynamic>;
-      
+
       // Only update points if they've actually changed
       if (data['points'] != null) {
         final newPoints = GameUtils.pointsFromMap(data['points'] as List);
@@ -79,11 +76,11 @@ class GameDataBinding {
           _gameState.setPoints(newPoints);
         }
       }
-      
+
       if (data['scores'] != null) {
         _gameState.setScores(Map<String, int>.from(data['scores']));
       }
-      
+
       if (data.containsKey('winner')) {
         _gameState.setWinner(data['winner']);
         _gameState.setWinnerDialogShown(true);
@@ -123,7 +120,14 @@ class GameDataBinding {
     await _gameService.setWinner(chatRoomId, winnerId);
   }
 
-  Future<void> clearGame(String chatRoomId) async {
+  Future<void> resetGame(String chatRoomId) async {
     await _gameService.clearGame(chatRoomId);
+    _gameState.setPoints([]);
+    _gameState.setIsDrawer(false);
+    _gameState.setCurrentWord('');
+    _gameState.setScores({});
+    _gameState.setWinner(null);
+    _gameState.setIsInitialized(false);
+    _gameState.setWinnerDialogShown(false);
   }
 }

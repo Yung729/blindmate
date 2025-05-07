@@ -23,7 +23,9 @@ class GameDataBinding2 {
     final game = await _gameService.getGame(chatRoomId);
 
     if (game != null) {
-      _gameState.setBoard(List<String>.from(game['board'] ?? List.filled(9, '')));
+      _gameState.setBoard(
+        List<String>.from(game['board'] ?? List.filled(9, '')),
+      );
       _gameState.setRoles(Map<String, String>.from(game['roles'] ?? {}));
       _gameState.setWinner(game['winner']);
       _gameState.setIsPlayerX(game['roles'][currentUserId] == 'X');
@@ -54,15 +56,15 @@ class GameDataBinding2 {
       if (!snapshot.exists) return;
 
       final data = snapshot.data() as Map<String, dynamic>;
-      
+
       if (data['board'] != null) {
         _gameState.setBoard(List<String>.from(data['board']));
       }
-      
+
       if (data['roles'] != null) {
         _gameState.setRoles(Map<String, String>.from(data['roles']));
       }
-      
+
       if (data.containsKey('winner')) {
         _gameState.setWinner(data['winner']);
         _gameState.setWinnerDialogShown(true);
@@ -90,7 +92,22 @@ class GameDataBinding2 {
     await _gameService.clearGame(chatRoomId);
   }
 
-  Future<void> updateGame(String chatRoomId, Map<String, dynamic> gameData) async {
+  Future<void> updateGame(
+    String chatRoomId,
+    Map<String, dynamic> gameData,
+  ) async {
     await _gameService.updateGame(chatRoomId, gameData);
   }
-} 
+
+  Future<void> resetGame(String chatRoomId) async {
+    await _gameService.clearGame(chatRoomId);
+    _gameState.reset();
+    _gameState.setIsInitialized(false);
+    _gameState.setWinnerDialogShown(false);
+    _gameState.setBoard(List<String>.filled(9, ''));
+    _gameState.setRoles({});
+    _gameState.setWinner(null);
+    _gameState.setIsPlayerX(false);
+    _gameState.setIsCurrentPlayer(false);
+  }
+}

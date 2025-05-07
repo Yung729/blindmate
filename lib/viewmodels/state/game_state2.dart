@@ -136,7 +136,8 @@ class GameState2 extends ChangeNotifier {
     _isGameEnded = false;
     _isInactive = false;
     _isInactiveWarningShown = false;
+    _isLoading = false;
     _inactivityTimer?.cancel();
     notifyListeners();
   }
-} 
+}
