@@ -12,6 +12,7 @@ class GameState2 extends ChangeNotifier {
   bool _isGameEnded = false;
   bool _isInactive = false;
   bool _isInactiveWarningShown = false;
+  bool _isLoading = false;
   Timer? _inactivityTimer;
 
   List<String> get board => _board;
@@ -24,6 +25,12 @@ class GameState2 extends ChangeNotifier {
   bool get isGameEnded => _isGameEnded;
   bool get isInactive => _isInactive;
   bool get isInactiveWarningShown => _isInactiveWarningShown;
+  bool get isLoading => _isLoading;
+
+  void setIsLoading(bool loading) {
+    _isLoading = loading;
+    notifyListeners();
+  }
 
   void setBoard(List<String> board) {
     if (!_isGameEnded) {

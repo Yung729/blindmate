@@ -87,12 +87,6 @@ class _MiniGame2ScreenState extends State<MiniGame2Screen> {
     }
   }
 
-  void _navigateBackToChat() {
-    if (mounted) {
-      Navigator.of(context).pop();
-    }
-  }
-
   void _showOpponentLeftDialog() {
     if (!mounted) return;
 
@@ -107,9 +101,14 @@ class _MiniGame2ScreenState extends State<MiniGame2Screen> {
           actions: [
             TextButton(
               onPressed: () async {
+                // First dismiss the dialog
+                Navigator.of(context).pop();
+                
+                // Force cleanup and state reset
+                _gameSubscription?.cancel();
                 await _eventHandler.resetGame();
-                _navigateBackToChat();
-                // Ensure we return to chat screen
+                
+                // Only one navigation needed for opponent left
                 if (mounted) {
                   Navigator.of(context).pop();
                 }
@@ -139,9 +138,14 @@ class _MiniGame2ScreenState extends State<MiniGame2Screen> {
           actions: [
             TextButton(
               onPressed: () async {
+                // First dismiss the dialog
+                Navigator.of(context).pop();
+                
+                // Force cleanup and state reset
+                _gameSubscription?.cancel();
                 await _eventHandler.resetGame();
-                _navigateBackToChat();
-                // Ensure we return to chat screen
+                
+                // Only one navigation needed for inactivity
                 if (mounted) {
                   Navigator.of(context).pop();
                 }
@@ -175,9 +179,10 @@ class _MiniGame2ScreenState extends State<MiniGame2Screen> {
 
   @override
   void dispose() {
+    // Make sure we properly clean up everything
     _gameSubscription?.cancel();
     _eventHandler.dispose();
-    _gameState.dispose();
+    _gameState.reset();
     super.dispose();
   }
 
@@ -187,15 +192,19 @@ class _MiniGame2ScreenState extends State<MiniGame2Screen> {
       value: _gameState,
       child: Consumer<GameState2>(
         builder: (context, gameState, child) {
-          if (!gameState.isInitialized) {
-            return _buildLoadingScreen();
-          }
-
-          // Handle winner dialog
+          // Show winner dialog at the highest priority
           if (gameState.winner != null && gameState.winnerDialogShown) {
             WidgetsBinding.instance.addPostFrameCallback((_) {
               _showWinnerDialog(gameState.winner!);
             });
+            // Return game screen to show content under dialog
+            return _buildGameScreen(gameState);
+          }
+          
+          // Only show loading when no end-game conditions and not initialized
+          if (!gameState.isInitialized && !gameState.isGameEnded) {
+            _gameState.setIsLoading(true);
+            return _buildLoadingScreen();
           }
 
           // Handle inactivity dialog
@@ -246,8 +255,14 @@ class _MiniGame2ScreenState extends State<MiniGame2Screen> {
             );
 
             if (shouldExit == true && mounted) {
+              // First handle game exit with forced cleanup
+              _gameSubscription?.cancel();
               await _eventHandler.handleExitGame();
-              _navigateBackToChat();
+              
+              // When user exits, only need one navigation
+              if (mounted) {
+                Navigator.of(context).pop();
+              }
             }
           },
         ),
@@ -377,10 +392,20 @@ class _MiniGame2ScreenState extends State<MiniGame2Screen> {
           actions: [
             TextButton(
               onPressed: () async {
+                // First dismiss the dialog
+                Navigator.of(context).pop();
+                
+                // Force cleanup and state reset
+                _gameSubscription?.cancel();
                 await _eventHandler.resetGame();
-                _navigateBackToChat();
-                // Ensure we return to chat screen
-                if (isSelf) {
+                
+                // Force navigation back no matter what
+                if (mounted) {
+                  Navigator.of(context).pop();
+                }
+                
+                // For winner only, ensure navigation to chat
+                if (isSelf && _gameState.isLoading) {
                   Navigator.of(context).pop();
                 }
               },

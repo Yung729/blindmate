@@ -5,7 +5,6 @@ import '../../viewmodels/eventHandlers/game_event_handler.dart';
 import '../../viewmodels/dataBinding/game_data_binding.dart';
 import '../../services/game_service.dart';
 import '../../viewmodels/uiValidation/game_validator.dart';
-import 'dart:ui';
 import 'dart:async';
 
 class MiniGameScreen extends StatefulWidget {
@@ -91,24 +90,36 @@ class _MiniGameScreenState extends State<MiniGameScreen> {
   }
 
   void _showOpponentLeftDialog() {
+    if (!mounted) return;
+
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder:
-          (context) => AlertDialog(
-            title: Text("Opponent Left"),
-            content: Text("Your opponent has left the game."),
-            actions: [
-              TextButton(
-                onPressed: () async {
-                  await _eventHandler.resetGame(); // <-- Add this
+      builder: (context) => WillPopScope(
+        onWillPop: () async => false,
+        child: AlertDialog(
+          title: Text("Opponent Left"),
+          content: Text("Your opponent has left the game."),
+          actions: [
+            TextButton(
+              onPressed: () async {
+                // First dismiss the dialog
+                Navigator.of(context).pop();
+                
+                // Force cleanup and state reset
+                _gameSubscription?.cancel();
+                await _eventHandler.resetGame();
+                
+                // Only one navigation needed for opponent left
+                if (mounted) {
                   Navigator.of(context).pop();
-                  Navigator.pop(context);
-                },
-                child: const Text("OK"),
-              ),
-            ],
-          ),
+                }
+              },
+              child: const Text("Back to Chat"),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -117,45 +128,60 @@ class _MiniGameScreenState extends State<MiniGameScreen> {
     final winnerName = isSelf ? "You" : "Opponent";
     final loserName = isSelf ? "Opponent" : "You";
 
+    if (!mounted) return;
+
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder:
-          (context) => AlertDialog(
-            title: Text("🏁 Game Over"),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  "🎉 $winnerName won the game!",
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-                SizedBox(height: 8),
-                Text("😢 $loserName lost!", style: TextStyle(fontSize: 16)),
-                SizedBox(height: 16),
-                Text(
-                  "Final Score:",
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-                Text(
-                  "$winnerName: ${_gameState.scores[winnerId] ?? 0} - $loserName: ${_gameState.scores[isSelf ? widget.opponentId : widget.currentUserId] ?? 0}",
-                  style: TextStyle(fontSize: 16),
-                ),
-              ],
-            ),
-            actions: [
-              TextButton(
-                onPressed: () async {
-                  await _eventHandler.resetGame();
-                  if (mounted) {
-                    Navigator.of(context).pop();
-                    Navigator.pop(context);
-                  }
-                },
-                child: const Text("OK"),
+      builder: (context) => WillPopScope(
+        onWillPop: () async => false,
+        child: AlertDialog(
+          title: Text("🏁 Game Over"),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                "🎉 $winnerName won the game!",
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              SizedBox(height: 8),
+              Text("😢 $loserName lost!", style: TextStyle(fontSize: 16)),
+              SizedBox(height: 16),
+              Text(
+                "Final Score:",
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+              Text(
+                "$winnerName: ${_gameState.scores[winnerId] ?? 0} - $loserName: ${_gameState.scores[isSelf ? widget.opponentId : widget.currentUserId] ?? 0}",
+                style: TextStyle(fontSize: 16),
               ),
             ],
           ),
+          actions: [
+            TextButton(
+              onPressed: () async {
+                // First dismiss the dialog
+                Navigator.of(context).pop();
+                
+                // Force cleanup and state reset
+                _gameSubscription?.cancel();
+                await _eventHandler.resetGame();
+                
+                // Force navigation back no matter what
+                if (mounted) {
+                  Navigator.of(context).pop();
+                }
+                
+                // For winner only, ensure navigation to chat
+                if (isSelf && !_gameState.isInitialized  && !_gameState.isGameEnded) {
+                  Navigator.of(context).pop();
+                }
+              },
+              child: const Text("Back to Chat"),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -163,46 +189,71 @@ class _MiniGameScreenState extends State<MiniGameScreen> {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder:
-          (context) => AlertDialog(
-            title: Text("Inactivity Warning"),
-            content: Text(
-              "You have been inactive for 1 minute. Please continue playing or the game will end.",
-            ),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  _gameState.resetInactivityTimer();
-                  Navigator.pop(context);
-                },
-                child: Text("Continue Playing"),
-              ),
-            ],
+      builder: (context) => AlertDialog(
+        title: Text("Inactivity Warning"),
+        content: Text(
+          "You have been inactive for 1 minute. Please continue playing or the game will end.",
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              _gameState.resetInactivityTimer();
+              Navigator.pop(context);
+            },
+            child: Text("Continue Playing"),
           ),
+          TextButton(
+            onPressed: () async {
+              // First dismiss the dialog
+              Navigator.of(context).pop();
+              
+              // Force cleanup and state reset
+              _gameSubscription?.cancel();
+              await _eventHandler.resetGame();
+              
+              // Force navigation back no matter what
+              if (mounted) {
+                Navigator.of(context).pop();
+              }
+            },
+            child: const Text("Exit Game"),
+          ),
+        ],
+      ),
     );
   }
 
   void _showGameOverDialog() {
+    if (!mounted) return;
+
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder:
-          (context) => AlertDialog(
-            title: Text("Game Over"),
-            content: Text("The game has ended due to inactivity."),
-            actions: [
-              TextButton(
-                onPressed: () async {
-                  await _eventHandler.resetGame();
-                  if (mounted) {
-                    Navigator.of(context).pop();
-                    Navigator.pop(context);
-                  }
-                },
-                child: Text("OK"),
-              ),
-            ],
-          ),
+      builder: (context) => WillPopScope(
+        onWillPop: () async => false,
+        child: AlertDialog(
+          title: Text("Game Over"),
+          content: Text("The game has ended due to inactivity."),
+          actions: [
+            TextButton(
+              onPressed: () async {
+                // First dismiss the dialog
+                Navigator.of(context).pop();
+                
+                // Force cleanup and state reset
+                _gameSubscription?.cancel();
+                await _eventHandler.resetGame();
+                
+                // Force navigation back no matter what
+                if (mounted) {
+                  Navigator.of(context).pop();
+                }
+              },
+              child: const Text("Back to Chat"),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -226,9 +277,11 @@ class _MiniGameScreenState extends State<MiniGameScreen> {
 
   @override
   void dispose() {
+    // Make sure we properly clean up everything
     _gameSubscription?.cancel();
     _eventHandler.dispose();
     _guessController.dispose();
+    _gameState.reset();
     super.dispose();
   }
 
@@ -247,14 +300,18 @@ class _MiniGameScreenState extends State<MiniGameScreen> {
       value: _gameState,
       child: Consumer<GameState>(
         builder: (context, gameState, child) {
-          if (!gameState.isInitialized) {
-            return _buildLoadingScreen();
-          }
-
+          // Show winner dialog at the highest priority
           if (gameState.winner != null && gameState.winnerDialogShown) {
             WidgetsBinding.instance.addPostFrameCallback((_) {
               _showWinnerDialog(gameState.winner!);
             });
+            // Return game screen to show content under dialog
+            return _buildGameScreen(gameState);
+          }
+          
+          // Only show loading when no end-game conditions and not initialized
+          if (!gameState.isInitialized && !gameState.isGameEnded ) {
+            return _buildLoadingScreen();
           }
 
           if (gameState.isInactiveWarningShown) {
@@ -310,33 +367,33 @@ class _MiniGameScreenState extends State<MiniGameScreen> {
         leading: IconButton(
           icon: Icon(Icons.arrow_back),
           onPressed: () async {
-            // Show confirmation dialog
             final shouldExit = await showDialog<bool>(
               context: context,
               barrierDismissible: false,
-              builder:
-                  (context) => AlertDialog(
-                    title: Text("Exit Game"),
-                    content: Text("Are you sure you want to exit the game?"),
-                    actions: [
-                      TextButton(
-                        onPressed: () => Navigator.of(context).pop(false),
-                        child: Text("Cancel"),
-                      ),
-                      TextButton(
-                        onPressed: () => Navigator.of(context).pop(true),
-                        child: Text("Exit"),
-                      ),
-                    ],
+              builder: (context) => AlertDialog(
+                title: Text("Exit Game"),
+                content: Text("Are you sure you want to exit the game?"),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(false),
+                    child: Text("Cancel"),
                   ),
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(true),
+                    child: Text("Exit"),
+                  ),
+                ],
+              ),
             );
 
             if (shouldExit == true && mounted) {
-              // Notify opponent and return to chat
+              // First handle game exit with forced cleanup
+              _gameSubscription?.cancel();
               await _eventHandler.handleExitGame();
+              
+              // When user exits, only need one navigation
               if (mounted) {
                 Navigator.of(context).pop();
-                Navigator.pop(context);
               }
             }
           },
