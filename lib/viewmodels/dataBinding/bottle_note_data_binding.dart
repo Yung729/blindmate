@@ -1,7 +1,6 @@
 import 'package:blindmate/models/dataModels/pool_model.dart';
 import 'package:blindmate/services/bottle_note_service.dart';
 import 'package:blindmate/services/gemini_moderation_service.dart';
-import 'package:blindmate/services/do_mission_service.dart';
 import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
 import '../../models/dataModels/bottle_note_model.dart';
@@ -16,7 +15,6 @@ class BottleNoteDataBinding {
   final BottleNoteState bottleNoteState;
   String? selectedSticker;
   final Pool _pool = Pool();
-  final MissionService _missionService = MissionService();
   late MissionEventHandler? _missionEventHandler;
 
   BottleNoteDataBinding({
