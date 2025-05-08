@@ -90,7 +90,7 @@ class MissionDataBinding {
                          !mission.finished;
                          
         // If actionType is specified and mission has requirements.metric field with specific action type
-        if (actionType != null && mission.requirements.metric.contains(actionType)) {
+        if (actionType != null) {
           // This is a specific action type mission (like "music", "sticker", etc.)
           return basicMatch && actionType == mission.requirements.metric;
         }
@@ -98,6 +98,11 @@ class MissionDataBinding {
         // For generic missions or when actionType is not specified
         return basicMatch;
       }).toList();
+
+      print("🔍 Matching missions: ${matchingMissions.map((m) => 
+        "ID: ${m.id}, Title: ${m.title}, Category: ${m.category}, Type: ${m.type}, " +
+        "Progress: ${m.progress}/${m.requirements.target}, Metric: ${m.requirements.metric}"
+      ).join('\n')}");   
       
       if (matchingMissions.isEmpty) return;
       
