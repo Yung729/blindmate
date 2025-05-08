@@ -1,6 +1,6 @@
 import '../../models/api/youtube_api.dart';
 import '../../models/dataModels/post_model.dart';
-import '../../services/gemini_moderation_service.dart';
+import '../../models/api/gemini_moderation_service.dart';
 import '../../services/post_service.dart';
 import '../../services/trip_journal_service.dart';
 import '../../services/draft_post_service.dart';

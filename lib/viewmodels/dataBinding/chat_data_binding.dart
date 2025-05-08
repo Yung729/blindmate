@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'package:blindmate/models/api/giphy_service.dart';
-import 'package:blindmate/services/gemini_moderation_service.dart';
+import 'package:blindmate/models/api/gemini_moderation_service.dart';
 import 'package:blindmate/services/reward_service.dart';
 import 'package:blindmate/viewmodels/eventHandlers/mission_event_handler.dart';
 import 'package:blindmate/viewmodels/state/do_mission_state.dart';

@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'package:blindmate/services/gemini_moderation_service.dart';
+import 'package:blindmate/models/api/gemini_moderation_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/dataModels/mission_model.dart';

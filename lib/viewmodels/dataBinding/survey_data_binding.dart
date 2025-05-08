@@ -1,5 +1,5 @@
 import 'dart:async'; 
-import 'package:blindmate/services/gemini_moderation_service.dart';
+import 'package:blindmate/models/api/gemini_moderation_service.dart';
 import 'package:blindmate/services/level_progression_service.dart';
 import 'package:blindmate/models/dataModels/survey_model.dart';
 import 'package:blindmate/viewmodels/state/survey_state.dart';

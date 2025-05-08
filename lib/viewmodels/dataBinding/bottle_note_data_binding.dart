@@ -1,6 +1,6 @@
 import 'package:blindmate/models/dataModels/pool_model.dart';
 import 'package:blindmate/services/bottle_note_service.dart';
-import 'package:blindmate/services/gemini_moderation_service.dart';
+import 'package:blindmate/models/api/gemini_moderation_service.dart';
 import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
 import '../../models/dataModels/bottle_note_model.dart';
