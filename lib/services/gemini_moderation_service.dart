@@ -130,8 +130,9 @@ Query:
      - Mini-games played (metric: "game")
 
   2. Post Actions:
-     - Number of posts created (metric: "post")
+     - Number of text posts created (metric: "textpost")
      - Number of music posts shared (metric: "musicpost")
+     - Number of trip journal posts shared (metric: "tripjournal")
 
   3. Bottle Note Actions:
      - Number of notes sent (metric: "note")
@@ -148,7 +149,7 @@ Query:
         "category": "chat/post/note",
         "difficulty": "easy/medium/hard",
         "requirements": {
-          "metric": "text/sticker/music/tripjournal/game/post/musicpost/note/receivednote",
+          "metric": "text/sticker/music/tripjournal/game/textpost/musicpost/note/receivednote",
           "target": number,
         },
         "rewards": {
@@ -163,10 +164,11 @@ Query:
      - Chat for 30 minutes continuously
 
   2. Action-based:
-     - Send 10 text messages (metric: "text")
+     - Send 10 text messages in chat (metric: "text")
      - Share 3 stickers in chat (metric: "sticker") 
      - Share 2 music in chat (metric: "music")
      - Create 5 music posts (metric: "musicpost")
+     - Create 3 trip journal posts (metric: "tripjournal")
      - Send 3 bottle notes (metric: "note")
 
   IMPORTANT: For action-based missions, use the EXACT metric values specified above. The metric field must match exactly one of the values in the list above.

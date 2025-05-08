@@ -165,7 +165,7 @@ class CreatePostDataBinding {
           category: 'post',
           type: 'action',
           actionCount: 1,
-          actionType: 'post',
+          actionType: 'textpost',
         );
       }
     }
