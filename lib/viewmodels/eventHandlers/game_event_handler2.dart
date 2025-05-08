@@ -163,7 +163,7 @@ class GameEventHandler2 {
     
     // Track mission progress when game is completed
     if (_missionEventHandler != null) {
-      await _missionEventHandler?.trackMissionProgress(
+      await _missionEventHandler.trackMissionProgress(
         category: 'chat',
         type: 'action',
         actionCount: 1,

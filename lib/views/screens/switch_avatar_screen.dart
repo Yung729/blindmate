@@ -1,7 +1,6 @@
 import 'package:blindmate/viewmodels/state/reward_state.dart';
 import 'package:blindmate/views/UIComponents/custom_button.dart';
 import 'package:blindmate/views/UIComponents/empty_message.dart';
-import 'package:blindmate/models/dataModels/rewards_model.dart';
 import 'package:blindmate/models/dataModels/user_model.dart';
 import 'package:blindmate/views/UIComponents/image_frame.dart';
 import 'package:flutter/material.dart';
@@ -50,7 +49,6 @@ class _SwitchAvatarScreenState extends State<SwitchAvatarScreen> {
   @override
   Widget build(BuildContext context) {
     final rewardState = context.watch<RewardState>();
-    final authUser = Provider.of<AuthState>(context).currentUser;
     return Scaffold(
       appBar: AppBar(
         title: const Text('Switch Avatar'),

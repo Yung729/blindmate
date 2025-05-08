@@ -47,8 +47,6 @@ class _RedeemRewardScreenState extends State<RedeemRewardScreen> {
   void initState() {
     super.initState();
     final user = _authState.currentUser;
-    final rewardState = Provider.of<RewardState>(context, listen: false);
-    print("AuthState user: ${_user?.userId}");
     if (user != null) {
       _rewardEventHandler = RedeemRewardEventHandler(user: user);
       _initializeScreen();
@@ -105,7 +103,7 @@ class _RedeemRewardScreenState extends State<RedeemRewardScreen> {
           reward.redeemRewardId,
           onSuccess:
               (updatedFragmentNumber) => setState(() {
-                user!.fragmentNumber = updatedFragmentNumber;
+                user.fragmentNumber = updatedFragmentNumber;
                 if (reward.rewardTitle != 'flower') {
                   // _rewards.removeWhere(
                   //   (r) => r.redeemRewardId == reward.redeemRewardId,
@@ -117,7 +115,7 @@ class _RedeemRewardScreenState extends State<RedeemRewardScreen> {
         );
 
         print(
-          "Reward redeemed successfully. New fragment number: ${user!.fragmentNumber}",
+          "Reward redeemed successfully. New fragment number: ${user.fragmentNumber}",
         );
       } catch (e) {
         print("Error during reward redemption: $e");
@@ -156,7 +154,7 @@ class _RedeemRewardScreenState extends State<RedeemRewardScreen> {
                   // ✅ Use Column here instead of children on Container
                   children: [
                     buildCrystalBox(
-                      '${user!.fragmentNumber}',
+                      '${user.fragmentNumber}',
                     ), // Optional: using your shared method
                     const SizedBox(height: 24),
                     Expanded(
@@ -187,7 +185,7 @@ class _RedeemRewardScreenState extends State<RedeemRewardScreen> {
                           MaterialPageRoute(
                             builder:
                                 (context) =>
-                                    SwitchAvatarScreen(user: user!),
+                                    SwitchAvatarScreen(user: user),
                           ),
                           // ).then((_) {
                           //   _loadUserData();
