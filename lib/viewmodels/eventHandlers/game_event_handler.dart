@@ -4,6 +4,8 @@ import '../state/game_state.dart';
 import '../dataBinding/game_data_binding.dart';
 import '../../models/dataModels/game_model.dart';
 import '../../utils/game_utils.dart';
+import '../eventHandlers/mission_event_handler.dart';
+import '../state/do_mission_state.dart';
 
 class GameEventHandler {
   final GameState _gameState;
@@ -11,6 +13,7 @@ class GameEventHandler {
   final String _chatRoomId;
   final String _currentUserId;
   final String _opponentId;
+  final MissionEventHandler? _missionEventHandler;
   BuildContext? _context;
 
   Timer? _inactivityTimer;
@@ -25,11 +28,13 @@ class GameEventHandler {
     required String chatRoomId,
     required String currentUserId,
     required String opponentId,
+    MissionState? missionState,
   }) : _gameState = gameState,
        _dataBinding = dataBinding,
        _chatRoomId = chatRoomId,
        _currentUserId = currentUserId,
-       _opponentId = opponentId;
+       _opponentId = opponentId,
+       _missionEventHandler = missionState != null ? MissionEventHandler(missionState: missionState) : null;
 
   void setContext(BuildContext context) {
     _context = context;
@@ -121,6 +126,7 @@ class GameEventHandler {
       if (_gameState.scores[_currentUserId]! >= _winningScore) {
         await _dataBinding.setWinner(_chatRoomId, _currentUserId);
         _gameState.setIsGameEnded(true);
+        await handleGameEnd();
       } else {
         await _swapRoles();
         await _prepareNewRound();
@@ -150,6 +156,7 @@ class GameEventHandler {
         if (_gameState.scores[_opponentId]! >= _winningScore) {
           await _dataBinding.setWinner(_chatRoomId, _opponentId);
           _gameState.setIsGameEnded(true);
+          await handleGameEnd();
         } else {
           await _swapRoles();
           await _prepareNewRound();
@@ -232,6 +239,22 @@ class GameEventHandler {
       _gameState.setWinnerDialogShown(true);
       _gameState.setIsGameEnded(true);
     }
+  }
+
+  Future<void> handleGameEnd() async {
+    // Track mission progress when game is completed
+    if (_missionEventHandler != null) {
+      await _missionEventHandler?.trackMissionProgress(
+        category: 'chat',
+        type: 'action',
+        actionCount: 1,
+        actionType: 'game',
+      );
+    }
+    
+    _gameState.setIsGameEnded(true);
+    _inactivityTimer?.cancel();
+    _gameOverTimer?.cancel();
   }
 
   void dispose() {

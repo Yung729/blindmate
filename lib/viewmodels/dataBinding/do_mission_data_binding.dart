@@ -75,6 +75,7 @@ class MissionDataBinding {
     required String type,
     int actionCount = 1,
     int actionTime = 0,
+    String? actionType,
   }) async {
     try {
       // Get current user
@@ -82,11 +83,21 @@ class MissionDataBinding {
       if (currentUser == null) return;
       
       // Find active missions that match the category and type
-      final matchingMissions = _missionState.activeMissions.where((mission) => 
-        mission.category == category && 
-        mission.type == type && 
-        !mission.finished
-      ).toList();
+      final matchingMissions = _missionState.activeMissions.where((mission) {
+        // Basic category and type matching
+        bool basicMatch = mission.category == category && 
+                         mission.type == type && 
+                         !mission.finished;
+                         
+        // If actionType is specified and mission has requirements.metric field with specific action type
+        if (actionType != null && mission.requirements.metric.contains(actionType)) {
+          // This is a specific action type mission (like "music", "sticker", etc.)
+          return basicMatch && actionType == mission.requirements.metric;
+        }
+        
+        // For generic missions or when actionType is not specified
+        return basicMatch;
+      }).toList();
       
       if (matchingMissions.isEmpty) return;
       

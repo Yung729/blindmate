@@ -108,11 +108,47 @@ class ChatDataBinding {
     MessageModel messageToSend;
     String? moderationResult;
 
-    await _missionEventHandler.trackMissionProgress(
-      category: "chat",
-      type: "action",
-      actionCount: 1,
-    );
+    // Track mission progress based on message type
+    if (message.musicUrl != null && message.musicUrl!.isNotEmpty) {
+      // Track specifically as music message
+      await _missionEventHandler.trackMissionProgress(
+        category: "chat",
+        type: "action",
+        actionCount: 1,
+        actionType: "music",
+      );
+    } else if (message.stickerUrl != null && message.stickerUrl!.isNotEmpty) {
+      // Track specifically as sticker message
+      await _missionEventHandler.trackMissionProgress(
+        category: "chat",
+        type: "action",
+        actionCount: 1,
+        actionType: "sticker",
+      );
+    } else if (message.tripJournals != null && message.tripJournals!.isNotEmpty) {
+      // Track specifically as trip journal message
+      await _missionEventHandler.trackMissionProgress(
+        category: "chat",
+        type: "action",
+        actionCount: 1,
+        actionType: "tripjournal",
+      );
+    } else if (message.text != null && message.text!.isNotEmpty) {
+      // Track as regular text message
+      await _missionEventHandler.trackMissionProgress(
+        category: "chat",
+        type: "action",
+        actionCount: 1,
+        actionType: "text",
+      );
+    } else {
+      // Generic tracking for any other type
+      await _missionEventHandler.trackMissionProgress(
+        category: "chat",
+        type: "action",
+        actionCount: 1,
+      );
+    }
 
     // Determine message type and handle accordingly
     if (message.tripJournals != null && message.tripJournals!.isNotEmpty) {

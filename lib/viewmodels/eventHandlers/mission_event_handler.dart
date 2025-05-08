@@ -34,12 +34,14 @@ class MissionEventHandler {
     required String type,
     int actionCount = 1,
     int actionTime = 0,
+    String? actionType,
   }) async {
     await _missionDataBinding.trackMissionProgress(
       category: category,
       type: type,
       actionCount: actionCount,
       actionTime: actionTime,
+      actionType: actionType,
     );
   }
 }

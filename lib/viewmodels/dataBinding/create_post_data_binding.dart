@@ -147,11 +147,29 @@ class CreatePostDataBinding {
     await _draftService.clearDraft();
 
     if (_missionEventHandler != null) {
-      await _missionEventHandler?.trackMissionProgress(
-      category: 'post',
-      type: 'action',
-      actionCount: 1,
-    );
+      // Track mission progress based on post type
+      if (postType == PostType.musicPost) {
+        await _missionEventHandler?.trackMissionProgress(
+          category: 'post',
+          type: 'action',
+          actionCount: 1,
+          actionType: 'musicpost',
+        );
+      } else if (postType == PostType.tripJournal) {
+        await _missionEventHandler?.trackMissionProgress(
+          category: 'post',
+          type: 'action',
+          actionCount: 1,
+          actionType: 'tripjournal',
+        );
+      } else {
+        await _missionEventHandler?.trackMissionProgress(
+          category: 'post',
+          type: 'action',
+          actionCount: 1,
+          actionType: 'post',
+        );
+      }
     }
 
     return newPost;

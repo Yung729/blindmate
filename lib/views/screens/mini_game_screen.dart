@@ -5,6 +5,7 @@ import '../../viewmodels/eventHandlers/game_event_handler.dart';
 import '../../viewmodels/dataBinding/game_data_binding.dart';
 import '../../services/game_service.dart';
 import '../../viewmodels/uiValidation/game_validator.dart';
+import '../../viewmodels/state/do_mission_state.dart';
 import 'dart:async';
 
 class MiniGameScreen extends StatefulWidget {
@@ -268,13 +269,19 @@ class _MiniGameScreenState extends State<MiniGameScreen> {
       gameState: _gameState,
       currentUserId: widget.currentUserId,
     );
+    
+    // Get mission state from provider
+    final missionState = Provider.of<MissionState>(context, listen: false);
+    
     _eventHandler = GameEventHandler(
       gameState: _gameState,
       dataBinding: _dataBinding,
       chatRoomId: widget.chatRoomId,
       currentUserId: widget.currentUserId,
       opponentId: widget.opponentId,
+      missionState: missionState,
     );
+    _eventHandler.setContext(context);
     _eventHandler.init(widget.isDrawer);
   }
 

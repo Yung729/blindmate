@@ -1,7 +1,8 @@
 import 'dart:async';
-import 'package:flutter/material.dart';
 import '../state/game_state2.dart';
 import '../dataBinding/game_data_binding2.dart';
+import '../eventHandlers/mission_event_handler.dart';
+import '../state/do_mission_state.dart';
 
 class GameEventHandler2 {
   final GameState2 _gameState;
@@ -9,6 +10,7 @@ class GameEventHandler2 {
   final String _chatRoomId;
   final String _currentUserId;
   final String _opponentId;
+  final MissionEventHandler? _missionEventHandler;
 
   Timer? _inactivityTimer;
   static const int _inactivityThreshold = 30; // 30 seconds of inactivity
@@ -19,11 +21,13 @@ class GameEventHandler2 {
     required String chatRoomId,
     required String currentUserId,
     required String opponentId,
+    MissionState? missionState,
   }) : _gameState = gameState,
        _dataBinding = dataBinding,
        _chatRoomId = chatRoomId,
        _currentUserId = currentUserId,
-       _opponentId = opponentId;
+       _opponentId = opponentId,
+       _missionEventHandler = missionState != null ? MissionEventHandler(missionState: missionState) : null;
 
   Future<void> init(bool isPlayerX) async {
     await _dataBinding.initializeGame(
@@ -156,6 +160,17 @@ class GameEventHandler2 {
 
   Future<void> _cleanupGame() async {
     _inactivityTimer?.cancel();
+    
+    // Track mission progress when game is completed
+    if (_missionEventHandler != null) {
+      await _missionEventHandler?.trackMissionProgress(
+        category: 'chat',
+        type: 'action',
+        actionCount: 1,
+        actionType: 'game',
+      );
+    }
+    
     _gameState.reset();
     await _dataBinding.resetGame(_chatRoomId);
   }

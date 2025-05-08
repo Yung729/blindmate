@@ -61,6 +61,7 @@ class BottleNoteDataBinding {
         category: 'note',
         type: 'action',
         actionCount: 1,
+        actionType: 'note',
       );
     }
 
@@ -103,6 +104,16 @@ class BottleNoteDataBinding {
     );
 
     await _bottleNoteService.addReply(noteId, reply);
+    
+    // Track mission progress for receiving a note
+    if (_missionEventHandler != null) {
+      await _missionEventHandler?.trackMissionProgress(
+        category: 'note',
+        type: 'action',
+        actionCount: 1,
+        actionType: 'receivednote',
+      );
+    }
   }
 
   Future<List<Reply>> getRepliesForNote(String noteId) async {

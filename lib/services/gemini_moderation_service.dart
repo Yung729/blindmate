@@ -124,19 +124,19 @@ Query:
 
   Action-based metrics available:
   1. Chat Actions:
-     - Number of safe messages sent (safeMessageCount) or just message total
-     - Number of stickers sent (stickerCount)
-     - Number of music sent (musicCount)
-     - Mini-games played
-     - Music shares in chat
+     - Number of text messages sent (metric: "text")
+     - Number of stickers sent (metric: "sticker")
+     - Number of music shared (metric: "music")
+     - Number of trip journals shared (metric: "tripjournal")
+     - Mini-games played (metric: "game")
 
   2. Post Actions:
-     - Number of posts created (postsCreated)
-     - Number of music posts shared (musicShares)
+     - Number of posts created (metric: "post")
+     - Number of music posts shared (metric: "musicpost")
 
   3. Bottle Note Actions:
-     - Number of notes sent (notesSent)
-     - Number of notes received (notesReceived)
+     - Number of notes sent (metric: "note")
+     - Number of notes received (metric: "receivednote")
 
   Return missions in this exact JSON format:
   {
@@ -149,7 +149,7 @@ Query:
         "category": "chat/post/note",
         "difficulty": "easy/medium/hard",
         "requirements": {
-          "metric": "chat_duration/safe_messages/stickers/posts/notes",
+          "metric": "text/sticker/music/tripjournal/game/post/musicpost/note/receivednote",
           "target": number,
         },
         "rewards": {
@@ -165,10 +165,13 @@ Query:
      - Maintain active chat (no inactivity warnings) for 1 hour
 
   2. Action-based:
-     - Send 10 safe messages
-     - Share 3 stickers in one chat
-     - Create 5 music posts
-     - Send 3 bottle notes
+     - Send 10 text messages (metric: "text")
+     - Share 3 stickers in chat (metric: "sticker") 
+     - Share 2 music in chat (metric: "music")
+     - Create 5 music posts (metric: "musicpost")
+     - Send 3 bottle notes (metric: "note")
+
+  IMPORTANT: For action-based missions, use the EXACT metric values specified above. The metric field must match exactly one of the values in the list above.
 
   Requirements:
   - Each mission must be achievable within one session

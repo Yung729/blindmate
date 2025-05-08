@@ -4,6 +4,7 @@ import '../../viewmodels/state/game_state2.dart';
 import '../../viewmodels/eventHandlers/game_event_handler2.dart';
 import '../../viewmodels/dataBinding/game_data_binding2.dart';
 import '../../services/game_service2.dart';
+import '../../viewmodels/state/do_mission_state.dart';
 import 'dart:async';
 
 class MiniGame2Screen extends StatefulWidget {
@@ -168,12 +169,17 @@ class _MiniGame2ScreenState extends State<MiniGame2Screen> {
       gameState: _gameState,
       currentUserId: widget.currentUserId,
     );
+    
+    // Get mission state from provider
+    final missionState = Provider.of<MissionState>(context, listen: false);
+    
     _eventHandler = GameEventHandler2(
       gameState: _gameState,
       dataBinding: _dataBinding,
       chatRoomId: widget.chatRoomId,
       currentUserId: widget.currentUserId,
       opponentId: widget.opponentId,
+      missionState: missionState,
     );
     _eventHandler.init(widget.isPlayerX);
     _gameState.startInactivityTimer();
