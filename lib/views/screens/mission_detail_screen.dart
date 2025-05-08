@@ -1,19 +1,17 @@
 import 'package:blindmate/models/dataModels/mission_model.dart';
 import 'package:flutter/material.dart';
 
-class MissionDetailScreen extends StatefulWidget {
+class MissionDetailScreen extends StatelessWidget {
   final MissionModel mission;
+
+  // The mission is passed directly to the view.
   const MissionDetailScreen({super.key, required this.mission});
 
-  @override
-  _MissionDetailScreenState createState() => _MissionDetailScreenState();
-}
-
-class _MissionDetailScreenState extends State<MissionDetailScreen> {
+// class _MissionDetailScreenState extends State<MissionDetailScreen> {
   
   @override
   Widget build(BuildContext context) {
-    final mission = widget.mission;
+    // final mission = widget.mission;
 
     return Scaffold(
       appBar: AppBar(
