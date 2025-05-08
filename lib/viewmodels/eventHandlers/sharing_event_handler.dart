@@ -2,16 +2,15 @@ import 'package:flutter/material.dart';
 import '../../models/dataModels/post_model.dart';
 import '../dataBinding/sharing_data_binding.dart';
 import '../state/sharing_state.dart';
-import '../../services/post_service.dart';
 import '../../views/screens/create_post_screen.dart';
 
 class SharingEventHandler {
   final SharingState sharingState;
   final SharingDataBinding dataBinding;
-  final PostService _postService = PostService();
 
   SharingEventHandler({required this.sharingState, required this.dataBinding});
 
+  /// Initialize the event handler and data binding
   Future<void> init() async {
     await dataBinding.initialize();
   }
@@ -42,45 +41,18 @@ class SharingEventHandler {
       visibility: newPostData['visibility'] ?? 'public',
       timestamp: DateTime.now(),
     );
-    await _postService.createPost(newPost);
+    await dataBinding.createPost(newPost);
   }
 }
 
   void deletePost(String postId) {
-    deletePostFromDatabase(postId);
-  }
-
-  Future<void> deletePostFromDatabase(String postId) async {
-    sharingState.setLoading(true);
-    try {
-      await _postService.deletePost(postId);
-    } catch (e) {
-      print("Error deleting post: $e");
-    } finally {
-      sharingState.setLoading(false);
-    }
+    dataBinding.deletePost(postId);
   }
 
   void togglePostVisibility(String postId) {
     final post = sharingState.posts.firstWhere((p) => p.id == postId);
     final newVisibility = !post.isPublic;
-    updatePostVisibilityInDatabase(postId, newVisibility);
-  }
-
-  Future<void> updatePostVisibilityInDatabase(
-    String postId,
-    bool isPublic,
-  ) async {
-    sharingState.setLoading(true);
-    try {
-      await _postService.updatePost(postId, {
-        'visibility': isPublic ? 'public' : 'private',
-      });
-    } catch (e) {
-      print("Error updating post visibility: $e");
-    } finally {
-      sharingState.setLoading(false);
-    }
+    dataBinding.updatePostVisibility(postId, newVisibility);
   }
 
   void playMusic(String youtubeUrl) {
@@ -99,52 +71,36 @@ class SharingEventHandler {
     return dataBinding.extractUrlFromContent(content);
   }
 
-  /// Hide a post for the current user (persistent)
+  /// Handle hide post action from UI
   Future<void> hidePost(String postId) async {
-    await sharingState.hidePost(postId);
+    await dataBinding.hidePost(postId);
   }
 
-  /// Unhide a post for the current user (persistent)
+  /// Handle unhide post action from UI
   Future<void> unhidePost(String postId) async {
-    await sharingState.unhidePost(postId);
+    await dataBinding.unhidePost(postId);
   }
 
   List<PostModel> getFilteredPosts({
     required String userId,
     bool myPostsOnly = false,
   }) {
-    return myPostsOnly
-        ? sharingState.posts
-            .where(
-              (post) => post.userId == userId && post.visibility != 'deleted',
-            )
-            .toList()
-        : sharingState.posts
-            .where((post) => post.visibility != 'deleted')
-            .toList();
+    return dataBinding.getFilteredPosts(
+      userId: userId,
+      myPostsOnly: myPostsOnly,
+    );
   }
 
+  /// Get posts formatted for display
   List<Map<String, dynamic>> getDisplayedPosts({
     required String userId,
     required bool showMyPostsOnly,
     required Set<String> hiddenPostIds,
   }) {
-    // Filter and convert PostModel to Map<String, dynamic>
-    final filteredPosts =
-        showMyPostsOnly
-            ? sharingState.posts.where(
-              (post) => post.userId == userId && post.visibility != 'deleted',
-            )
-            : sharingState.posts.where((post) => post.visibility != 'deleted');
-
-    return filteredPosts.where((post) => !hiddenPostIds.contains(post.id)).map((
-      post,
-    ) {
-      final map = post.toMap();
-      map['id'] = post.id;
-      map['authorAvatar'] = post.authorAvatar;
-      map['timestamp'] = post.timestamp.toIso8601String();
-      return map;
-    }).toList();
+    return dataBinding.getDisplayedPosts(
+      userId: userId,
+      showMyPostsOnly: showMyPostsOnly,
+      hiddenPostIds: hiddenPostIds,
+    );
   }
 }

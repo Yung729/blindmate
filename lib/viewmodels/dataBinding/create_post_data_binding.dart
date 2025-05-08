@@ -1,7 +1,6 @@
 import '../../models/api/youtube_api.dart';
 import '../../models/dataModels/post_model.dart';
 import '../../services/gemini_moderation_service.dart';
-import '../../services/do_mission_service.dart';
 import '../../services/post_service.dart';
 import '../../services/trip_journal_service.dart';
 import '../../services/draft_post_service.dart';
@@ -14,7 +13,6 @@ class CreatePostDataBinding {
   final PostService _postService = PostService();
   final UserTripJournalService _tripJournalService = UserTripJournalService();
   final GeminiModerationService _moderationService = GeminiModerationService();
-  final MissionService _missionService = MissionService();
   final DraftPostService _draftService = DraftPostService();
   late MissionEventHandler? _missionEventHandler;
 

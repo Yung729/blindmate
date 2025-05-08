@@ -9,7 +9,7 @@ import '../UIComponents/loading_indicator.dart';
 import '../UIComponents/url_input_dialog.dart';
 import '../UIComponents/music_search_dialog.dart';
 import '../UIComponents/trip_journal_create_dialog.dart';
-import '../UIComponents/fetch_url_thumbail.dart';
+import '../../utils/fetch_url_thumbail.dart';
 import '../UIComponents/custom_snackbar.dart';
 import '../UIComponents/custom_dialog.dart';
 import '../UIComponents/post_music_preview.dart';

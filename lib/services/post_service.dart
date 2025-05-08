@@ -8,6 +8,10 @@ class PostService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
+  // =========================
+  // User data operations
+  // =========================
+
   // Get user data
   Future<UserModel?> loadUserData() async {
     final user = _auth.currentUser;
@@ -22,6 +26,41 @@ class PostService {
     }
     return null;
   }
+
+    /// Fetch avatarImg for a single userId
+  Future<String?> fetchUserAvatar(String userId) async {
+    final doc = await _firestore.collection('users').doc(userId).get();
+    if (doc.exists && doc.data() != null) {
+      return doc.data()!['avatarImg'] as String?;
+    }
+    return null;
+  }
+
+/// Fetch avatarImg for a list of userIds (returns a map userId -> avatarImg)
+  Future<Map<String, String>> fetchAvatarsForUserIds(List<String> userIds) async {
+    if (userIds.isEmpty) return {};
+    // Firestore 'whereIn' supports up to 10 items per query, so batch if needed
+    final Map<String, String> result = {};
+    final batches = <List<String>>[];
+    for (var i = 0; i < userIds.length; i += 10) {
+      batches.add(userIds.sublist(i, i + 10 > userIds.length ? userIds.length : i + 10));
+    }
+    for (final batch in batches) {
+      final snapshot = await _firestore
+          .collection('users')
+          .where(FieldPath.documentId, whereIn: batch)
+          .get();
+      for (final doc in snapshot.docs) {
+        final data = doc.data();
+        result[doc.id] = data['avatarImg'] ?? '';
+      }
+    }
+    return result;
+  }
+
+  // =========================
+  // Post operations
+  // =========================  
 
   // Get shared posts (now just "posts")
   Stream<List<PostModel>> getPosts(String? currentUserId) {
@@ -66,27 +105,6 @@ class PostService {
     }
   }
 
-  // Helper method for extracting YouTube video IDs
-  String? extractYouTubeVideoId(String url) {
-    RegExp regExp = RegExp(
-      r'(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?/ ]{11})',
-      caseSensitive: false,
-      multiLine: false,
-    );
-    Match? match = regExp.firstMatch(url);
-    return match?.group(1);
-  }
-
-  // Extract URLs from content
-  String? extractUrlFromContent(String content) {
-    RegExp urlRegExp = RegExp(
-      r'(https?:\/\/[^\s]+)',
-      caseSensitive: false,
-    );
-    Match? urlMatch = urlRegExp.firstMatch(content);
-    return urlMatch?.group(0);
-  }
-
   // =========================
   // Hidden Posts Management
   // =========================
@@ -121,34 +139,28 @@ class PostService {
     }, SetOptions(merge: true));
   }
 
-  /// Fetch avatarImg for a single userId
-  Future<String?> fetchUserAvatar(String userId) async {
-    final doc = await _firestore.collection('users').doc(userId).get();
-    if (doc.exists && doc.data() != null) {
-      return doc.data()!['avatarImg'] as String?;
-    }
-    return null;
+  // =========================
+  // Utility functions
+  // ========================
+
+    // Helper method for extracting YouTube video IDs
+  String? extractYouTubeVideoId(String url) {
+    RegExp regExp = RegExp(
+      r'(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?/ ]{11})',
+      caseSensitive: false,
+      multiLine: false,
+    );
+    Match? match = regExp.firstMatch(url);
+    return match?.group(1);
   }
 
-/// Fetch avatarImg for a list of userIds (returns a map userId -> avatarImg)
-  Future<Map<String, String>> fetchAvatarsForUserIds(List<String> userIds) async {
-    if (userIds.isEmpty) return {};
-    // Firestore 'whereIn' supports up to 10 items per query, so batch if needed
-    final Map<String, String> result = {};
-    final batches = <List<String>>[];
-    for (var i = 0; i < userIds.length; i += 10) {
-      batches.add(userIds.sublist(i, i + 10 > userIds.length ? userIds.length : i + 10));
-    }
-    for (final batch in batches) {
-      final snapshot = await _firestore
-          .collection('users')
-          .where(FieldPath.documentId, whereIn: batch)
-          .get();
-      for (final doc in snapshot.docs) {
-        final data = doc.data();
-        result[doc.id] = data['avatarImg'] ?? '';
-      }
-    }
-    return result;
+  // Extract URLs from content
+  String? extractUrlFromContent(String content) {
+    RegExp urlRegExp = RegExp(
+      r'(https?:\/\/[^\s]+)',
+      caseSensitive: false,
+    );
+    Match? urlMatch = urlRegExp.firstMatch(content);
+    return urlMatch?.group(0);
   }
 }
