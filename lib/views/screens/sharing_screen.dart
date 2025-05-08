@@ -1,3 +1,4 @@
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -198,18 +199,10 @@ class SharingScreenState extends State<SharingScreen> {
                               },
                               getTimeAgo: getTimeAgo,
                               onExpand: (postId) {
-                                WidgetsBinding.instance.addPostFrameCallback((
-                                  _,
-                                ) {
-                                  setState(() => _expandedPosts.add(postId));
-                                });
+                                setState(() => _expandedPosts.add(postId));
                               },
                               onCollapse: (postId) {
-                                WidgetsBinding.instance.addPostFrameCallback((
-                                  _,
-                                ) {
-                                  setState(() => _expandedPosts.remove(postId));
-                                });
+                                setState(() => _expandedPosts.remove(postId));
                               },
                               onDeleteSelected: _handleDeleteSelected,
                               onToggleVisibility: _handleToggleVisibility,
@@ -387,14 +380,10 @@ class SharingScreenState extends State<SharingScreen> {
                   isExpanded: _expandedPosts.contains(post['id']),
                   maxLinesCollapsed: _maxLinesCollapsed,
                   onExpand: () {
-                    WidgetsBinding.instance.addPostFrameCallback((_) {
-                      setState(() => _expandedPosts.add(post['id']));
-                    });
+                    setState(() => _expandedPosts.add(post['id']));
                   },
                   onCollapse: () {
-                    WidgetsBinding.instance.addPostFrameCallback((_) {
-                      setState(() => _expandedPosts.remove(post['id']));
-                    });
+                    setState(() => _expandedPosts.remove(post['id']));
                   },
                 ),
               if (post['url'] != null)
@@ -480,7 +469,7 @@ class SharingScreenState extends State<SharingScreen> {
                 borderRadius: BorderRadius.circular(20),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.2),
+                    color: Colors.black.withOpacity(0.2),
                     blurRadius: 20,
                     offset: const Offset(0, 10),
                   ),

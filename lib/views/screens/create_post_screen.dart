@@ -62,12 +62,9 @@ class CreatePostScreenState extends State<CreatePostScreen>
       context,
       listen: false,
     );
-    
+
     // Get mission state
-    final missionState = Provider.of<MissionState>(
-      context,
-      listen: false,
-    );
+    final missionState = Provider.of<MissionState>(context, listen: false);
 
     // Fetch avatar from AuthState for event handler
     final authState = Provider.of<AuthState>(context, listen: false);
@@ -609,6 +606,7 @@ class CreatePostScreenState extends State<CreatePostScreen>
 
                     // Post content field
                     Container(
+                      height: 150, // Fixed height - adjust as needed
                       decoration: BoxDecoration(
                         color: Colors.grey.shade50,
                         borderRadius: BorderRadius.circular(12),
@@ -619,14 +617,18 @@ class CreatePostScreenState extends State<CreatePostScreen>
                       ),
                       child: TextField(
                         controller: _textController,
-                        maxLines: null,
-                        minLines: 5,
+                        maxLines: null, // Allow unlimited lines
+                        keyboardType: TextInputType.multiline,
+                        textAlignVertical: TextAlignVertical.top,
+                        scrollPhysics:
+                            const BouncingScrollPhysics(), // Add smooth scrolling
                         onChanged:
                             (value) => _eventHandler.updatePostContent(value),
                         decoration: const InputDecoration(
                           hintText: "What's on your mind?",
                           border: InputBorder.none,
                           hintStyle: TextStyle(color: Colors.grey),
+                          isCollapsed: false, // Important for proper scrolling
                         ),
                         style: const TextStyle(fontSize: 16),
                       ),
@@ -768,7 +770,9 @@ class CreatePostScreenState extends State<CreatePostScreen>
                                           },
                                         )
                                         : Container(
-                                          color: Colors.blue.withValues(alpha: 0.1),
+                                          color: Colors.blue.withValues(
+                                            alpha: 0.1,
+                                          ),
                                           child: const Icon(
                                             Icons.music_note,
                                             color: Colors.blue,
