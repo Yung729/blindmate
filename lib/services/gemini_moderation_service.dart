@@ -120,7 +120,6 @@ Query:
 
   Time-based metrics available:
   - Chat duration (how long users chat)
-  - Time between messages (10-minute inactivity limit)
 
   Action-based metrics available:
   1. Chat Actions:
@@ -162,7 +161,6 @@ Query:
   Example missions:
   1. Time-based:
      - Chat for 30 minutes continuously
-     - Maintain active chat (no inactivity warnings) for 1 hour
 
   2. Action-based:
      - Send 10 text messages (metric: "text")
