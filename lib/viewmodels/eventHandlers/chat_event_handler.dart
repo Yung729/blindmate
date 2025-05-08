@@ -413,7 +413,7 @@ class ChatEventHandler {
     } catch (e) {
       print(
         "❌ Error sending trip journal message: $e",
-      ); // Handle error if needed
+      ); 
     }
   }
 

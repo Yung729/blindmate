@@ -99,7 +99,6 @@ class ChatDataBinding {
     });
   }
 
-  // Improved message sending logic with better handling for all message types
   Future<void> sendMessage(
     String userId,
     String chatRoomId,
@@ -314,7 +313,6 @@ class ChatDataBinding {
       await _chatService.saveChatSummary(chatRoomId, userSummary);
     } catch (e) {
       print("❌ Error saving chat summary: $e");
-      // Still continue with exit flow
     }
   }
 
