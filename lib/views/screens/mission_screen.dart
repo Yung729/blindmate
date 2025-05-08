@@ -47,14 +47,14 @@ class _DoMissionScreenState extends State<DoMissionScreen> {
   Future<void> _initialize() async {
     // Get user from auth state
     final user = context.read<AuthState>().currentUser;
-    
+
     // Setup event handler with state from provider
     final missionState = Provider.of<MissionState>(context, listen: false);
     _missionEventHandler = MissionEventHandler(missionState: missionState);
-    
+
     // Initialize mission data
     await _missionEventHandler.initialize();
-    
+
     if (mounted) {
       setState(() {
         _currentUser = user;
@@ -65,15 +65,17 @@ class _DoMissionScreenState extends State<DoMissionScreen> {
 
   Future<void> _refreshMissions() async {
     await _missionEventHandler.refreshMissions();
-    setState(() {}); // Trigger rebuild to show updated missions
+    if (!mounted) return; // Prevent setState after dispose
+    setState(() {}); // Safe
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: _isLoading || _currentUser == null
-          ? Center(child: CircularProgressIndicator())
-          : _buildMissionContent(),
+      body:
+          _isLoading || _currentUser == null
+              ? Center(child: CircularProgressIndicator())
+              : _buildMissionContent(),
     );
   }
 
@@ -82,7 +84,7 @@ class _DoMissionScreenState extends State<DoMissionScreen> {
     return Consumer<MissionState>(
       builder: (context, missionState, child) {
         final activeMissions = missionState.activeMissions;
-        
+
         return Container(
           padding: EdgeInsets.only(
             top: 40.0,
@@ -99,17 +101,13 @@ class _DoMissionScreenState extends State<DoMissionScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   IconButton(
-                    icon: const Icon(
-                      Icons.history,
-                      size: 24,
-                    ),
+                    icon: const Icon(Icons.history, size: 24),
                     onPressed: () {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (_) => MissionHistoryScreen(
-                            user: _currentUser!,
-                          ),
+                          builder:
+                              (_) => MissionHistoryScreen(user: _currentUser!),
                         ),
                       ).then((_) => _refreshMissions());
                     },
@@ -121,10 +119,7 @@ class _DoMissionScreenState extends State<DoMissionScreen> {
               SizedBox(height: 60),
               Text(
                 "Daily Mission",
-                style: TextStyle(
-                  fontSize: 36,
-                  fontWeight: FontWeight.w900,
-                ),
+                style: TextStyle(fontSize: 36, fontWeight: FontWeight.w900),
               ),
               SizedBox(height: 20),
               Expanded(
@@ -148,7 +143,9 @@ class _DoMissionScreenState extends State<DoMissionScreen> {
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (_) => MissionDetailScreen(mission: mission),
+                                  builder:
+                                      (_) =>
+                                          MissionDetailScreen(mission: mission),
                                 ),
                               ).then((_) {
                                 // Refresh missions after coming back from details
@@ -168,9 +165,9 @@ class _DoMissionScreenState extends State<DoMissionScreen> {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => RedeemRewardScreen(
-                                user: _currentUser!,
-                              ),
+                              builder:
+                                  (context) =>
+                                      RedeemRewardScreen(user: _currentUser!),
                             ),
                           ).then((_) {
                             // Refresh the user data when coming back

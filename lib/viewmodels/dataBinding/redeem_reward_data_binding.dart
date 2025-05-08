@@ -74,4 +74,14 @@ class RedeemRewardDataBinding {
       rethrow; // Rethrow so the caller can handle the error
     }
   }
+
+  Future<void> resetAvatar(String userId) async {
+  try {
+    await rewardService.resetUserAvatar(userId);
+    print("Avatar reset successfully!");
+  } catch (e) {
+    print("Error resetting avatar: $e");
+    rethrow;
+  }
+}
 }

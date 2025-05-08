@@ -1,11 +1,10 @@
 import 'package:blindmate/models/dataModels/rewards_model.dart';
 import 'package:blindmate/viewmodels/eventHandlers/redeem_reward_event_handler.dart';
+import 'package:blindmate/viewmodels/state/reward_state.dart';
 import 'package:blindmate/views/UIComponents/custom_button.dart';
 import 'package:blindmate/views/UIComponents/empty_message.dart';
 import 'package:blindmate/views/UIComponents/reward_click.dart';
 import 'package:blindmate/views/screens/switch_avatar_screen.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import '../../models/dataModels/user_model.dart';
 import 'package:blindmate/views/UIComponents/crystal_box.dart';
@@ -20,111 +19,77 @@ class RedeemRewardScreen extends StatefulWidget {
   @override
   _RedeemRewardScreenState createState() => _RedeemRewardScreenState();
 
-  static Future<UserModel?> fetchUserData() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return null;
-    final doc =
-        await FirebaseFirestore.instance
-            .collection('users')
-            .doc(user.uid)
-            .get();
-    if (!doc.exists) return null;
+  // static Future<UserModel?> fetchUserData() async {
+  //   final user = FirebaseAuth.instance.currentUser;
+  //   if (user == null) return null;
+  //   final doc =
+  //       await FirebaseFirestore.instance
+  //           .collection('users')
+  //           .doc(user.uid)
+  //           .get();
+  //   if (!doc.exists) return null;
 
-    return UserModel.fromMap(doc.data()!, doc.id);
-  }
+  //   return UserModel.fromMap(doc.data()!, doc.id);
+  // }
 }
 
 class _RedeemRewardScreenState extends State<RedeemRewardScreen> {
-  UserModel? _currentUser;
-  List<RewardModel> _rewards = [];
+  UserModel? user;
+  // List<RewardModel> _rewards = [];
   bool _isLoading = true;
   late RedeemRewardEventHandler _rewardEventHandler;
+
+  AuthState get _authState => Provider.of<AuthState>(context, listen: false);
+  RewardState get _rewardState => Provider.of<RewardState>(context, listen: false);
+  UserModel? get _user => _authState.currentUser;
 
   @override
   void initState() {
     super.initState();
-    _rewardEventHandler = RedeemRewardEventHandler(user: widget.user);
-    _initializeScreen();
+    final user = _authState.currentUser;
+    final rewardState = Provider.of<RewardState>(context, listen: false);
+    print("AuthState user: ${_user?.userId}");
+    if (user != null) {
+      _rewardEventHandler = RedeemRewardEventHandler(user: user);
+      _initializeScreen();
+    }
   }
 
   Future<void> _initializeScreen() async {
-    await _loadUserData(); // Ensure current user is loaded
-    await _loadRewards(); // Now you can use _currentUser safely
-  }
-
-  Future<void> _loadUserData() async {
-    // Try to get the current user from AuthState first
-    final authState = Provider.of<AuthState>(context, listen: false);
-    if (authState.currentUser != null) {
-      setState(() {
-        _currentUser = authState.currentUser;
-      });
-    } else {
-      // Fallback to fetching from Firebase
-      final user = await RedeemRewardScreen.fetchUserData();
-      setState(() {
-        _currentUser = user;
-      });
-    }
+    // setState(() => user = widget.user);
+    await _loadRewards();
   }
 
   Future<void> _loadRewards() async {
     try {
-      // Set loading state
-      setState(() {
-        _isLoading = true;
-      });
+      setState(() => _isLoading = true);
+      // final user = _authState.currentUser;
 
-      // Make sure we have a current user
-      if (_currentUser == null) {
-        await _loadUserData();
-        if (_currentUser == null) {
-          throw Exception('Failed to load user data');
-        }
-      }
-
-      // Fetch all available rewards
-      final allFetchedRewards = await _rewardEventHandler
-          .handleFetchAvailableRewards(context);
+      final allRewards = await _rewardEventHandler.handleFetchAvailableRewards(
+        context,
+        _user!.userId,
+      );
       final userRewards = await _rewardEventHandler.handleFetchUserRewards(
         context,
-        _currentUser!.userId,
+        _user!.userId,
       );
-      final redeemedRewardIds =
-          userRewards!.map((reward) => reward.redeemRewardId).toSet();
 
-      print("Redeemed reward IDs: $redeemedRewardIds");
+      _rewardState.setAvailableRewards(allRewards);
+      _rewardState.setUserRewards(userRewards ?? []);
 
-      // Filter out rewards that have been redeemed
-      final unredeemedRewards =
-          allFetchedRewards.where((reward) {
-            // Always include flowers
-            if (reward.rewardTitle == 'flower') return true;
-
-            // Only include unredeemed non-flower rewards
-            return !redeemedRewardIds.contains(reward.redeemRewardId);
-          }).toList();
-
-      print("All rewards count: ${allFetchedRewards.length}");
-      print("Unredeemed rewards count: ${unredeemedRewards.length}");
-
-      setState(() {
-        _rewards = unredeemedRewards;
-        _isLoading = false;
-      });
+      setState(() => _isLoading = false);
     } catch (e) {
-      print("Error loading rewards: $e");
-      setState(() {
-        _isLoading = false;
-      });
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Error fetching rewards: $e')));
+      print("Error initializing rewards: $e");
+      setState(() => _isLoading = false);
     }
+
+    // await _loadUserData(); // Ensure current user is loaded
+    // await _loadRewards(); // Now you can use user safely
   }
 
   void _redeemReward(RewardModel reward) async {
-    final userFragments = _currentUser!.fragmentNumber;
+    final user = _authState.currentUser;
+    final userFragments = user!.fragmentNumber;
     final rewardCost = reward.fragmentCost;
 
     print("Attempting to redeem reward: ${reward.rewardTitle}");
@@ -140,17 +105,19 @@ class _RedeemRewardScreenState extends State<RedeemRewardScreen> {
           reward.redeemRewardId,
           onSuccess:
               (updatedFragmentNumber) => setState(() {
-                _currentUser!.fragmentNumber = updatedFragmentNumber;
+                user!.fragmentNumber = updatedFragmentNumber;
                 if (reward.rewardTitle != 'flower') {
-                  _rewards.removeWhere(
-                    (r) => r.redeemRewardId == reward.redeemRewardId,
-                  );
+                  // _rewards.removeWhere(
+                  //   (r) => r.redeemRewardId == reward.redeemRewardId,
+                  // );
+                  _rewardState.removeAvailableReward(reward.redeemRewardId);
+                  _rewardState.addUserReward(reward);
                 }
               }),
         );
 
         print(
-          "Reward redeemed successfully. New fragment number: ${_currentUser!.fragmentNumber}",
+          "Reward redeemed successfully. New fragment number: ${user!.fragmentNumber}",
         );
       } catch (e) {
         print("Error during reward redemption: $e");
@@ -172,10 +139,11 @@ class _RedeemRewardScreenState extends State<RedeemRewardScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final user = Provider.of<AuthState>(context).currentUser;
     return Scaffold(
       appBar: AppBar(title: const Text("Redeem Reward")),
       body:
-          _currentUser == null || _isLoading
+          user == null || _isLoading
               ? Center(child: CircularProgressIndicator())
               : Container(
                 padding: const EdgeInsets.only(
@@ -188,7 +156,7 @@ class _RedeemRewardScreenState extends State<RedeemRewardScreen> {
                   // ✅ Use Column here instead of children on Container
                   children: [
                     buildCrystalBox(
-                      '${_currentUser!.fragmentNumber}',
+                      '${user!.fragmentNumber}',
                     ), // Optional: using your shared method
                     const SizedBox(height: 24),
                     Expanded(
@@ -202,7 +170,7 @@ class _RedeemRewardScreenState extends State<RedeemRewardScreen> {
                                     .start, // ✅ Ensure children are left-aligned
                             children: [
                               RewardSection(
-                                rewards: _rewards,
+                                rewards: _rewardState.availableRewards,
                                 onRewardTap: _redeemReward,
                               ),
                             ],
@@ -219,12 +187,12 @@ class _RedeemRewardScreenState extends State<RedeemRewardScreen> {
                           MaterialPageRoute(
                             builder:
                                 (context) =>
-                                    SwitchAvatarScreen(user: _currentUser!),
+                                    SwitchAvatarScreen(user: user!),
                           ),
-                        ).then((_) {
-                          _loadUserData();
-                        });
-                        ;
+                          // ).then((_) {
+                          //   _loadUserData();
+                          // });
+                        );
                       },
                     ),
                   ],

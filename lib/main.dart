@@ -1,5 +1,6 @@
 import 'package:blindmate/viewmodels/state/auth_state.dart';
 import 'package:blindmate/viewmodels/state/matching_state.dart';
+import 'package:blindmate/viewmodels/state/reward_state.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -34,6 +35,7 @@ void main() async {
         ChangeNotifierProvider(create: (_) => CreatePostState()),
         ChangeNotifierProvider(create: (_) => MusicPlayerState()),
         ChangeNotifierProvider(create: (_) => MissionState()),
+        ChangeNotifierProvider(create: (_) => RewardState()),
         // Add more providers as needed
       ],
       child: const MyApp(),

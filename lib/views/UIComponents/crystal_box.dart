@@ -11,9 +11,9 @@ Widget buildCrystalBox(String text) {
           Container(
             padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: Color(0xB3D3D8DA),
               borderRadius: BorderRadius.circular(30),
-              border: Border.all(color: Colors.black, width: 2.0),
+              border: Border.all(color: Color(0XFF53B4D2), width: 2.0),
             ),
             child: Text(
               text,

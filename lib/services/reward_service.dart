@@ -94,7 +94,8 @@ class RewardService {
         }
       } else {
         // 🔻 Otherwise, update redeemed reward list
-        final userReward = await _firestore.collection('user_reward').doc(userId).get();
+        final userReward =
+            await _firestore.collection('user_reward').doc(userId).get();
         final userRewardData = userReward.data();
         List<dynamic> redeemedRewards = userRewardData?['redeemedReward'] ?? [];
         redeemedRewards.add(rewardId);
@@ -141,7 +142,6 @@ class RewardService {
       if (authState.currentUser != null) {
         authState.currentUser!.flower = currentFlower - 1;
         authState.notifyListeners();
-        
       }
 
       // Get the recipient's user ID (the chat partner)
@@ -204,6 +204,18 @@ class RewardService {
       print("Avatar updated successfully!");
     } catch (e) {
       print("Error updating avatar: $e");
+    }
+  }
+
+  Future<void> resetUserAvatar(String userId) async {
+    try {
+      await _firestore.collection('users').doc(userId).update({
+        'avatarImg': 'https://tse3.mm.bing.net/th/id/OIP.XXbgSKiEDzYZDqZQ4hYfvQHaHu?rs=1&pid=ImgDetMain',
+      });
+
+      print("Avatar reset successfully!");
+    } catch (e) {
+      print("Error resetting avatar: $e");
     }
   }
 }
