@@ -5,6 +5,7 @@ import '../../viewmodels/state/bottle_note_state.dart';
 import '../../viewmodels/eventHandlers/bottle_note_event_handler.dart';
 import 'bottle_note_home_screen.dart';
 import '../UIComponents/custom_snackbar.dart';
+import '../../viewmodels/state/do_mission_state.dart';
 
 class SendBottleNoteScreen extends StatefulWidget {
   final String? content;
@@ -27,6 +28,7 @@ class _SendBottleNoteScreenState extends State<SendBottleNoteScreen>
 
     _eventHandler = BottleNoteEventHandler(
       state: context.read<BottleNoteState>(),
+      missionState: context.read<MissionState>(),
     );
 
     // Initialize animation controller
