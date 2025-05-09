@@ -20,9 +20,10 @@ class MyPostsList extends StatefulWidget {
   final void Function(String postId) onCollapse;
   final void Function(List<String> selectedPostIds)? onDeleteSelected;
   final void Function(List<String> selectedPostIds, bool makePublic)?
-      onToggleVisibility;
+  onToggleVisibility;
   final bool isMusicPlaying;
   final double musicPlayerHeight;
+  final bool musicPlayerExists;
 
   const MyPostsList({
     super.key,
@@ -41,6 +42,7 @@ class MyPostsList extends StatefulWidget {
     this.onToggleVisibility,
     required this.isMusicPlaying,
     required this.musicPlayerHeight,
+    required this.musicPlayerExists,
   });
 
   @override
@@ -50,17 +52,20 @@ class MyPostsList extends StatefulWidget {
 class _MyPostsListState extends State<MyPostsList> {
   final Set<String> _selectedPostIds = {};
   bool _isDeleting = false;
-  String _activeFilter = 'all'; // 'all', 'public', 'private', 'music', 'url', 'textOnly'
+  String _activeFilter =
+      'all'; // 'all', 'public', 'private', 'music', 'url', 'textOnly'
 
   bool get _allSelected =>
-      _filteredPosts.isNotEmpty && _selectedPostIds.length == _filteredPosts.length;
+      _filteredPosts.isNotEmpty &&
+      _selectedPostIds.length == _filteredPosts.length;
 
   bool? get _selectedPostsVisibility {
     if (_selectedPostIds.isEmpty) return null;
 
-    final selectedPosts = widget.posts
-        .where((post) => _selectedPostIds.contains(post['id']))
-        .toList();
+    final selectedPosts =
+        widget.posts
+            .where((post) => _selectedPostIds.contains(post['id']))
+            .toList();
 
     final firstVisibility = selectedPosts.first['visibility'] == 'public';
     final allSameVisibility = selectedPosts.every(
@@ -74,13 +79,11 @@ class _MyPostsListState extends State<MyPostsList> {
     // First apply visibility filters
     List<Map<String, dynamic>> visibilityFiltered;
     if (_activeFilter == 'public') {
-      visibilityFiltered = widget.posts
-          .where((post) => post['visibility'] == 'public')
-          .toList();
+      visibilityFiltered =
+          widget.posts.where((post) => post['visibility'] == 'public').toList();
     } else if (_activeFilter == 'private') {
-      visibilityFiltered = widget.posts
-          .where((post) => post['visibility'] != 'public')
-          .toList();
+      visibilityFiltered =
+          widget.posts.where((post) => post['visibility'] != 'public').toList();
     } else {
       visibilityFiltered = widget.posts;
     }
@@ -91,22 +94,22 @@ class _MyPostsListState extends State<MyPostsList> {
           .where((post) => post['musicUrl'] != null)
           .toList();
     } else if (_activeFilter == 'url') {
-      return visibilityFiltered
-          .where((post) => post['url'] != null)
-          .toList();
+      return visibilityFiltered.where((post) => post['url'] != null).toList();
     } else if (_activeFilter == 'textOnly') {
       return visibilityFiltered
-          .where((post) => 
-              (post['content']?.isNotEmpty ?? false) && 
-              post['musicUrl'] == null && 
-              post['url'] == null)
+          .where(
+            (post) =>
+                (post['content']?.isNotEmpty ?? false) &&
+                post['musicUrl'] == null &&
+                post['url'] == null,
+          )
           .toList();
-    } else if (_activeFilter == 'all' || 
-               _activeFilter == 'public' || 
-               _activeFilter == 'private') {
+    } else if (_activeFilter == 'all' ||
+        _activeFilter == 'public' ||
+        _activeFilter == 'private') {
       return visibilityFiltered;
     }
-    
+
     return widget.posts;
   }
 
@@ -237,9 +240,17 @@ class _MyPostsListState extends State<MyPostsList> {
                         ),
                       ),
                       _buildFilterOption('All Posts', 'all', setModalState),
-                      _buildFilterOption('Public Posts', 'public', setModalState),
-                      _buildFilterOption('Private Posts', 'private', setModalState),
-                      
+                      _buildFilterOption(
+                        'Public Posts',
+                        'public',
+                        setModalState,
+                      ),
+                      _buildFilterOption(
+                        'Private Posts',
+                        'private',
+                        setModalState,
+                      ),
+
                       const Padding(
                         padding: EdgeInsets.only(top: 16.0, bottom: 4.0),
                         child: Text(
@@ -253,21 +264,29 @@ class _MyPostsListState extends State<MyPostsList> {
                       ),
                       _buildFilterOption('Music Posts', 'music', setModalState),
                       _buildFilterOption('URL Posts', 'url', setModalState),
-                      _buildFilterOption('Text Only Posts', 'textOnly', setModalState),
-                      
+                      _buildFilterOption(
+                        'Text Only Posts',
+                        'textOnly',
+                        setModalState,
+                      ),
+
                       const SizedBox(height: 24),
                     ],
                   ),
                 ),
               ],
             );
-          }
+          },
         );
       },
     );
   }
 
-  Widget _buildFilterOption(String title, String filterValue, StateSetter setModalState) {
+  Widget _buildFilterOption(
+    String title,
+    String filterValue,
+    StateSetter setModalState,
+  ) {
     return InkWell(
       onTap: () {
         // Update both the modal state and the widget state
@@ -296,10 +315,12 @@ class _MyPostsListState extends State<MyPostsList> {
               title,
               style: TextStyle(
                 fontSize: 16,
-                fontWeight: _activeFilter == filterValue
-                    ? FontWeight.bold
-                    : FontWeight.normal,
-                color: _activeFilter == filterValue ? Colors.blue : Colors.black,
+                fontWeight:
+                    _activeFilter == filterValue
+                        ? FontWeight.bold
+                        : FontWeight.normal,
+                color:
+                    _activeFilter == filterValue ? Colors.blue : Colors.black,
               ),
             ),
             if (filterValue == 'public' || filterValue == 'private')
@@ -316,35 +337,26 @@ class _MyPostsListState extends State<MyPostsList> {
             if (filterValue == 'music')
               const Padding(
                 padding: EdgeInsets.only(left: 8.0),
-                child: Icon(
-                  Icons.music_note,
-                  size: 16,
-                  color: Colors.grey,
-                ),
+                child: Icon(Icons.music_note, size: 16, color: Colors.grey),
               ),
             if (filterValue == 'url')
               const Padding(
                 padding: EdgeInsets.only(left: 8.0),
-                child: Icon(
-                  Icons.link,
-                  size: 16,
-                  color: Colors.grey,
-                ),
+                child: Icon(Icons.link, size: 16, color: Colors.grey),
               ),
             if (filterValue == 'textOnly')
               const Padding(
                 padding: EdgeInsets.only(left: 8.0),
-                child: Icon(
-                  Icons.text_fields,
-                  size: 16,
-                  color: Colors.grey,
-                ),
+                child: Icon(Icons.text_fields, size: 16, color: Colors.grey),
               ),
             if (_activeFilter == filterValue)
               Padding(
                 padding: const EdgeInsets.only(left: 8.0),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 2,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.blue.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(10),
@@ -367,25 +379,32 @@ class _MyPostsListState extends State<MyPostsList> {
 
   String _getFilterCount(String filterValue) {
     int count = 0;
-    
+
     // Calculate count based on filter type
     if (filterValue == 'all') {
       count = widget.posts.length;
     } else if (filterValue == 'public') {
-      count = widget.posts.where((post) => post['visibility'] == 'public').length;
+      count =
+          widget.posts.where((post) => post['visibility'] == 'public').length;
     } else if (filterValue == 'private') {
-      count = widget.posts.where((post) => post['visibility'] != 'public').length;
+      count =
+          widget.posts.where((post) => post['visibility'] != 'public').length;
     } else if (filterValue == 'music') {
       count = widget.posts.where((post) => post['musicUrl'] != null).length;
     } else if (filterValue == 'url') {
       count = widget.posts.where((post) => post['url'] != null).length;
     } else if (filterValue == 'textOnly') {
-      count = widget.posts.where((post) => 
-          (post['content']?.isNotEmpty ?? false) && 
-          post['musicUrl'] == null && 
-          post['url'] == null).length;
+      count =
+          widget.posts
+              .where(
+                (post) =>
+                    (post['content']?.isNotEmpty ?? false) &&
+                    post['musicUrl'] == null &&
+                    post['url'] == null,
+              )
+              .length;
     }
-    
+
     return count.toString();
   }
 
@@ -412,12 +431,9 @@ class _MyPostsListState extends State<MyPostsList> {
           CustomButton(
             text: 'Filter',
             onPressed: _showFilterOptions,
-            icon: Icon(
-              Icons.filter_list,
-              size: 20,
-              color: Colors.white,
-            ),
-            backgroundColor: _activeFilter != 'all' ? Colors.blue.shade700 : Colors.blue,
+            icon: Icon(Icons.filter_list, size: 20, color: Colors.white),
+            backgroundColor:
+                _activeFilter != 'all' ? Colors.blue.shade700 : Colors.blue,
             horizontalPadding: 16,
             verticalPadding: 8,
             fontSize: 14,
@@ -430,20 +446,27 @@ class _MyPostsListState extends State<MyPostsList> {
 
   String _getFilterDisplayName(String filter) {
     switch (filter) {
-      case 'all': return 'all';
-      case 'public': return 'public';
-      case 'private': return 'private';
-      case 'music': return 'music';
-      case 'url': return 'URL';
-      case 'textOnly': return 'text-only';
-      default: return filter;
+      case 'all':
+        return 'all';
+      case 'public':
+        return 'public';
+      case 'private':
+        return 'private';
+      case 'music':
+        return 'music';
+      case 'url':
+        return 'URL';
+      case 'textOnly':
+        return 'text-only';
+      default:
+        return filter;
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final posts = _filteredPosts;
-    
+
     if (posts.isEmpty) {
       return Column(
         children: [
@@ -477,6 +500,13 @@ class _MyPostsListState extends State<MyPostsList> {
               child: ListView.builder(
                 controller: widget.scrollController,
                 physics: const AlwaysScrollableScrollPhysics(),
+                // Add padding at the bottom when music player exists
+                padding: EdgeInsets.only(
+                  bottom:
+                      widget.musicPlayerExists
+                          ? widget.musicPlayerHeight + 16.0
+                          : 16.0,
+                ),
                 itemCount: posts.length,
                 itemBuilder: (context, index) {
                   final post = posts[index];
@@ -499,15 +529,16 @@ class _MyPostsListState extends State<MyPostsList> {
                     decoration: BoxDecoration(
                       border: Border.all(color: Colors.transparent, width: 2.2),
                       borderRadius: BorderRadius.circular(16),
-                      boxShadow: isSelected
-                          ? [
-                              BoxShadow(
-                                color: Colors.red.withOpacity(0.08),
-                                blurRadius: 8,
-                                offset: const Offset(0, 2),
-                              ),
-                            ]
-                          : [],
+                      boxShadow:
+                          isSelected
+                              ? [
+                                BoxShadow(
+                                  color: Colors.red.withOpacity(0.08),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ]
+                              : [],
                     ),
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -546,8 +577,8 @@ class _MyPostsListState extends State<MyPostsList> {
                                     ),
                                     maxLinesCollapsed: widget.maxLinesCollapsed,
                                     onExpand: () => widget.onExpand(post['id']),
-                                    onCollapse: () =>
-                                        widget.onCollapse(post['id']),
+                                    onCollapse:
+                                        () => widget.onCollapse(post['id']),
                                   ),
                                 if (post['url'] != null)
                                   PostUrlPreview(
@@ -575,9 +606,11 @@ class _MyPostsListState extends State<MyPostsList> {
           Positioned(
             left: 0,
             right: 0,
-            bottom: widget.isMusicPlaying
-                ? (widget.musicPlayerHeight + 24) // 24 for extra margin
-                : 16,
+            bottom:
+                widget.musicPlayerExists
+                    ? widget.musicPlayerHeight +
+                        25 // Position above music player with padding
+                    : 18, // Position at bottom with padding when no music player
             child: Center(
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -586,16 +619,17 @@ class _MyPostsListState extends State<MyPostsList> {
                     scale: _selectedPostIds.isNotEmpty ? 1.0 : 0.0,
                     duration: const Duration(milliseconds: 200),
                     child: ElevatedButton.icon(
-                      icon: _isDeleting
-                          ? const SizedBox(
-                              width: 24,
-                              height: 24,
-                              child: CircularProgressIndicator(
-                                color: Colors.white,
-                                strokeWidth: 2,
-                              ),
-                            )
-                          : const Icon(Icons.delete, color: Colors.white),
+                      icon:
+                          _isDeleting
+                              ? const SizedBox(
+                                width: 24,
+                                height: 24,
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2,
+                                ),
+                              )
+                              : const Icon(Icons.delete, color: Colors.white),
                       label: Text(
                         _isDeleting
                             ? "Deleting..."
@@ -644,9 +678,10 @@ class _MyPostsListState extends State<MyPostsList> {
                         ),
                       ),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: _selectedPostsVisibility == null
-                            ? Colors.grey
-                            : Colors.blue,
+                        backgroundColor:
+                            _selectedPostsVisibility == null
+                                ? Colors.grey
+                                : Colors.blue,
                         padding: const EdgeInsets.symmetric(
                           horizontal: 24,
                           vertical: 16,
@@ -656,9 +691,10 @@ class _MyPostsListState extends State<MyPostsList> {
                         ),
                         elevation: 8,
                       ),
-                      onPressed: _selectedPostsVisibility == null
-                          ? null
-                          : _toggleVisibility,
+                      onPressed:
+                          _selectedPostsVisibility == null
+                              ? null
+                              : _toggleVisibility,
                     ),
                   ),
                 ],
@@ -674,10 +710,7 @@ class _CustomRoundCheckbox extends StatelessWidget {
   final bool value;
   final ValueChanged<bool?> onChanged;
 
-  const _CustomRoundCheckbox({
-    required this.value,
-    required this.onChanged,
-  });
+  const _CustomRoundCheckbox({required this.value, required this.onChanged});
 
   @override
   Widget build(BuildContext context) {
@@ -695,21 +728,23 @@ class _CustomRoundCheckbox extends StatelessWidget {
             width: 2.2,
           ),
           borderRadius: BorderRadius.circular(13),
-          boxShadow: value
-              ? [
-                  BoxShadow(
-                    color: Colors.red.withOpacity(0.15),
-                    blurRadius: 6,
-                    offset: const Offset(0, 2),
-                  ),
-                ]
-              : [],
+          boxShadow:
+              value
+                  ? [
+                    BoxShadow(
+                      color: Colors.red.withOpacity(0.15),
+                      blurRadius: 6,
+                      offset: const Offset(0, 2),
+                    ),
+                  ]
+                  : [],
         ),
-        child: value
-            ? const Center(
-                child: Icon(Icons.check, color: Colors.white, size: 18),
-              )
-            : null,
+        child:
+            value
+                ? const Center(
+                  child: Icon(Icons.check, color: Colors.white, size: 18),
+                )
+                : null,
       ),
     );
   }

@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -161,6 +160,8 @@ class SharingScreenState extends State<SharingScreen> {
       builder: (context, sharingState, child) {
         final isMusicPlaying = context.watch<MusicPlayerState>().isPlaying;
         const musicPlayerHeight = 80.0;
+        final musicPlayerExists =
+            context.watch<MusicPlayerState>().currentMusicUrl != null;
         final displayedPosts = _eventHandler.getDisplayedPosts(
           userId: widget.userId,
           showMyPostsOnly: _showMyPostsOnly,
@@ -208,6 +209,7 @@ class SharingScreenState extends State<SharingScreen> {
                               onToggleVisibility: _handleToggleVisibility,
                               isMusicPlaying: isMusicPlaying,
                               musicPlayerHeight: musicPlayerHeight,
+                              musicPlayerExists: musicPlayerExists,
                             )
                             : _buildSharedContentList(displayedPosts),
                   ),
@@ -301,6 +303,9 @@ class SharingScreenState extends State<SharingScreen> {
     return CustomButton(
       text: isAllPosts ? "All Posts" : "My Posts",
       onPressed: () {
+        // Stop music when toggling between views
+        Provider.of<MusicPlayerState>(context, listen: false).stopMusic();
+
         setState(() {
           _showMyPostsOnly = !_showMyPostsOnly;
           _scrollController.jumpTo(0);
@@ -329,9 +334,20 @@ class SharingScreenState extends State<SharingScreen> {
       return const Center(child: Text("No posts available."));
     }
 
+    // Get music player status to determine padding
+    final musicPlayerExists =
+        context.watch<MusicPlayerState>().currentMusicUrl != null;
+
     return ListView.builder(
       controller: _scrollController,
       physics: const AlwaysScrollableScrollPhysics(),
+      // Add padding at the bottom when music player exists
+      padding: EdgeInsets.only(
+        bottom:
+            musicPlayerExists
+                ? 80.0 + 16.0
+                : 16.0, // Music player height + extra padding
+      ),
       itemCount: posts.length,
       itemBuilder: (context, index) {
         final post = posts[index];
