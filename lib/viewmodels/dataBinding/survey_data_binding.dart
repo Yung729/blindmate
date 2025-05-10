@@ -1,4 +1,4 @@
-import 'dart:async'; 
+import 'dart:async';
 import 'package:blindmate/models/api/gemini_moderation_service.dart';
 import 'package:blindmate/services/level_progression_service.dart';
 import 'package:blindmate/models/dataModels/survey_model.dart';
@@ -24,7 +24,6 @@ class SurveyDataBinding {
     });
 
     try {
-      // Add a timeout to prevent indefinite hanging
       final response = await _surveyService.generateSurveyQuestions().timeout(
         const Duration(seconds: 10),
         onTimeout: () {
@@ -65,6 +64,16 @@ class SurveyDataBinding {
   }) async {
     try {
       _surveyState.setSubmitting(true);
+
+      // Fetch current level and last celebrated milestone before updating
+      final userRef = FirebaseFirestore.instance.collection('users').doc(userId);
+      final userDoc = await userRef.get();
+      if (!userDoc.exists) {
+        throw Exception('User not found in Firestore');
+      }
+      final data = userDoc.data() as Map<String, dynamic>;
+      final int lastCelebratedMilestone = data['lastCelebratedMilestone'] as int? ?? 0;
+
       String message;
       if (totalScore >= numberOfQuestions) {
         message = 'You seem to be doing great! Keep it up!';
@@ -79,6 +88,22 @@ class SurveyDataBinding {
         totalScore,
         numberOfQuestions,
       );
+
+      // Fetch new level after updating
+      final updatedUserDoc = await userRef.get();
+      final updatedData = updatedUserDoc.data() as Map<String, dynamic>;
+      final int newLevel = (updatedData['levelValue'] as int? ?? 1).clamp(1, 9999);
+
+      // Check if the new level is a milestone and hasn't been celebrated
+      if (newLevel % 10 == 0 && newLevel > lastCelebratedMilestone) {
+        _surveyState.setShowLevelMilestoneFeedback(true); // Update via SurveyState
+        // Update Firestore with the new celebrated milestone
+        await userRef.update({
+          'lastCelebratedMilestone': newLevel,
+        });
+      } else {
+        _surveyState.setShowLevelMilestoneFeedback(false); // Update via SurveyState
+      }
 
       await FirebaseFirestore.instance.collection('users').doc(userId).update({
         'surveyDate': Timestamp.fromDate(DateTime.now()),
@@ -99,6 +124,7 @@ class SurveyDataBinding {
         'message': message,
         'scoreComparisonMessage': scoreComparisonMessage,
         'scores': scores,
+        'newLevel': newLevel,
       };
     } catch (e) {
       _surveyState.setError('Error updating level: $e');

@@ -8,6 +8,7 @@ import 'package:blindmate/viewmodels/eventHandlers/auth_event_handler.dart';
 import 'package:blindmate/viewmodels/dataBinding/auth_data_binding.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:confetti/confetti.dart'; 
 import 'matching_screen.dart';
 import 'bottle_note_home_screen.dart';
 import '../UIComponents/custom_button.dart';
@@ -29,6 +30,8 @@ class _HomeScreenState extends State<HomeScreen>
   late AnimationController _animationController;
   late Animation<double> _swingAnimation;
   late MissionEventHandler _missionEventHandler;
+  late ConfettiController _confettiController; // Controller for confetti
+  int? _lastMilestoneLevel; // Track the last milestone level shown
 
   @override
   void initState() {
@@ -39,7 +42,10 @@ class _HomeScreenState extends State<HomeScreen>
     final missionState = context.read<MissionState>();
     _missionEventHandler = MissionEventHandler(missionState: missionState);
 
-    // Initialize animation controller
+    // Initialize confetti controller
+    _confettiController = ConfettiController(duration: const Duration(seconds: 3));
+
+    // Initialize animation controller for bottle swing
     _animationController = AnimationController(
       duration: const Duration(seconds: 2),
       vsync: this,
@@ -59,6 +65,7 @@ class _HomeScreenState extends State<HomeScreen>
   @override
   void dispose() {
     _animationController.dispose();
+    _confettiController.dispose(); // Dispose confetti controller
     super.dispose();
   }
 
@@ -136,6 +143,14 @@ class _HomeScreenState extends State<HomeScreen>
     }
   }
 
+  // Check if the level is a milestone (multiple of 10) and trigger confetti
+  void _checkAndTriggerMilestoneAnimation(int currentLevel) {
+    if (currentLevel % 10 == 0 && _lastMilestoneLevel != currentLevel) {
+      _confettiController.play();
+      _lastMilestoneLevel = currentLevel; // Update the last milestone shown
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return MultiProvider(
@@ -154,6 +169,12 @@ class _HomeScreenState extends State<HomeScreen>
             SafeArea(
               child: Consumer<AuthState>(
                 builder: (context, authState, child) {
+                  // Check for milestone level when authState updates
+                  if (authState.currentUser != null) {
+                    final int currentLevel = authState.currentUser!.levelValue ?? 1;
+                    _checkAndTriggerMilestoneAnimation(currentLevel);
+                  }
+
                   return Stack(
                     children: [
                       // Centered main content
@@ -247,6 +268,21 @@ class _HomeScreenState extends State<HomeScreen>
                     ],
                   );
                 },
+              ),
+            ),
+            Align(
+              alignment: Alignment.topCenter,
+              child: ConfettiWidget(
+                confettiController: _confettiController,
+                blastDirectionality: BlastDirectionality.explosive,
+                shouldLoop: false,
+                colors: const [
+                  Colors.blue,
+                  Colors.white,
+                  Colors.lightBlueAccent,
+                ],
+                numberOfParticles: 30,
+                gravity: 0.1,
               ),
             ),
           ],

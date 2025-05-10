@@ -7,12 +7,14 @@ class SurveyState extends ChangeNotifier {
   bool _hasError = false;
   String? _errorMessage;
   bool _isSubmitting = false;
+  bool _showLevelMilestoneFeedback = false; // Moved from SurveyDataBinding
 
   SurveyModel get surveyModel => _surveyModel;
   bool get isLoading => _isLoading;
   bool get hasError => _hasError;
   String? get errorMessage => _errorMessage;
   bool get isSubmitting => _isSubmitting;
+  bool get showLevelMilestoneFeedback => _showLevelMilestoneFeedback; // Getter
 
   void setSurveyModel(SurveyModel model) {
     _surveyModel = model;
@@ -35,12 +37,23 @@ class SurveyState extends ChangeNotifier {
     notifyListeners();
   }
 
+  void setShowLevelMilestoneFeedback(bool show) {
+    _showLevelMilestoneFeedback = show;
+    notifyListeners();
+  }
+
+  void resetLevelMilestoneFeedback() {
+    _showLevelMilestoneFeedback = false;
+    notifyListeners();
+  }
+
   void clear() {
     _surveyModel = SurveyModel.empty();
     _isLoading = true;
     _hasError = false;
     _errorMessage = null;
     _isSubmitting = false;
+    _showLevelMilestoneFeedback = false; 
     notifyListeners();
   }
 }
