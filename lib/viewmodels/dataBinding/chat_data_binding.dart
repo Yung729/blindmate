@@ -107,8 +107,6 @@ class ChatDataBinding {
   ) async {
     MessageModel messageToSend;
     String? moderationResult;
-    bool hasSensitiveInfo = false;
-    String? originalText;
 
     // Track mission progress based on message type
     if (message.musicUrl != null && message.musicUrl!.isNotEmpty) {
@@ -170,8 +168,6 @@ class ChatDataBinding {
     } else if (message.text != null && message.text!.isNotEmpty) {
       // First check for sensitive information
       if (MessageValidator.containsSensitiveInfo(message.text!)) {
-        hasSensitiveInfo = true;
-        originalText = message.text;
         
         // Set moderation status to SENSITIVE for UI handling
         moderationResult = 'SENSITIVE';
@@ -180,7 +176,6 @@ class ChatDataBinding {
         final maskedText = MessageValidator.sanitizeSensitiveInfo(message.text!);
         
         // Display appropriate message based on sensitive info type
-        final infoType = MessageValidator.getSensitiveInfoType(message.text!);
         chatState.setErrorMessage(
           MessageValidator.getErrorMessage(message.text!),
         );
