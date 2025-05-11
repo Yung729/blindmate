@@ -122,8 +122,26 @@ class MissionModel {
     }
   }
 
-  
-  
+  /// Fetch the reward rate for the assigned user based on their levelValue
+  Future<double> getRewardRate() async {
+    try {
+      final userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(assignedUser)
+          .get();
+      if (userDoc.exists) {
+        final levelValue = userDoc.data()?['levelValue'] ?? 0;
+        // Calculate reward rate: 1.0 + (floor(levelValue / 10) * 0.5)
+        return 1.0 + ((levelValue ~/ 10) * 0.5);
+      } else {
+        print("User document not found for userId: $assignedUser");
+        return 1.0; // Default rate if user not found
+      }
+    } catch (e) {
+      print("Error fetching user levelValue: $e");
+      return 1.0; // Default rate on error
+    }
+  }
 }
 
 class Requirement {
@@ -165,5 +183,10 @@ class Reward {
 
   Map<String, dynamic> toMap() {
     return {'xp': xp};
+  }
+
+  /// Calculate effective XP with the given reward rate
+  int getEffectiveXp(double rewardRate) {
+    return (xp * rewardRate).round();
   }
 }
