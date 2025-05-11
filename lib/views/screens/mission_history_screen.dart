@@ -53,6 +53,8 @@ class _MissionHistoryScreenState extends State<MissionHistoryScreen> {
 
   Widget _buildMissionHistoryContent() {
     // Use Consumer to react to state changes
+    final rewardRate = widget.user.getRewardRate();
+
     return Consumer<MissionState>(
       builder: (context, missionState, child) {
         final finishedMissions = missionState.finishedMissions;
@@ -92,7 +94,7 @@ class _MissionHistoryScreenState extends State<MissionHistoryScreen> {
                       ),
                     ),
                     Text(
-                      "+${mission.rewards.xp} fragments",
+                      "+${mission.rewards.getEffectiveXp(rewardRate)} fragments",
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
