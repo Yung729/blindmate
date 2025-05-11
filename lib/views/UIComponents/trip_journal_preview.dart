@@ -1,14 +1,15 @@
-
 import 'package:flutter/material.dart';
 
 class TripJournalPreview extends StatelessWidget {
   final List<Map<String, dynamic>> journals;
   final VoidCallback onTap;
+  final bool showExploreButton; // New parameter to control button visibility
 
   const TripJournalPreview({
     super.key,
     required this.journals,
     required this.onTap,
+    this.showExploreButton = true, // Default to showing the button for backward compatibility
   });
 
   String _formatDate(DateTime date) {
@@ -183,48 +184,51 @@ class TripJournalPreview extends StatelessWidget {
                   ],
                 ),
               ),
-            const SizedBox(height: 16),
-            // View details button
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    Colors.blue.shade400,
-                    Colors.blue.shade600,
+            // Only show the button if showExploreButton is true
+            if (showExploreButton) ...[
+              const SizedBox(height: 16),
+              // View details button
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      Colors.blue.shade400,
+                      Colors.blue.shade600,
+                    ],
+                  ),
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.blue.withOpacity(0.3),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
                   ],
                 ),
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.blue.withOpacity(0.3),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: const Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.explore,
-                    size: 20,
-                    color: Colors.white,
-                  ),
-                  SizedBox(width: 8),
-                  Text(
-                    'Explore Journey Details',
-                    style: TextStyle(
-                      fontSize: 15,
+                child: const Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.explore,
+                      size: 20,
                       color: Colors.white,
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: 0.3,
                     ),
-                  ),
-                ],
+                    SizedBox(width: 8),
+                    Text(
+                      'Explore Journey Details',
+                      style: TextStyle(
+                        fontSize: 15,
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: 0.3,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
+            ],
           ],
         ),
       ),

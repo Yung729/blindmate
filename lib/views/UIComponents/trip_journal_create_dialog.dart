@@ -157,7 +157,6 @@ class _TripJournalDialogState extends State<TripJournalDialog> {
               }
             },
             onClose: () => Navigator.pop(context),
-            isSelectionMode: true,
             onSelect: (post) {
               Navigator.pop(context);
               if ((post['tripJournals']?.isNotEmpty ?? false)) {

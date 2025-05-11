@@ -427,6 +427,7 @@ class SharingScreenState extends State<SharingScreen> {
                           };
                         }).toList(),
                     onTap: () => _showTripJournalDialog(context, post),
+                    showExploreButton: true,
                   ),
                 ),
             ],

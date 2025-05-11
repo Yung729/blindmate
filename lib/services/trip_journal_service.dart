@@ -19,9 +19,29 @@ class UserTripJournalService {
       final List<Map<String, dynamic>> processedPosts = querySnapshot.docs
           .map((doc) {
             final data = doc.data() as Map<String, dynamic>;
+            
+            // Parse the post timestamp
+            DateTime? postTimestamp;
+            if (data['timestamp'] != null) {
+              if (data['timestamp'] is Timestamp) {
+                postTimestamp = (data['timestamp'] as Timestamp).toDate();
+              } else if (data['timestamp'] is String) {
+                try {
+                  postTimestamp = DateTime.parse(data['timestamp'] as String);
+                } catch (_) {
+                  // If parsing fails, use current time as fallback
+                  postTimestamp = DateTime.now();
+                }
+              }
+            } else {
+              // If timestamp is missing, use current time as fallback
+              postTimestamp = DateTime.now();
+            }
+            
             return {
               ...data,
               'id': doc.id,
+              'timestamp': postTimestamp?.toIso8601String() ?? DateTime.now().toIso8601String(),
               'tripJournals':
                   (data['tripJournals'] as List?)?.map<Map<String, dynamic>>((
                     journal,
@@ -37,6 +57,7 @@ class UserTripJournalService {
                     
                     return {
                       ...journalMap,
+                      'postTimestamp': postTimestamp?.toIso8601String() ?? DateTime.now().toIso8601String(),
                       'date': () {
                         final rawDate = journalMap['date'];
                         if (rawDate is Timestamp) return rawDate.toDate();
@@ -114,6 +135,7 @@ class UserTripJournalService {
         'location': journal['location'] ?? '',
         'description': journal['description'] ?? '',
         'date': journal['date'] as DateTime,
+        'postTimestamp': journal['postTimestamp'] ?? DateTime.now().toIso8601String(),
         'activities': List<String>.from(journal['activities'] ?? []),
       };
     }).toList();
