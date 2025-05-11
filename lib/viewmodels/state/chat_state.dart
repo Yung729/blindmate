@@ -187,6 +187,7 @@ class ChatState extends ChangeNotifier {
         safeMessageCount++;
         break;
       case 'WARNING':
+      case 'SENSITIVE':
         warningMessageCount++;
         break;
       case 'UNSAFE':

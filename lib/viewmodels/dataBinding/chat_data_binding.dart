@@ -212,9 +212,6 @@ class ChatDataBinding {
 
       // Show appropriate error messages based on moderation result
       switch (moderationResult) {
-        case 'SENSITIVE':
-          // Already shown error message above
-          break;
         case 'WARNING':
           chatState.setErrorMessage(
             "⚠️ Warning: Your message contains sensitive content",

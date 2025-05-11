@@ -122,4 +122,18 @@ class MessageModel {
       if (moderationStatus != null) 'moderationStatus': moderationStatus,
     };
   }
+
+  MessageModel copyWith({String? moderationStatus}) {
+    return MessageModel(
+      messageId: messageId,
+      senderId: senderId,
+      text: text,
+      stickerUrl: stickerUrl,
+      musicUrl: musicUrl,
+      musicTitle: musicTitle,
+      tripJournals: tripJournals,
+      timestamp: timestamp,
+      moderationStatus: moderationStatus ?? this.moderationStatus,
+    );
+  }
 }

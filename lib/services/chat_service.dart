@@ -95,6 +95,11 @@ class ChatService {
     String chatRoomId,
     MessageModel message,
   ) async {
+
+    if (message.moderationStatus == 'SENSITIVE') {
+      message = message.copyWith(moderationStatus: 'WARNING');
+    }
+
     final Map<String, dynamic> messageMap = {
       "type": "message",
       "messageId": message.messageId,
