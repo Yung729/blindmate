@@ -9,13 +9,11 @@ class BottleNoteEventHandler {
   final BottleNoteState state;
   final BottleNoteDataBinding dataBinding;
 
-  BottleNoteEventHandler({
-    required this.state, 
-    MissionState? missionState,
-  }) : dataBinding = BottleNoteDataBinding(
-         bottleNoteState: state,
-         missionState: missionState,
-       );
+  BottleNoteEventHandler({required this.state, MissionState? missionState})
+    : dataBinding = BottleNoteDataBinding(
+        bottleNoteState: state,
+        missionState: missionState,
+      );
 
   Future<void> init() async {
     await dataBinding.initialize();
@@ -42,20 +40,24 @@ class BottleNoteEventHandler {
       }
     }
 
+    final previousPickedNoteId = state.pickedNote?.noteId;
+
     final validNotes =
         allNotes.where((note) {
           // Filter out notes that:
           // 1. Were sent by the current user
           // 2. Have expired
           // 3. Have been replied to by the current user
+          // 4. Are the same as the previously picked note
           return note.senderId != userId &&
-              !userReplies.containsKey(note.noteId);
+              !userReplies.containsKey(note.noteId) &&
+              note.noteId != previousPickedNoteId;
         }).toList();
 
     if (validNotes.isEmpty) {
       state.clearPickedNote();
       return;
-    }
+    } 
 
     validNotes.shuffle();
     state.setPickedNote(validNotes.first);
@@ -67,7 +69,6 @@ class BottleNoteEventHandler {
   }) async {
     try {
       await dataBinding.sendNote(userId, content);
-
     } catch (e) {
       throw Exception("Failed to send note: $e");
     }

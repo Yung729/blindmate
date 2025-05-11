@@ -10,6 +10,8 @@ import 'package:blindmate/views/screens/mission_detail_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../models/dataModels/user_model.dart';
+import 'package:blindmate/viewmodels/eventHandlers/auth_event_handler.dart';
+import 'package:blindmate/viewmodels/dataBinding/auth_data_binding.dart';
 
 class DoMissionScreen extends StatefulWidget {
   final UserModel user;
@@ -17,22 +19,10 @@ class DoMissionScreen extends StatefulWidget {
 
   @override
   _DoMissionScreenState createState() => _DoMissionScreenState();
-
-  // static Future<UserModel?> fetchUserData() async {
-  //   final user = FirebaseAuth.instance.currentUser;
-  //   if (user == null) return null;
-  //   final doc =
-  //       await FirebaseFirestore.instance
-  //           .collection('users')
-  //           .doc(user.uid)
-  //           .get();
-  //   if (!doc.exists) return null;
-
-  //   return UserModel.fromMap(doc.data()!, doc.id);
-  // }
 }
 
 class _DoMissionScreenState extends State<DoMissionScreen> {
+  late AuthEventHandler _authEventHandler;
   UserModel? _currentUser;
   late MissionEventHandler _missionEventHandler;
   bool _isLoading = true;
@@ -41,11 +31,18 @@ class _DoMissionScreenState extends State<DoMissionScreen> {
   void initState() {
     super.initState();
     print("DoMissionScreen initState called");
+
+    // Initialize the AuthEventHandler with required arguments
+    final authState = context.read<AuthState>();
+    final authDataBinding = AuthDataBinding();
+    _authEventHandler = AuthEventHandler(authState, authDataBinding);
+
     _initialize();
   }
 
   Future<void> _initialize() async {
     // Get user from auth state
+    await _authEventHandler.fetchUserData(context);
     final user = context.read<AuthState>().currentUser;
 
     // Setup event handler with state from provider

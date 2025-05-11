@@ -1,4 +1,5 @@
 import 'package:blindmate/viewmodels/state/auth_state.dart';
+import 'package:blindmate/viewmodels/state/do_mission_state.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'pick_up_screen.dart';
@@ -27,6 +28,7 @@ class _ShowBottleNoteScreenState extends State<ShowBottleNoteScreen> {
     super.initState();
     _eventHandler = BottleNoteEventHandler(
       state: context.read<BottleNoteState>(),
+      missionState: context.read<MissionState>(),
     );
     _loadReplies();
   }
