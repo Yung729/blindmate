@@ -34,7 +34,7 @@ class MissionModel {
   factory MissionModel.fromMap(Map<String, dynamic> map, String id) {
     var createdAtValue = map['createdAt'];
     Timestamp createdAt;
-    
+
     if (createdAtValue is Timestamp) {
       createdAt = createdAtValue;
     } else if (createdAtValue is DateTime) {
@@ -46,7 +46,7 @@ class MissionModel {
       print("Warning: unexpected createdAt type for mission $id: ${createdAtValue.runtimeType}");
       createdAt = Timestamp.now();
     }
-    
+
     return MissionModel(
       id: id,
       title: map['title'] ?? 'Untitled Mission',
@@ -54,11 +54,11 @@ class MissionModel {
       type: map['type'] ?? 'action',
       category: map['category'] ?? 'misc',
       difficulty: map['difficulty'] ?? 'easy',
-      requirements: map['requirements'] != null 
-          ? Requirement.fromMap(map['requirements']) 
+      requirements: map['requirements'] != null
+          ? Requirement.fromMap(map['requirements'])
           : Requirement(metric: 'count', target: 1),
-      rewards: map['rewards'] != null 
-          ? Reward.fromMap(map['rewards']) 
+      rewards: map['rewards'] != null
+          ? Reward.fromMap(map['rewards'])
           : Reward(xp: 10),
       status: map['status'] ?? true,
       finished: map['finished'] ?? false,
@@ -114,11 +114,32 @@ class MissionModel {
           .get();
 
       return querySnapshot.docs
-          .map((doc) => MissionModel.fromMap(doc.data(), doc.id)) // Map docs to MissionModel
+          .map((doc) => MissionModel.fromMap(doc.data(), doc.id))
           .toList();
     } catch (e) {
       print('Error fetching missions: $e');
       return [];
+    }
+  }
+
+  /// Fetch the reward rate for the assigned user based on their levelValue
+  Future<double> getRewardRate() async {
+    try {
+      final userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(assignedUser)
+          .get();
+      if (userDoc.exists) {
+        final levelValue = userDoc.data()?['levelValue'] ?? 0;
+        // Calculate reward rate: 1.0 + (floor(levelValue / 10) * 0.5)
+        return 1.0 + ((levelValue ~/ 10) * 0.5);
+      } else {
+        print("User document not found for userId: $assignedUser");
+        return 1.0; // Default rate if user not found
+      }
+    } catch (e) {
+      print("Error fetching user levelValue: $e");
+      return 1.0; // Default rate on error
     }
   }
 }
@@ -162,5 +183,10 @@ class Reward {
 
   Map<String, dynamic> toMap() {
     return {'xp': xp};
+  }
+
+  /// Calculate effective XP with the given reward rate
+  int getEffectiveXp(double rewardRate) {
+    return (xp * rewardRate).round();
   }
 }

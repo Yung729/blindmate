@@ -26,6 +26,7 @@ class _DoMissionScreenState extends State<DoMissionScreen> {
   UserModel? _currentUser;
   late MissionEventHandler _missionEventHandler;
   bool _isLoading = true;
+  double _rewardRate = 1.0; // Default reward rate
 
   @override
   void initState() {
@@ -52,6 +53,16 @@ class _DoMissionScreenState extends State<DoMissionScreen> {
     // Initialize mission data
     await _missionEventHandler.initialize();
 
+    // Fetch reward rate from the first active mission (if available)
+    if (missionState.activeMissions.isNotEmpty) {
+      try {
+        _rewardRate = await missionState.activeMissions.first.getRewardRate();
+      } catch (e) {
+        print("Error fetching reward rate: $e");
+        _rewardRate = 1.0; // Fallback to default rate
+      }
+    }
+
     if (mounted) {
       setState(() {
         _currentUser = user;
@@ -62,6 +73,16 @@ class _DoMissionScreenState extends State<DoMissionScreen> {
 
   Future<void> _refreshMissions() async {
     await _missionEventHandler.refreshMissions();
+    // Refresh reward rate
+    final missionState = Provider.of<MissionState>(context, listen: false);
+    if (missionState.activeMissions.isNotEmpty) {
+      try {
+        _rewardRate = await missionState.activeMissions.first.getRewardRate();
+      } catch (e) {
+        print("Error refreshing reward rate: $e");
+        _rewardRate = 1.0; // Fallback to default rate
+      }
+    }
     if (!mounted) return; // Prevent setState after dispose
     setState(() {}); // Safe
   }
@@ -69,10 +90,9 @@ class _DoMissionScreenState extends State<DoMissionScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body:
-          _isLoading || _currentUser == null
-              ? Center(child: CircularProgressIndicator())
-              : _buildMissionContent(),
+      body: _isLoading || _currentUser == null
+          ? Center(child: CircularProgressIndicator())
+          : _buildMissionContent(),
     );
   }
 
@@ -97,36 +117,78 @@ class _DoMissionScreenState extends State<DoMissionScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  IconButton(
-                    icon: const Icon(Icons.history, size: 24),
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder:
-                              (_) => MissionHistoryScreen(user: _currentUser!),
+                  Row(
+                    children: [
+                      // History Icon Button
+                      IconButton(
+                        icon: const Icon(Icons.history, size: 24),
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => MissionHistoryScreen(user: _currentUser!),
+                            ),
+                          ).then((_) => _refreshMissions());
+                        },
+                      ),
+                      // Reward Rate Button
+                      GestureDetector(
+                        onTap: () {
+                          // Show a dialog with reward rate details
+                          showDialog(
+                            context: context,
+                            builder: (context) => AlertDialog(
+                              title: const Text("Reward Rate"),
+                              content: Text(
+                                "Your current reward rate is ${_rewardRate.toStringAsFixed(1)}x, based on your level. Every 10 levels, your reward rate increases by 0.5x!",
+                              ),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.pop(context),
+                                  child: const Text("OK"),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: Colors.blue.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: Colors.blue.withOpacity(0.3)),
+                          ),
+                          child: Text(
+                            "Reward Rate: ${_rewardRate.toStringAsFixed(1)}x",
+                            style: const TextStyle(
+                              color: Colors.blue,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
+                          ),
                         ),
-                      ).then((_) => _refreshMissions());
-                    },
+                      ),
+                    ],
                   ),
+                  // Crystal Box
                   buildCrystalBox('${_currentUser!.fragmentNumber}'),
                 ],
               ),
-              SizedBox(height: 24),
-              SizedBox(height: 60),
-              Text(
+              const SizedBox(height: 24),
+              const SizedBox(height: 60),
+              const Text(
                 "Daily Mission",
                 style: TextStyle(fontSize: 36, fontWeight: FontWeight.w900),
               ),
-              SizedBox(height: 20),
+              const SizedBox(height: 20),
               Expanded(
                 child: SingleChildScrollView(
                   child: Column(
                     children: [
                       if (activeMissions.isEmpty)
-                        Center(
+                        const Center(
                           child: Padding(
-                            padding: const EdgeInsets.all(20.0),
+                            padding: EdgeInsets.all(20.0),
                             child: Text(
                               "No active missions available today.",
                               style: TextStyle(fontSize: 16),
@@ -140,9 +202,7 @@ class _DoMissionScreenState extends State<DoMissionScreen> {
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder:
-                                      (_) =>
-                                          MissionDetailScreen(mission: mission),
+                                  builder: (_) => MissionDetailScreen(mission: mission),
                                 ),
                               ).then((_) {
                                 // Refresh missions after coming back from details
@@ -155,16 +215,14 @@ class _DoMissionScreenState extends State<DoMissionScreen> {
                             ),
                           ),
                         ),
-                      SizedBox(height: 20),
+                      const SizedBox(height: 20),
                       CustomButton(
                         text: "Rewards",
                         onPressed: () {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder:
-                                  (context) =>
-                                      RedeemRewardScreen(user: _currentUser!),
+                              builder: (context) => RedeemRewardScreen(user: _currentUser!),
                             ),
                           ).then((_) {
                             // Refresh the user data when coming back
