@@ -541,12 +541,41 @@ class _NavigationControllerState extends State<NavigationController> {
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          GestureDetector(
-                            onTap: () => _showEmotionPicker(context, currentUserState),
-                            child: Icon(
-                              _getEmotionIcon(currentUserState.currentUser!.emotionStatus),
-                              color: Colors.black,
-                              size: 32,
+                          Tooltip(
+                            message: 'Change your emotion status',
+                            child: GestureDetector(
+                              onTap: () => _showEmotionPicker(context, currentUserState),
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: Colors.grey.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(color: Colors.grey.withOpacity(0.3)),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withOpacity(0.1),
+                                      blurRadius: 2,
+                                      offset: const Offset(0, 1),
+                                    )
+                                  ],
+                                ),
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      _getEmotionIcon(currentUserState.currentUser!.emotionStatus),
+                                      color: Colors.black,
+                                      size: 28,
+                                    ),
+                                    const SizedBox(width: 4),
+                                    const Icon(
+                                      Icons.edit,
+                                      size: 14,
+                                      color: Colors.grey,
+                                    ),
+                                  ],
+                                ),
+                              ),
                             ),
                           ),
                           const SizedBox(width: 8),

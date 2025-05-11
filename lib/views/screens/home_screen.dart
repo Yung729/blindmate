@@ -171,7 +171,7 @@ class _HomeScreenState extends State<HomeScreen>
                 builder: (context, authState, child) {
                   // Check for milestone level when authState updates
                   if (authState.currentUser != null) {
-                    final int currentLevel = authState.currentUser!.levelValue ?? 1;
+                    final int currentLevel = authState.currentUser!.levelValue;
                     _checkAndTriggerMilestoneAnimation(currentLevel);
                   }
 
