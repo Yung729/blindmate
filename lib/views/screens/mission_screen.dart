@@ -53,14 +53,12 @@ class _DoMissionScreenState extends State<DoMissionScreen> {
     // Initialize mission data
     await _missionEventHandler.initialize();
 
-    // Fetch reward rate from the first active mission (if available)
-    if (missionState.activeMissions.isNotEmpty) {
-      try {
-        _rewardRate = await missionState.activeMissions.first.getRewardRate();
-      } catch (e) {
-        print("Error fetching reward rate: $e");
-        _rewardRate = 1.0; // Fallback to default rate
-      }
+    // Fetch reward rate from the current user
+    try {
+      _rewardRate = user!.getRewardRate();
+    } catch (e) {
+      print("Error fetching reward rate: $e");
+      _rewardRate = 1.0; // Fallback to default rate
     }
 
     if (mounted) {
@@ -73,15 +71,13 @@ class _DoMissionScreenState extends State<DoMissionScreen> {
 
   Future<void> _refreshMissions() async {
     await _missionEventHandler.refreshMissions();
-    // Refresh reward rate
-    final missionState = Provider.of<MissionState>(context, listen: false);
-    if (missionState.activeMissions.isNotEmpty) {
-      try {
-        _rewardRate = await missionState.activeMissions.first.getRewardRate();
-      } catch (e) {
-        print("Error refreshing reward rate: $e");
-        _rewardRate = 1.0; // Fallback to default rate
-      }
+    // Refresh reward rate from the current user
+    final user = context.read<AuthState>().currentUser;
+    try {
+      _rewardRate = user!.getRewardRate();
+    } catch (e) {
+      print("Error refreshing reward rate: $e");
+      _rewardRate = 1.0; // Fallback to default rate
     }
     if (!mounted) return; // Prevent setState after dispose
     setState(() {}); // Safe

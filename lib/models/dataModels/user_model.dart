@@ -11,7 +11,6 @@ class UserModel {
   final String emotionStatus;
   final double progressionValue;
   int fragmentNumber;
-  // String currentMission;
   String avatarImg;
   int flower;
   final DateTime surveyDate;
@@ -28,7 +27,6 @@ class UserModel {
     required this.emotionStatus,
     required this.progressionValue,
     required this.fragmentNumber,
-    // required this.currentMission,
     required this.avatarImg,
     required this.flower,
     required this.surveyDate,
@@ -53,7 +51,6 @@ class UserModel {
           .toDouble()
           .clamp(0.0, 1.0),
       fragmentNumber: (data['fragmentNumber'] as num? ?? 0).toInt(),
-      // currentMission: data['currentMission'] ?? '',
       avatarImg: data['avatarImg'] ?? '',
       flower: data['flower'] ?? 0,
       surveyDate:
@@ -78,13 +75,18 @@ class UserModel {
               : FieldValue.serverTimestamp(),
       'emotionStatus': emotionStatus,
       'fragmentNumber': fragmentNumber,
-      // 'currentMission': currentMission,
       'avatarImg': avatarImg,
       'levelValue': levelValue,
       'progressionValue': progressionValue,
       'surveyDate': Timestamp.fromDate(surveyDate),
-      'hiddenPosts': hiddenPosts, // Include hiddenPosts in the map
+      'hiddenPosts': hiddenPosts,
       'flower': flower,
     };
+  }
+
+  // 🔹 Calculate the reward rate based on the user's levelValue
+  double getRewardRate() {
+    // Calculate reward rate: 1.0 + (floor(levelValue / 10) * 0.5)
+    return 1.0 + ((levelValue ~/ 10) * 0.5);
   }
 }

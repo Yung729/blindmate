@@ -1,5 +1,8 @@
 import 'package:blindmate/models/dataModels/mission_model.dart';
+import 'package:blindmate/models/dataModels/user_model.dart';
+import 'package:blindmate/viewmodels/state/auth_state.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 class MissionDetailScreen extends StatefulWidget {
   final MissionModel mission;
@@ -13,6 +16,7 @@ class MissionDetailScreen extends StatefulWidget {
 class _MissionDetailScreenState extends State<MissionDetailScreen> {
   double _rewardRate = 1.0; // Default reward rate
   int _effectiveXp = 0; // Will store the adjusted XP
+  UserModel? _currentUser;
 
   @override
   void initState() {
@@ -22,12 +26,30 @@ class _MissionDetailScreenState extends State<MissionDetailScreen> {
 
   Future<void> _fetchRewardRate() async {
     try {
-      // Fetch the reward rate from MissionModel
-      final rewardRate = await widget.mission.getRewardRate();
+      // Fetch the current user from AuthState
+      final authState = context.read<AuthState>();
+      _currentUser = authState.currentUser;
+
+      if (_currentUser == null) {
+        // Fallback if user is not available
+        print("User not found in AuthState");
+        if (mounted) {
+          setState(() {
+            _rewardRate = 1.0; // Fallback to default rate
+            _effectiveXp = widget.mission.rewards.xp; // Fallback to raw XP
+          });
+        }
+        return;
+      }
+
+      // Fetch reward rate and effective XP using UserModel
+      final rewardRate = _currentUser!.getRewardRate();
+      final effectiveXp = widget.mission.rewards.getEffectiveXp(rewardRate);
+
       if (mounted) {
         setState(() {
           _rewardRate = rewardRate;
-          _effectiveXp = widget.mission.rewards.getEffectiveXp(rewardRate);
+          _effectiveXp = effectiveXp;
         });
       }
     } catch (e) {
