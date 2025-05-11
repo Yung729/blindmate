@@ -1,27 +1,56 @@
 import 'package:blindmate/models/dataModels/mission_model.dart';
 import 'package:flutter/material.dart';
 
-class MissionDetailScreen extends StatelessWidget {
+class MissionDetailScreen extends StatefulWidget {
   final MissionModel mission;
 
-  // The mission is passed directly to the view.
   const MissionDetailScreen({super.key, required this.mission});
 
-// class _MissionDetailScreenState extends State<MissionDetailScreen> {
-  
+  @override
+  _MissionDetailScreenState createState() => _MissionDetailScreenState();
+}
+
+class _MissionDetailScreenState extends State<MissionDetailScreen> {
+  double _rewardRate = 1.0; // Default reward rate
+  int _effectiveXp = 0; // Will store the adjusted XP
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchRewardRate();
+  }
+
+  Future<void> _fetchRewardRate() async {
+    try {
+      // Fetch the reward rate from MissionModel
+      final rewardRate = await widget.mission.getRewardRate();
+      if (mounted) {
+        setState(() {
+          _rewardRate = rewardRate;
+          _effectiveXp = widget.mission.rewards.getEffectiveXp(rewardRate);
+        });
+      }
+    } catch (e) {
+      print("Error fetching reward rate: $e");
+      if (mounted) {
+        setState(() {
+          _rewardRate = 1.0; // Fallback to default rate
+          _effectiveXp = widget.mission.rewards.xp; // Fallback to raw XP
+        });
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    // final mission = widget.mission;
-
     return Scaffold(
       appBar: AppBar(
         title: const Text("Mission Details"),
-        leading: BackButton(),
+        leading: const BackButton(),
         backgroundColor: Colors.white,
         foregroundColor: Colors.black,
         elevation: 0.5,
       ),
-      // backgroundColor: Colors.black,
       body: Column(
         children: [
           // Main content card
@@ -46,7 +75,7 @@ class MissionDetailScreen extends StatelessWidget {
                           // Mission name
                           Center(
                             child: Text(
-                              mission.title,
+                              widget.mission.title,
                               style: const TextStyle(
                                 fontSize: 36,
                                 fontWeight: FontWeight.bold,
@@ -63,7 +92,7 @@ class MissionDetailScreen extends StatelessWidget {
                                 "description : ",
                                 style: TextStyle(fontWeight: FontWeight.bold),
                               ),
-                              Expanded(child: Text(mission.description)),
+                              Expanded(child: Text(widget.mission.description)),
                             ],
                           ),
 
@@ -76,20 +105,22 @@ class MissionDetailScreen extends StatelessWidget {
                                 "difficulty: ",
                                 style: TextStyle(fontWeight: FontWeight.bold),
                               ),
-                              Text(mission.difficulty),
+                              Text(widget.mission.difficulty),
                             ],
                           ),
 
                           const SizedBox(height: 8),
 
-                          // Reward
+                          // Reward (display effective XP with rate)
                           Row(
                             children: [
                               const Text(
                                 "reward : ",
                                 style: TextStyle(fontWeight: FontWeight.bold),
                               ),
-                              Text(mission.rewards.xp.toString()),
+                              Text(
+                                "$_effectiveXp XP (${_rewardRate.toStringAsFixed(1)}x rate)",
+                              ),
                             ],
                           ),
 
@@ -115,10 +146,10 @@ class MissionDetailScreen extends StatelessWidget {
                                 ),
                               ),
                               FractionallySizedBox(
-                                widthFactor: (mission.progress /
-                                        (mission.requirements.target == 0
+                                widthFactor: (widget.mission.progress /
+                                        (widget.mission.requirements.target == 0
                                             ? 1
-                                            : mission.requirements.target))
+                                            : widget.mission.requirements.target))
                                     .clamp(0.0, 1.0),
                                 child: Container(
                                   height: 20,
@@ -131,7 +162,7 @@ class MissionDetailScreen extends StatelessWidget {
                               Positioned.fill(
                                 child: Center(
                                   child: Text(
-                                    '${mission.progress}/${mission.requirements.target}',
+                                    '${widget.mission.progress}/${widget.mission.requirements.target}',
                                     style: const TextStyle(
                                       color: Colors.white,
                                       fontSize: 12,
@@ -141,8 +172,10 @@ class MissionDetailScreen extends StatelessWidget {
                                 ),
                               ),
                             ],
-                          ), // Display task completion message if progress is full
-                          if (mission.progress >= mission.requirements.target)
+                          ),
+
+                          // Display task completion message if progress is full
+                          if (widget.mission.progress >= widget.mission.requirements.target)
                             const Padding(
                               padding: EdgeInsets.only(top: 20.0),
                               child: Center(
