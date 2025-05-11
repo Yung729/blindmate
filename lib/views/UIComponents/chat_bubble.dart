@@ -94,6 +94,12 @@ class _ChatBubbleState extends State<ChatBubble> with SingleTickerProviderStateM
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
       );
+    } else if (widget.moderationStatus == 'SENSITIVE') {
+      return const LinearGradient(
+        colors: [Color(0xFFa1c4fd), Color(0xFFc2e9fb)],
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+      );
     }
     
     return widget.isMe
@@ -177,43 +183,62 @@ class _ChatBubbleState extends State<ChatBubble> with SingleTickerProviderStateM
                       if (widget.timestamp != null)
                         Padding(
                           padding: const EdgeInsets.only(top: 4),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
+                          child: Column(
+                            crossAxisAlignment: widget.isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
                             children: [
-                              Text(
-                                _formatTimestamp(widget.timestamp),
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  color: Colors.grey[600],
-                                ),
-                              ),
-                              if (widget.moderationStatus == 'UNSAFE' || widget.moderationStatus == 'WARNING')
-                                Padding(
-                                  padding: const EdgeInsets.only(left: 4),
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                    decoration: BoxDecoration(
-                                      color: widget.moderationStatus == 'UNSAFE' ? Colors.red[100] : Colors.orange[100],
-                                      borderRadius: BorderRadius.circular(8),
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    _formatTimestamp(widget.timestamp),
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: Colors.grey[600],
                                     ),
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Icon(
-                                          widget.moderationStatus == 'UNSAFE' ? Icons.warning_amber_rounded : Icons.info_outline,
-                                          size: 10,
-                                          color: widget.moderationStatus == 'UNSAFE' ? Colors.red : Colors.orange,
+                                  ),
+                                  if (widget.moderationStatus == 'UNSAFE' || 
+                                     widget.moderationStatus == 'WARNING' ||
+                                     widget.moderationStatus == 'SENSITIVE')
+                                    Padding(
+                                      padding: const EdgeInsets.only(left: 4),
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                        decoration: BoxDecoration(
+                                          color: _getBadgeColor(),
+                                          borderRadius: BorderRadius.circular(8),
                                         ),
-                                        const SizedBox(width: 2),
-                                        Text(
-                                          widget.moderationStatus == 'UNSAFE' ? 'Flagged' : 'Warning',
-                                          style: TextStyle(
-                                            fontSize: 9,
-                                            fontWeight: FontWeight.bold,
-                                            color: widget.moderationStatus == 'UNSAFE' ? Colors.red : Colors.orange,
-                                          ),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Icon(
+                                              _getBadgeIcon(),
+                                              size: 10,
+                                              color: _getBadgeTextColor(),
+                                            ),
+                                            const SizedBox(width: 2),
+                                            Text(
+                                              _getBadgeText(),
+                                              style: TextStyle(
+                                                fontSize: 9,
+                                                fontWeight: FontWeight.bold,
+                                                color: _getBadgeTextColor(),
+                                              ),
+                                            ),
+                                          ],
                                         ),
-                                      ],
+                                      ),
+                                    ),
+                                ],
+                              ),
+                              if (widget.moderationStatus == 'SENSITIVE')
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 2),
+                                  child: Text(
+                                    "🛡️ Personal info masked for your safety",
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      fontStyle: FontStyle.italic,
+                                      color: Colors.blue[700],
                                     ),
                                   ),
                                 ),
@@ -312,5 +337,57 @@ class _ChatBubbleState extends State<ChatBubble> with SingleTickerProviderStateM
       );
     }
     return const SizedBox.shrink();
+  }
+
+  Color _getBadgeColor() {
+    switch (widget.moderationStatus) {
+      case 'UNSAFE':
+        return Colors.red[100]!;
+      case 'WARNING':
+        return Colors.orange[100]!;
+      case 'SENSITIVE':
+        return Colors.blue[100]!;
+      default:
+        return Colors.grey[100]!;
+    }
+  }
+
+  Color _getBadgeTextColor() {
+    switch (widget.moderationStatus) {
+      case 'UNSAFE':
+        return Colors.red;
+      case 'WARNING':
+        return Colors.orange;
+      case 'SENSITIVE':
+        return Colors.blue;
+      default:
+        return Colors.grey;
+    }
+  }
+
+  IconData _getBadgeIcon() {
+    switch (widget.moderationStatus) {
+      case 'UNSAFE':
+        return Icons.warning_amber_rounded;
+      case 'WARNING':
+        return Icons.info_outline;
+      case 'SENSITIVE':
+        return Icons.privacy_tip_outlined;
+      default:
+        return Icons.info_outline;
+    }
+  }
+
+  String _getBadgeText() {
+    switch (widget.moderationStatus) {
+      case 'UNSAFE':
+        return 'Flagged';
+      case 'WARNING':
+        return 'Warning';
+      case 'SENSITIVE':
+        return 'Masked';
+      default:
+        return '';
+    }
   }
 }

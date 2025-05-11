@@ -4,6 +4,7 @@ import 'package:blindmate/models/api/gemini_moderation_service.dart';
 import 'package:blindmate/services/reward_service.dart';
 import 'package:blindmate/viewmodels/eventHandlers/mission_event_handler.dart';
 import 'package:blindmate/viewmodels/state/do_mission_state.dart';
+import 'package:blindmate/viewmodels/uiValidation/chat_validator.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import '../../services/chat_service.dart';
@@ -106,6 +107,8 @@ class ChatDataBinding {
   ) async {
     MessageModel messageToSend;
     String? moderationResult;
+    bool hasSensitiveInfo = false;
+    String? originalText;
 
     // Track mission progress based on message type
     if (message.musicUrl != null && message.musicUrl!.isNotEmpty) {
@@ -165,24 +168,58 @@ class ChatDataBinding {
         tripJournals: message.tripJournals,
       );
     } else if (message.text != null && message.text!.isNotEmpty) {
-      moderationResult = await _moderationService.checkContentLevel(
-        message.text!,
-      );
+      // First check for sensitive information
+      if (MessageValidator.containsSensitiveInfo(message.text!)) {
+        hasSensitiveInfo = true;
+        originalText = message.text;
+        
+        // Set moderation status to SENSITIVE for UI handling
+        moderationResult = 'SENSITIVE';
+        
+        // Mask the sensitive information with asterisks
+        final maskedText = MessageValidator.sanitizeSensitiveInfo(message.text!);
+        
+        // Display appropriate message based on sensitive info type
+        final infoType = MessageValidator.getSensitiveInfoType(message.text!);
+        chatState.setErrorMessage(
+          MessageValidator.getErrorMessage(message.text!),
+        );
+        
+        messageToSend = MessageModel(
+          messageId: message.messageId,
+          senderId: message.senderId,
+          text: maskedText,
+          stickerUrl: message.stickerUrl,
+          musicUrl: message.musicUrl,
+          musicTitle: message.musicTitle,
+          timestamp: message.timestamp,
+          moderationStatus: moderationResult,
+          tripJournals: message.tripJournals,
+        );
+      } else {
+        // If no sensitive info, proceed with regular moderation
+        moderationResult = await _moderationService.checkContentLevel(
+          message.text!,
+        );
 
-      messageToSend = MessageModel(
-        messageId: message.messageId,
-        senderId: message.senderId,
-        text: message.text,
-        stickerUrl: message.stickerUrl,
-        musicUrl: message.musicUrl,
-        musicTitle: message.musicTitle,
-        timestamp: message.timestamp,
-        moderationStatus: moderationResult,
-        tripJournals: message.tripJournals,
-      );
+        messageToSend = MessageModel(
+          messageId: message.messageId,
+          senderId: message.senderId,
+          text: message.text,
+          stickerUrl: message.stickerUrl,
+          musicUrl: message.musicUrl,
+          musicTitle: message.musicTitle,
+          timestamp: message.timestamp,
+          moderationStatus: moderationResult,
+          tripJournals: message.tripJournals,
+        );
+      }
 
       // Show appropriate error messages based on moderation result
       switch (moderationResult) {
+        case 'SENSITIVE':
+          // Already shown error message above
+          break;
         case 'WARNING':
           chatState.setErrorMessage(
             "⚠️ Warning: Your message contains sensitive content",
@@ -218,7 +255,6 @@ class ChatDataBinding {
     }
 
     // Send message via WebSocket
-
     chatState.incrementMessageCount(moderationResult ?? 'SAFE');
     await _chatService.sendMessage(userId, chatRoomId, messageToSend);
 
