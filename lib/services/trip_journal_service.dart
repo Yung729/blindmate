@@ -15,7 +15,8 @@ class UserTripJournalService {
               .where('postType', isEqualTo: 'tripJournal')
               .get();
 
-      return querySnapshot.docs
+      // First, process all posts and ensure each trip journal has a tripId
+      final List<Map<String, dynamic>> processedPosts = querySnapshot.docs
           .map((doc) {
             final data = doc.data() as Map<String, dynamic>;
             return {
@@ -28,6 +29,12 @@ class UserTripJournalService {
                     final journalMap = Map<String, dynamic>.from(
                       journal as Map,
                     );
+                    
+                    // Ensure each journal has a tripId
+                    if (!journalMap.containsKey('tripId')) {
+                      journalMap['tripId'] = '${doc.id}_${journalMap.hashCode}';
+                    }
+                    
                     return {
                       ...journalMap,
                       'date': () {
@@ -48,8 +55,49 @@ class UserTripJournalService {
                   <Map<String, dynamic>>[],
             };
           })
-          .where((post) => post['tripJournals'].isNotEmpty)
+          .where(
+            (post) =>
+                post['tripJournals'].isNotEmpty &&
+                post['visibility'] != 'deleted',
+          )
           .toList();
+
+      // Track which tripIds have been seen and in which post
+      final Map<String, String> tripIdToPostId = {};
+      
+      // Final list of posts with deduplicated trip journals
+      final List<Map<String, dynamic>> finalPosts = [];
+      
+      // Process each post to handle cross-post duplicates
+      for (final post in processedPosts) {
+        final String postId = post['id'];
+        final List<Map<String, dynamic>> uniqueJournalsForPost = [];
+        
+        // Check each trip journal in this post
+        for (final journal in post['tripJournals'] as List<Map<String, dynamic>>) {
+          final String tripId = journal['tripId'] as String;
+          
+          // If this tripId has been seen in another post, skip it
+          if (tripIdToPostId.containsKey(tripId) && tripIdToPostId[tripId] != postId) {
+            print('Skipping duplicate tripId $tripId found in post $postId (already in ${tripIdToPostId[tripId]})');
+            continue;
+          }
+          
+          // Otherwise, mark this tripId as belonging to this post
+          tripIdToPostId[tripId] = postId;
+          uniqueJournalsForPost.add(journal);
+        }
+        
+        // Only add the post if it still has trip journals after deduplication
+        if (uniqueJournalsForPost.isNotEmpty) {
+          finalPosts.add({
+            ...post,
+            'tripJournals': uniqueJournalsForPost,
+          });
+        }
+      }
+      
+      return finalPosts;
     } catch (e) {
       print('Error fetching user trip journals: $e');
       return [];
@@ -62,6 +110,7 @@ class UserTripJournalService {
   ) {
     return journals.map((journal) {
       return {
+        'tripId': journal['tripId'] ?? '',
         'location': journal['location'] ?? '',
         'description': journal['description'] ?? '',
         'date': journal['date'] as DateTime,

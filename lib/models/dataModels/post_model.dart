@@ -50,6 +50,18 @@ class PostModel {
 
   // Convert the PostModel instance into a Map to store in Firestore
   Map<String, dynamic> toMap() {
+    // Ensure each tripJournal has a tripId if not already present
+    final processedTripJournals = tripJournals?.map((journal) {
+      if (!journal.containsKey('tripId')) {
+        // Generate a unique ID if one doesn't exist
+        return {
+          ...journal,
+          'tripId': DateTime.now().millisecondsSinceEpoch.toString(),
+        };
+      }
+      return journal;
+    }).toList();
+
     return {
       'userId': userId,
       'userName': userName,
@@ -60,7 +72,7 @@ class PostModel {
       'timestamp': FieldValue.serverTimestamp(),
       'visibility': visibility,
       'postType': _postTypeToString(postType),
-      'tripJournals': tripJournals,
+      'tripJournals': processedTripJournals,
       // Do NOT include authorAvatar in Firestore, it's for UI only
     };
   }
@@ -88,6 +100,12 @@ class PostModel {
           final journal = Map<String, dynamic>.from(e);
           final date = journal['date'];
           journal['date'] = date is Timestamp ? date.toDate() : date;
+          
+          // Ensure each journal has a tripId
+          if (!journal.containsKey('tripId')) {
+            journal['tripId'] = '${documentId}_${journal.hashCode}';
+          }
+          
           return journal;
         }),
       );
@@ -111,6 +129,18 @@ class PostModel {
 
   // Convert to a map specifically for updates (doesn't include timestamp)
   Map<String, dynamic> toUpdateMap() {
+    // Ensure each tripJournal has a tripId if not already present
+    final processedTripJournals = tripJournals?.map((journal) {
+      if (!journal.containsKey('tripId')) {
+        // Generate a unique ID if one doesn't exist
+        return {
+          ...journal,
+          'tripId': DateTime.now().millisecondsSinceEpoch.toString(),
+        };
+      }
+      return journal;
+    }).toList();
+
     return {
       'visibility': visibility,
       'content': content,
@@ -118,7 +148,7 @@ class PostModel {
       'musicUrl': musicUrl,
       'musicTitle': musicTitle,
       'postType': _postTypeToString(postType),
-      'tripJournals': tripJournals,
+      'tripJournals': processedTripJournals,
       // Do NOT include authorAvatar in Firestore
     };
   }

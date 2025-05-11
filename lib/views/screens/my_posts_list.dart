@@ -5,6 +5,8 @@ import '../UIComponents/post_content.dart';
 import '../UIComponents/post_music_preview.dart';
 import '../UIComponents/post_url_preview.dart';
 import '../UIComponents/custom_button.dart';
+import '../UIComponents/trip_journal_preview.dart'; // Add this import
+import '../UIComponents/trip_journal_card.dart'; // Add this import
 
 class MyPostsList extends StatefulWidget {
   final List<Map<String, dynamic>> posts;
@@ -53,7 +55,10 @@ class _MyPostsListState extends State<MyPostsList> {
   final Set<String> _selectedPostIds = {};
   bool _isDeleting = false;
   String _activeFilter =
-      'all'; // 'all', 'public', 'private', 'music', 'url', 'textOnly'
+      'all'; // 'all', 'public', 'private', 'music', 'url', 'textOnly', 'tripJournal'
+  
+  // Track which trip journals are expanded in full card view
+  final Set<String> _expandedTripJournals = {};
 
   bool get _allSelected =>
       _filteredPosts.isNotEmpty &&
@@ -103,6 +108,12 @@ class _MyPostsListState extends State<MyPostsList> {
                 post['musicUrl'] == null &&
                 post['url'] == null,
           )
+          .toList();
+    } else if (_activeFilter == 'tripJournal') {
+      // Add trip journal filter
+      return visibilityFiltered
+          .where((post) => post['tripJournals'] != null && 
+                          (post['tripJournals'] as List?)?.isNotEmpty == true)
           .toList();
     } else if (_activeFilter == 'all' ||
         _activeFilter == 'public' ||
@@ -169,6 +180,52 @@ class _MyPostsListState extends State<MyPostsList> {
         if (mounted) setState(() {});
       });
     }
+  }
+
+  // Toggle trip journal expansion
+  void _toggleTripJournalExpansion(String postId) {
+    setState(() {
+      if (_expandedTripJournals.contains(postId)) {
+        _expandedTripJournals.remove(postId);
+      } else {
+        _expandedTripJournals.add(postId);
+      }
+    });
+  }
+
+  // Show trip journal in a dialog
+  void _showTripJournalDialog(BuildContext context, Map<String, dynamic> post) {
+    final journals = List<Map<String, dynamic>>.from(
+      post['tripJournals'] ?? [],
+    );
+
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      barrierColor: Colors.black54,
+      builder: (context) => Center(
+        child: Container(
+          width: MediaQuery.of(context).size.width * 0.92,
+          height: MediaQuery.of(context).size.height * 0.60,
+          margin: const EdgeInsets.symmetric(horizontal: 16),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.2),
+                blurRadius: 20,
+                offset: const Offset(0, 10),
+              ),
+            ],
+          ),
+          child: TripJournalBookCard(
+            journals: journals,
+            padding: const EdgeInsets.all(0),
+            onClose: () => Navigator.of(context).pop(),
+          ),
+        ),
+      ),
+    );
   }
 
   void _showFilterOptions() {
@@ -269,6 +326,12 @@ class _MyPostsListState extends State<MyPostsList> {
                         'textOnly',
                         setModalState,
                       ),
+                      // Add Trip Journal filter option
+                      _buildFilterOption(
+                        'Trip Journals',
+                        'tripJournal',
+                        setModalState,
+                      ),
 
                       const SizedBox(height: 24),
                     ],
@@ -349,6 +412,12 @@ class _MyPostsListState extends State<MyPostsList> {
                 padding: EdgeInsets.only(left: 8.0),
                 child: Icon(Icons.text_fields, size: 16, color: Colors.grey),
               ),
+            // Add Trip Journal icon
+            if (filterValue == 'tripJournal')
+              const Padding(
+                padding: EdgeInsets.only(left: 8.0),
+                child: Icon(Icons.travel_explore, size: 16, color: Colors.grey),
+              ),
             if (_activeFilter == filterValue)
               Padding(
                 padding: const EdgeInsets.only(left: 8.0),
@@ -403,6 +472,12 @@ class _MyPostsListState extends State<MyPostsList> {
                     post['url'] == null,
               )
               .length;
+    } else if (filterValue == 'tripJournal') {
+      // Count trip journal posts
+      count = widget.posts.where((post) => 
+        post['tripJournals'] != null && 
+        (post['tripJournals'] as List?)?.isNotEmpty == true
+      ).length;
     }
 
     return count.toString();
@@ -458,6 +533,8 @@ class _MyPostsListState extends State<MyPostsList> {
         return 'URL';
       case 'textOnly':
         return 'text-only';
+      case 'tripJournal':
+        return 'trip journal';
       default:
         return filter;
     }
@@ -511,6 +588,11 @@ class _MyPostsListState extends State<MyPostsList> {
                 itemBuilder: (context, index) {
                   final post = posts[index];
                   final isSelected = _selectedPostIds.contains(post['id']);
+                  
+                  // Check if post has trip journals
+                  final hasTripJournals = post['tripJournals'] != null && 
+                                         (post['tripJournals'] as List?)?.isNotEmpty == true;
+                  final isTripJournalExpanded = _expandedTripJournals.contains(post['id']);
 
                   // Parse timestamp safely
                   DateTime postTime;
@@ -564,9 +646,11 @@ class _MyPostsListState extends State<MyPostsList> {
                                   avatarUrl: widget.avatarUrl,
                                   timeAgo: widget.getTimeAgo(postTime),
                                   isPublic: post['visibility'] == 'public',
-                                  onOptions: null,
-                                  isTripJournal: false,
-                                  onTripJournalTap: null,
+                                  onOptions: () => widget.onShowPostOptions(post),
+                                  isTripJournal: hasTripJournals,
+                                  onTripJournalTap: hasTripJournals 
+                                      ? () => _showTripJournalDialog(context, post)
+                                      : null,
                                 ),
                                 const SizedBox(height: 8),
                                 if ((post['content'] ?? '').isNotEmpty)
@@ -590,6 +674,24 @@ class _MyPostsListState extends State<MyPostsList> {
                                     musicUrl: post['musicUrl'],
                                     musicTitle: post['musicTitle'],
                                   ),
+                                
+                                // Add Trip Journal Preview or Card
+                                if (hasTripJournals) ...[
+                                  const SizedBox(height: 12),
+                                  if (isTripJournalExpanded)
+                                    // Show full trip journal card when expanded
+                                    TripJournalBookCard(
+                                      journals: List<Map<String, dynamic>>.from(post['tripJournals']),
+                                      padding: const EdgeInsets.symmetric(vertical: 8),
+                                      onClose: () => _toggleTripJournalExpansion(post['id']),
+                                    )
+                                  else
+                                    // Show trip journal preview when collapsed
+                                    TripJournalPreview(
+                                      journals: List<Map<String, dynamic>>.from(post['tripJournals']),
+                                      onTap: () => _toggleTripJournalExpansion(post['id']),
+                                    ),
+                                ],
                               ],
                             ),
                           ),
