@@ -202,13 +202,35 @@ class MissionService {
   // Function to award XP to the user when the mission is finished
   Future<void> awardUserFragment(String userId, int fragment) async {
     try {
+
+      // Get user's current level to calculate reward rate
+      final userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(userId)
+          .get();
+      
+      if (!userDoc.exists) {
+        print("User not found when awarding fragments: $userId");
+        return;
+      }
+
+      final userData = userDoc.data()!;
+      final int levelValue = userData['levelValue'] ?? 1;
+      
+      // Calculate reward rate: 1.0 + (floor(levelValue / 10) * 0.5)
+      final double rewardRate = 1.0 + ((levelValue ~/ 10) * 0.5);
+      
+      // Calculate effective fragment reward with the rate
+      final int effectiveFragment = (fragment * rewardRate).round();
+      
+
       // Update the user's fragmentNumber (XP) in Firestore
       await FirebaseFirestore.instance.collection('users').doc(userId).update({
         'fragmentNumber': FieldValue.increment(
-          fragment,
+          effectiveFragment,
         ), // Add XP to user's fragmentNumber
       });
-      print("Awarded $fragment fragment to user: $userId");
+      print("Awarded $effectiveFragment fragment to user: $userId");
     } catch (e) {
       print("Error awarding XP to the user: $e");
     }
