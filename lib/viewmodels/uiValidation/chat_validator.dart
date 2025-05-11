@@ -17,13 +17,14 @@ class MessageValidator {
 
   /// Checks if a message contains sensitive information that should be restricted
   static bool containsSensitiveInfo(String message) {
-    // Check for phone numbers (various formats)
-    if (_containsPhoneNumber(message)) {
-      return true;
-    }
-
+    
     // Check for email addresses
     if (_containsEmail(message)) {
+      return true;
+    }
+    
+    // Check for phone numbers (various formats)
+    if (_containsPhoneNumber(message)) {
       return true;
     }
 
@@ -37,9 +38,6 @@ class MessageValidator {
 
   /// Sanitizes a message by masking sensitive information with asterisks
   static String sanitizeSensitiveInfo(String message) {
-    if (!containsSensitiveInfo(message)) {
-      return message; // No sensitive info to mask
-    }
     
     // Mask phone numbers with asterisks
     String result = message;
@@ -114,130 +112,75 @@ class MessageValidator {
     }
   }
 
+  // Pre-compiled RegExp patterns
+  static final RegExp _phonePattern = RegExp(
+    r'(?:\b01[0-9]-[0-9]{7,8}\b)|'
+    r'(?:\b01[0-9][0-9]{7,8}\b)|'
+    r'(?:\+601[0-9][0-9]{7,8}\b)|'
+    r'(?:\b601[0-9][0-9]{7,8}\b)|'
+    r'(?:\b0[0-9]-[0-9]{7,8}\b)|'
+    r'(?:\b0[0-9][0-9]{7,8}\b)|'
+    r'(?:\+60[0-9]{8,10}\b)|'
+    r'(?:\b\d{10}\b)|'
+    r'(?:\b\d{3}-\d{3}-\d{4}\b)|'
+    r'(?:\b\d{3} \d{3} \d{4}\b)|'
+    r'(?:\(\d{3}\) ?\d{3}-\d{4})|'
+    r'(?:\+\d{1,3} ?\d{3} ?\d{3} ?\d{4})|'
+    r'(?:\b\d{3}\.\d{3}\.\d{4}\b)',
+  );
+
+  static final RegExp _emailPattern = RegExp(r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b');
+
+  static final RegExp _addressPattern = RegExp(
+    r'(?:\b\d{5}\s+[A-Za-z\s]+\b)|'
+    r'(?:\bJalan\s+[A-Za-z0-9\s]+\b)|'
+    r'(?:\bLorong\s+[A-Za-z0-9\s]+\b)|'
+    r'(?:\bPersiaran\s+[A-Za-z0-9\s]+\b)|'
+    r'(?:\bTaman\s+[A-Za-z0-9\s]+\b)|'
+    r'(?:\bKampung\s+[A-Za-z0-9\s]+\b)|'
+    r'(?:\b(?:Selangor|Kuala Lumpur|Johor|Penang|Perak|Kedah|Kelantan|Sabah|Sarawak|Melaka|Negeri Sembilan|Pahang|Terengganu|Perlis|Putrajaya|Labuan)[,\s]+Malaysia\b)|'
+    r'(?:\bNo\.\s*\d+[A-Za-z]?[,\s]+)|'
+    r'(?:\bUnit\s+\d+[A-Za-z]?[,\s]+)|'
+    r'(?:\b\d+\s+[A-Za-z]+\s+(?:Street|St|Avenue|Ave|Road|Rd|Boulevard|Blvd|Lane|Ln|Drive|Dr)\b)|'
+    r'(?:\bP\.?O\.?\s*Box\s+\d+\b)|'
+    r'(?:\b\d{5}(?:-\d{4})?\b)|'
+    r'(?:\b[A-Za-z\s]+,\s*[A-Z]{2}\b)',
+    caseSensitive: false,
+  );
+
   // Private helper methods
 
   /// Checks if text contains a phone number pattern
   static bool _containsPhoneNumber(String text) {
-    // Common phone number patterns including Malaysian formats
-    final List<RegExp> phonePatterns = [
-      // Malaysian mobile numbers (e.g., 012-3456789, 0123456789, +60123456789)
-      RegExp(r'\b01[0-9]-[0-9]{7,8}\b'),  // With hyphen
-      RegExp(r'\b01[0-9][0-9]{7,8}\b'),   // Without hyphen
-      RegExp(r'\+601[0-9][0-9]{7,8}\b'),  // With country code +60
-      RegExp(r'\b601[0-9][0-9]{7,8}\b'),  // With country code without +
-      
-      // Malaysian landline numbers (e.g., 03-12345678, 0312345678)
-      RegExp(r'\b0[0-9]-[0-9]{7,8}\b'),  // With hyphen
-      RegExp(r'\b0[0-9][0-9]{7,8}\b'),   // Without hyphen
-      
-      // International format for Malaysian numbers
-      RegExp(r'\+60[0-9]{8,10}\b'),
-      
-      // General formats (keep for backward compatibility)
-      RegExp(r'\b\d{10}\b'),
-      RegExp(r'\b\d{3}-\d{3}-\d{4}\b'),
-      RegExp(r'\b\d{3} \d{3} \d{4}\b'),
-      RegExp(r'\(\d{3}\) ?\d{3}-\d{4}'),
-      RegExp(r'\+\d{1,3} ?\d{3} ?\d{3} ?\d{4}'),
-      RegExp(r'\b\d{3}\.\d{3}\.\d{4}\b'),
-    ];
-
-    for (var pattern in phonePatterns) {
-      if (pattern.hasMatch(text)) {
-        return true;
-      }
-    }
-    return false;
+    return _phonePattern.hasMatch(text);
   }
 
   /// Checks if text contains an email address
   static bool _containsEmail(String text) {
-    // Simple email pattern
-    final emailPattern = RegExp(r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b');
-    return emailPattern.hasMatch(text);
+    return _emailPattern.hasMatch(text);
   }
 
   /// Checks if text potentially contains a physical address
   static bool _containsAddress(String text) {
-    // Address patterns including Malaysian formats
-    final List<RegExp> addressPatterns = [
-      // Malaysian address format with postcode (e.g., 50000 Kuala Lumpur)
-      RegExp(r'\b\d{5}\s+[A-Za-z\s]+\b', caseSensitive: false),
-      
-      // Common Malaysian address terms
-      RegExp(r'\bJalan\s+[A-Za-z0-9\s]+\b', caseSensitive: false), // Street
-      RegExp(r'\bLorong\s+[A-Za-z0-9\s]+\b', caseSensitive: false), // Lane
-      RegExp(r'\bPersiaran\s+[A-Za-z0-9\s]+\b', caseSensitive: false), // Drive
-      RegExp(r'\bTaman\s+[A-Za-z0-9\s]+\b', caseSensitive: false), // Garden/Park
-      RegExp(r'\bKampung\s+[A-Za-z0-9\s]+\b', caseSensitive: false), // Village
-      
-      // Malaysian state names followed by Malaysia
-      RegExp(r'\b(?:Selangor|Kuala Lumpur|Johor|Penang|Perak|Kedah|Kelantan|Sabah|Sarawak|Melaka|Negeri Sembilan|Pahang|Terengganu|Perlis|Putrajaya|Labuan)[,\s]+Malaysia\b', caseSensitive: false),
-      
-      // Unit/house number patterns common in Malaysia
-      RegExp(r'\bNo\.\s*\d+[A-Za-z]?[,\s]+', caseSensitive: false),
-      RegExp(r'\bUnit\s+\d+[A-Za-z]?[,\s]+', caseSensitive: false),
-      
-      // Common international formats (keep for backward compatibility)
-      RegExp(r'\b\d+\s+[A-Za-z]+\s+(?:Street|St|Avenue|Ave|Road|Rd|Boulevard|Blvd|Lane|Ln|Drive|Dr)\b', caseSensitive: false),
-      RegExp(r'\bP\.?O\.?\s*Box\s+\d+\b', caseSensitive: false),
-      RegExp(r'\b\d{5}(?:-\d{4})?\b'),
-      RegExp(r'\b[A-Za-z\s]+,\s*[A-Z]{2}\b'),
-    ];
-
-    for (var pattern in addressPatterns) {
-      if (pattern.hasMatch(text)) {
-        return true;
-      }
-    }
-    return false;
+    return _addressPattern.hasMatch(text);
   }
 
   /// Masks phone numbers with asterisks (****) preserving some format characters
   static String _maskPhoneNumbersWithAsterisks(String text) {
-    // Use the same patterns as in _containsPhoneNumber
-    final List<RegExp> phonePatterns = [
-      // Malaysian mobile numbers
-      RegExp(r'\b01[0-9]-[0-9]{7,8}\b'),
-      RegExp(r'\b01[0-9][0-9]{7,8}\b'),
-      RegExp(r'\+601[0-9][0-9]{7,8}\b'),
-      RegExp(r'\b601[0-9][0-9]{7,8}\b'),
-      
-      // Malaysian landline numbers
-      RegExp(r'\b0[0-9]-[0-9]{7,8}\b'),
-      RegExp(r'\b0[0-9][0-9]{7,8}\b'),
-      
-      // International format for Malaysian numbers
-      RegExp(r'\+60[0-9]{8,10}\b'),
-      
-      // General formats
-      RegExp(r'\b\d{10}\b'),
-      RegExp(r'\b\d{3}-\d{3}-\d{4}\b'),
-      RegExp(r'\b\d{3} \d{3} \d{4}\b'),
-      RegExp(r'\(\d{3}\) ?\d{3}-\d{4}'),
-      RegExp(r'\+\d{1,3} ?\d{3} ?\d{3} ?\d{4}'),
-      RegExp(r'\b\d{3}\.\d{3}\.\d{4}\b'),
-    ];
-
-    String result = text;
-    for (var pattern in phonePatterns) {
-      result = result.replaceAllMapped(pattern, (match) {
-        String phoneNum = match.group(0)!;
-        // Keep first 2 digits and special chars, replace the rest with asterisks
-        String masked = phoneNum.replaceAllMapped(
-          RegExp(r'\d'),
-          (digitMatch) => digitMatch.start < 2 ? digitMatch.group(0)! : '*'
-        );
-        return masked;
-      });
-    }
-    return result;
+    return text.replaceAllMapped(_phonePattern, (match) {
+      String phoneNum = match.group(0)!;
+      // Keep first 2 digits and special chars, replace the rest with asterisks
+      String masked = phoneNum.replaceAllMapped(
+        RegExp(r'\d'), // This inner RegExp is fine
+        (digitMatch) => digitMatch.start < 2 ? digitMatch.group(0)! : '*'
+      );
+      return masked;
+    });
   }
 
   /// Masks email addresses with asterisks, preserving domain
   static String _maskEmailsWithAsterisks(String text) {
-    final emailPattern = RegExp(r'\b([A-Za-z0-9._%+-]+)@([A-Za-z0-9.-]+\.[A-Z|a-z]{2,})\b');
-    return text.replaceAllMapped(emailPattern, (match) {
+    return text.replaceAllMapped(_emailPattern, (match) {
       final username = match.group(1)!;
       final domain = match.group(2)!;
       
@@ -251,137 +194,50 @@ class MessageValidator {
 
   /// Masks addresses with asterisks
   static String _maskAddressesWithAsterisks(String text) {
-    // Use the same patterns as in _containsAddress
-    final List<RegExp> addressPatterns = [
-      // Malaysian address format with postcode
-      RegExp(r'\b\d{5}\s+[A-Za-z\s]+\b', caseSensitive: false),
+    return text.replaceAllMapped(_addressPattern, (match) {
+      String address = match.group(0)!;
+      // Keep address type prefixes like "Jalan", "Taman", etc.
+      List<String> prefixes = [
+        'Jalan', 'Lorong', 'Persiaran', 'Taman', 'Kampung',
+        'Street', 'St', 'Avenue', 'Ave', 'Road', 'Rd',
+        'Boulevard', 'Blvd', 'Lane', 'Ln', 'Drive', 'Dr',
+        'P.O. Box', 'PO Box', 'Unit', 'No.'
+      ];
       
-      // Common Malaysian address terms
-      RegExp(r'\bJalan\s+[A-Za-z0-9\s]+\b', caseSensitive: false),
-      RegExp(r'\bLorong\s+[A-Za-z0-9\s]+\b', caseSensitive: false),
-      RegExp(r'\bPersiaran\s+[A-Za-z0-9\s]+\b', caseSensitive: false),
-      RegExp(r'\bTaman\s+[A-Za-z0-9\s]+\b', caseSensitive: false),
-      RegExp(r'\bKampung\s+[A-Za-z0-9\s]+\b', caseSensitive: false),
-      
-      // Malaysian state names followed by Malaysia
-      RegExp(r'\b(?:Selangor|Kuala Lumpur|Johor|Penang|Perak|Kedah|Kelantan|Sabah|Sarawak|Melaka|Negeri Sembilan|Pahang|Terengganu|Perlis|Putrajaya|Labuan)[,\s]+Malaysia\b', caseSensitive: false),
-      
-      // Unit/house number patterns common in Malaysia
-      RegExp(r'\bNo\.\s*\d+[A-Za-z]?[,\s]+', caseSensitive: false),
-      RegExp(r'\bUnit\s+\d+[A-Za-z]?[,\s]+', caseSensitive: false),
-      
-      // Common international formats
-      RegExp(r'\b\d+\s+[A-Za-z]+\s+(?:Street|St|Avenue|Ave|Road|Rd|Boulevard|Blvd|Lane|Ln|Drive|Dr)\b', caseSensitive: false),
-      RegExp(r'\bP\.?O\.?\s*Box\s+\d+\b', caseSensitive: false),
-      RegExp(r'\b\d{5}(?:-\d{4})?\b'),
-      RegExp(r'\b[A-Za-z\s]+,\s*[A-Z]{2}\b'),
-    ];
+      for (String prefixStr in prefixes) {
+        String escapedPrefix = RegExp.escape(prefixStr);
+        RegExp prefixRegExp = RegExp(r'\b' + escapedPrefix + r'\b', caseSensitive: false);
+        Match? prefixMatch = prefixRegExp.firstMatch(address);
 
-    String result = text;
-    for (var pattern in addressPatterns) {
-      result = result.replaceAllMapped(pattern, (match) {
-        String address = match.group(0)!;
-        // Keep address type prefixes like "Jalan", "Taman", etc.
-        List<String> prefixes = [
-          'Jalan', 'Lorong', 'Persiaran', 'Taman', 'Kampung',
-          'Street', 'St', 'Avenue', 'Ave', 'Road', 'Rd',
-          'Boulevard', 'Blvd', 'Lane', 'Ln', 'Drive', 'Dr',
-          'P.O. Box', 'PO Box', 'Unit', 'No.'
-        ];
-        
-        for (String prefix in prefixes) {
-          RegExp prefixPattern = RegExp(r'\b' + prefix + r'\b', caseSensitive: false);
-          if (prefixPattern.hasMatch(address)) {
-            // Keep the prefix, replace everything after it with asterisks
-            int prefixEndIndex = address.toLowerCase().indexOf(prefix.toLowerCase()) + prefix.length;
-            String masked = address.substring(0, prefixEndIndex) + ' ****';
-            return masked;
-          }
+        if (prefixMatch != null) {
+          int prefixEndIndex = prefixMatch.end;
+          String masked = address.substring(0, prefixEndIndex) + ' ****';
+          return masked;
         }
-        
-        // If no prefix match, mask the entire address except the first word
-        List<String> parts = address.split(' ');
-        if (parts.length > 1) {
-          return parts[0] + ' ****';
-        } else {
-          return '****';
-        }
-      });
-    }
-    return result;
+      }
+      
+      // If no prefix match, mask the entire address except the first word
+      List<String> parts = address.split(' ');
+      if (parts.length > 1) {
+        return parts[0] + ' ****';
+      } else {
+        return '****';
+      }
+    });
   }
 
   /// Masks phone numbers in text
   static String _maskPhoneNumbers(String text) {
-    // Use the same patterns as in _containsPhoneNumber
-    final List<RegExp> phonePatterns = [
-      // Malaysian mobile numbers
-      RegExp(r'\b01[0-9]-[0-9]{7,8}\b'),
-      RegExp(r'\b01[0-9][0-9]{7,8}\b'),
-      RegExp(r'\+601[0-9][0-9]{7,8}\b'),
-      RegExp(r'\b601[0-9][0-9]{7,8}\b'),
-      
-      // Malaysian landline numbers
-      RegExp(r'\b0[0-9]-[0-9]{7,8}\b'),
-      RegExp(r'\b0[0-9][0-9]{7,8}\b'),
-      
-      // International format for Malaysian numbers
-      RegExp(r'\+60[0-9]{8,10}\b'),
-      
-      // General formats
-      RegExp(r'\b\d{10}\b'),
-      RegExp(r'\b\d{3}-\d{3}-\d{4}\b'),
-      RegExp(r'\b\d{3} \d{3} \d{4}\b'),
-      RegExp(r'\(\d{3}\) ?\d{3}-\d{4}'),
-      RegExp(r'\+\d{1,3} ?\d{3} ?\d{3} ?\d{4}'),
-      RegExp(r'\b\d{3}\.\d{3}\.\d{4}\b'),
-    ];
-
-    String result = text;
-    for (var pattern in phonePatterns) {
-      result = result.replaceAllMapped(pattern, (match) => '[phone number removed]');
-    }
-    return result;
+    return text.replaceAllMapped(_phonePattern, (match) => '[phone number removed]');
   }
 
   /// Masks email addresses in text
   static String _maskEmails(String text) {
-    final emailPattern = RegExp(r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b');
-    return text.replaceAllMapped(emailPattern, (match) => '[email removed]');
+    return text.replaceAllMapped(_emailPattern, (match) => '[email removed]');
   }
 
   /// Masks addresses in text
   static String _maskAddresses(String text) {
-    // Use the same patterns as in _containsAddress
-    final List<RegExp> addressPatterns = [
-      // Malaysian address format with postcode
-      RegExp(r'\b\d{5}\s+[A-Za-z\s]+\b', caseSensitive: false),
-      
-      // Common Malaysian address terms
-      RegExp(r'\bJalan\s+[A-Za-z0-9\s]+\b', caseSensitive: false),
-      RegExp(r'\bLorong\s+[A-Za-z0-9\s]+\b', caseSensitive: false),
-      RegExp(r'\bPersiaran\s+[A-Za-z0-9\s]+\b', caseSensitive: false),
-      RegExp(r'\bTaman\s+[A-Za-z0-9\s]+\b', caseSensitive: false),
-      RegExp(r'\bKampung\s+[A-Za-z0-9\s]+\b', caseSensitive: false),
-      
-      // Malaysian state names followed by Malaysia
-      RegExp(r'\b(?:Selangor|Kuala Lumpur|Johor|Penang|Perak|Kedah|Kelantan|Sabah|Sarawak|Melaka|Negeri Sembilan|Pahang|Terengganu|Perlis|Putrajaya|Labuan)[,\s]+Malaysia\b', caseSensitive: false),
-      
-      // Unit/house number patterns common in Malaysia
-      RegExp(r'\bNo\.\s*\d+[A-Za-z]?[,\s]+', caseSensitive: false),
-      RegExp(r'\bUnit\s+\d+[A-Za-z]?[,\s]+', caseSensitive: false),
-      
-      // Common international formats
-      RegExp(r'\b\d+\s+[A-Za-z]+\s+(?:Street|St|Avenue|Ave|Road|Rd|Boulevard|Blvd|Lane|Ln|Drive|Dr)\b', caseSensitive: false),
-      RegExp(r'\bP\.?O\.?\s*Box\s+\d+\b', caseSensitive: false),
-      RegExp(r'\b\d{5}(?:-\d{4})?\b'),
-      RegExp(r'\b[A-Za-z\s]+,\s*[A-Z]{2}\b'),
-    ];
-
-    String result = text;
-    for (var pattern in addressPatterns) {
-      result = result.replaceAllMapped(pattern, (match) => '[address removed]');
-    }
-    return result;
+    return text.replaceAllMapped(_addressPattern, (match) => '[address removed]');
   }
 }
