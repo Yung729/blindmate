@@ -5,8 +5,8 @@ import '../UIComponents/post_content.dart';
 import '../UIComponents/post_music_preview.dart';
 import '../UIComponents/post_url_preview.dart';
 import '../UIComponents/custom_button.dart';
-import '../UIComponents/trip_journal_preview.dart'; // Add this import
-import '../UIComponents/trip_journal_card.dart'; // Add this import
+import '../UIComponents/trip_journal_preview.dart';
+import '../UIComponents/trip_journal_card.dart';
 
 class MyPostsList extends StatefulWidget {
   final List<Map<String, dynamic>> posts;
@@ -56,9 +56,6 @@ class _MyPostsListState extends State<MyPostsList> {
   bool _isDeleting = false;
   String _activeFilter =
       'all'; // 'all', 'public', 'private', 'music', 'url', 'textOnly', 'tripJournal'
-  
-  // Track which trip journals are expanded in full card view
-  final Set<String> _expandedTripJournals = {};
 
   bool get _allSelected =>
       _filteredPosts.isNotEmpty &&
@@ -182,16 +179,7 @@ class _MyPostsListState extends State<MyPostsList> {
     }
   }
 
-  // Toggle trip journal expansion
-  void _toggleTripJournalExpansion(String postId) {
-    setState(() {
-      if (_expandedTripJournals.contains(postId)) {
-        _expandedTripJournals.remove(postId);
-      } else {
-        _expandedTripJournals.add(postId);
-      }
-    });
-  }
+  // Removed _toggleTripJournalExpansion method as we're no longer using it
 
   // Show trip journal in a dialog
   void _showTripJournalDialog(BuildContext context, Map<String, dynamic> post) {
@@ -592,7 +580,6 @@ class _MyPostsListState extends State<MyPostsList> {
                   // Check if post has trip journals
                   final hasTripJournals = post['tripJournals'] != null && 
                                          (post['tripJournals'] as List?)?.isNotEmpty == true;
-                  final isTripJournalExpanded = _expandedTripJournals.contains(post['id']);
 
                   // Parse timestamp safely
                   DateTime postTime;
@@ -675,22 +662,12 @@ class _MyPostsListState extends State<MyPostsList> {
                                     musicTitle: post['musicTitle'],
                                   ),
                                 
-                                // Add Trip Journal Preview or Card
                                 if (hasTripJournals) ...[
                                   const SizedBox(height: 12),
-                                  if (isTripJournalExpanded)
-                                    // Show full trip journal card when expanded
-                                    TripJournalBookCard(
-                                      journals: List<Map<String, dynamic>>.from(post['tripJournals']),
-                                      padding: const EdgeInsets.symmetric(vertical: 8),
-                                      onClose: () => _toggleTripJournalExpansion(post['id']),
-                                    )
-                                  else
-                                    // Show trip journal preview when collapsed
-                                    TripJournalPreview(
-                                      journals: List<Map<String, dynamic>>.from(post['tripJournals']),
-                                      onTap: () => _toggleTripJournalExpansion(post['id']),
-                                    ),
+                                  TripJournalPreview(
+                                    journals: List<Map<String, dynamic>>.from(post['tripJournals']),
+                                    onTap: () => _showTripJournalDialog(context, post),
+                                  ),
                                 ],
                               ],
                             ),
