@@ -119,15 +119,15 @@ Query:
   Each mission should use these existing tracked metrics and features:
 
   Time-based metrics available:
-  - Chat duration (how long users chat)
+  - Chat duration (total time users spend chatting; only total time is tracked, not continuous sessions)
 
   Action-based metrics available:
   1. Chat Actions:
-     - Number of text messages sent (metric: "text")
-     - Number of stickers sent (metric: "sticker")
-     - Number of music shared (metric: "music")
-     - Number of trip journals shared (metric: "tripjournal")
-     - Mini-games played (metric: "game")
+     - Number of text messages sent in chat (metric: "text")
+     - Number of stickers sent in chat (metric: "sticker")
+     - Number of music shared in chat (metric: "music")
+     - Number of trip journals shared in chat (metric: "tripjournal")
+     - Mini-games played in chat (metric: "game")
 
   2. Post Actions:
      - Number of text posts created (metric: "textpost")
@@ -144,13 +144,13 @@ Query:
       {
         "id": "unique alphanumeric string id (e.g., 0fc3r0meKjngcowxbLt2)",
         "title": "Brief, engaging mission name",
-        "description": "Clear, one-line description of what to accomplish",
+        "description": "Clear, one-line description of what to accomplish. Be explicit about where the action happens (e.g., 'Share 2 music in chat' or 'Share 2 music posts'). Avoid ambiguous descriptions like 'share music'.",
         "type": "time/action",
         "category": "chat/post/note",
         "difficulty": "easy/medium/hard",
         "requirements": {
           "metric": "text/sticker/music/tripjournal/game/textpost/musicpost/note/receivednote",
-          "target": number,
+          "target": number
         },
         "rewards": {
           "xp": number (100-1000)
@@ -161,22 +161,25 @@ Query:
 
   Example missions:
   1. Time-based:
-     - Chat for 30 minutes continuously
+     - Chat for a total of 30 minutes (metric: "chat duration")
 
   2. Action-based:
      - Send 10 text messages in chat (metric: "text")
-     - Share 3 stickers in chat (metric: "sticker") 
+     - Share 3 stickers in chat (metric: "sticker")
      - Share 2 music in chat (metric: "music")
      - Create 5 music posts (metric: "musicpost")
      - Create 3 trip journal posts (metric: "tripjournal")
      - Send 3 bottle notes (metric: "note")
 
-  IMPORTANT: For action-based missions, use the EXACT metric values specified above. The metric field must match exactly one of the values in the list above.
+  IMPORTANT:
+  - For action-based missions, use the EXACT metric values specified above. The metric field must match exactly one of the values in the list above.
+  - Mission descriptions must clearly state the context (e.g., 'in chat', 'as a post').
+  - Do NOT generate missions that require continuous actions (e.g., 'chat for 10 minutes straight'). Only total time is tracked.
 
   Requirements:
   - Each mission must be achievable within one session
   - Use only metrics that are actually tracked
-  - Time-based missions should focus on engagement
+  - Time-based missions should focus on total engagement, not continuous sessions
   - Action-based missions should encourage positive behavior
   - Rewards should match difficulty
   - Must be trackable with existing metrics
