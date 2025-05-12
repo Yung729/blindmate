@@ -318,27 +318,34 @@ class ChatDataBinding {
     clearChatState();
   }
 
-  Future<void> saveChatSummary(String currentUserId, String chatRoomId) async {
+  Future<void> saveChatSummary(String userId, String chatRoomId, [DateTime? chatStartTime]) async {
     try {
+      // Calculate chat duration
+      final startTime = chatStartTime ?? 
+          (chatState.messages.isNotEmpty ? chatState.messages.first.timestamp : DateTime.now());
+      final durationInMinutes = DateTime.now().difference(startTime).inMinutes;
+      
       final userSummary = {
-        'userId': currentUserId,
+        'userId': userId,
         'safeCount': chatState.safeMessageCount,
         'warningCount': chatState.warningMessageCount,
         'unsafeCount': chatState.unsafeMessageCount,
         'totalMessages':
-            chatState.messages.where((m) => m.senderId == currentUserId).length,
-        'duration':
-            DateTime.now()
-                .difference(
-                  chatState.messages.isNotEmpty
-                      ? chatState.messages.first.timestamp
-                      : DateTime.now(),
-                )
-                .inMinutes,
+            chatState.messages.where((m) => m.senderId == userId).length,
+        'duration': durationInMinutes,
         'timestamp': FieldValue.serverTimestamp(),
       };
 
       await _chatService.saveChatSummary(chatRoomId, userSummary);
+      
+      // Track mission progress for this user
+      if (durationInMinutes > 0) {
+        await _missionEventHandler.trackMissionProgress(
+          category: 'chat',
+          type: 'time',
+          actionTime: durationInMinutes,
+        );
+      }
     } catch (e) {
       print("❌ Error saving chat summary: $e");
     }
@@ -354,7 +361,7 @@ class ChatDataBinding {
       return [];
     }
   }
-
+  
   // UI State Management Methods
 
   void setCurrentUserId(String userId) {

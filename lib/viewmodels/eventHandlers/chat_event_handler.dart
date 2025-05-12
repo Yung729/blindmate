@@ -263,15 +263,7 @@ class ChatEventHandler {
     );
     
     if (shouldEnd) {
-      final durationInSeconds = DateTime.now().difference(_chatStartTime!).inSeconds;
-
-      // Track chat time-based mission progress using the provided tracker function
-      await missionTracker(
-        category: 'chat',
-        type: 'time',
-        actionTime: durationInSeconds,
-      );
-      
+      // Mission tracking is now handled in the data binding layer
       await handleChatExit(context, showSummary: true);
     }
   }
@@ -280,10 +272,9 @@ class ChatEventHandler {
     if (!_isChatOpen) return;
     _isChatOpen = false;
 
-    print("🚪 Closing chat room for user: $currentUserId");
 
     try {
-      await dataBinding.saveChatSummary(currentUserId, chatRoomId);
+      await dataBinding.saveChatSummary(currentUserId, chatRoomId,_chatStartTime!);
       await dataBinding.handleExit(chatRoomId, currentUserId);
       await matchingHandler.updateUserStatus(currentUserId, 'available');
     } finally {
