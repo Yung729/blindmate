@@ -45,14 +45,16 @@ class SharingEventHandler {
   }
 }
 
-  void deletePost(String postId) {
-    dataBinding.deletePost(postId);
+  Future<void> deletePost(String postId) async{
+    await dataBinding.deletePost(postId);
+    return;
   }
 
-  void togglePostVisibility(String postId) {
+  Future<void> togglePostVisibility(String postId) async{
     final post = sharingState.posts.firstWhere((p) => p.id == postId);
     final newVisibility = !post.isPublic;
     dataBinding.updatePostVisibility(postId, newVisibility);
+    return;
   }
 
   void playMusic(String youtubeUrl) {

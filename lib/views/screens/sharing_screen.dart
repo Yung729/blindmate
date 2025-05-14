@@ -1,3 +1,4 @@
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -66,7 +67,7 @@ class SharingScreenState extends State<SharingScreen> {
     super.dispose();
   }
 
-  // Method to refresh posts when pulled down
+  // Method to refresh posts
   Future<void> _refreshPosts() async {
     // Reset any state if needed
     setState(() {
@@ -114,8 +115,12 @@ class SharingScreenState extends State<SharingScreen> {
                     'Are you sure you want to delete this post?',
                   );
                   if (confirmDelete) {
-                    _eventHandler.deletePost(post['id']);
-                    _showRefreshSnackbar('Post deleted');
+                    await _eventHandler.deletePost(post['id']);
+                    // Auto refresh after deletion
+                    _refreshPosts();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Post deleted')),
+                    );
                   }
                 },
               ),
@@ -133,11 +138,17 @@ class SharingScreenState extends State<SharingScreen> {
                         : 'Are you sure you want to make this post public?',
                   );
                   if (confirmVisibility) {
-                    _eventHandler.togglePostVisibility(post['id']);
-                    _showRefreshSnackbar(
-                      isPublic 
-                          ? 'Post is now private' 
-                          : 'Post is now public'
+                    await _eventHandler.togglePostVisibility(post['id']);
+                    // Auto refresh after visibility change
+                    _refreshPosts();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          isPublic 
+                              ? 'Post is now private' 
+                              : 'Post is now public'
+                        ),
+                      ),
                     );
                   }
                 },
@@ -146,15 +157,20 @@ class SharingScreenState extends State<SharingScreen> {
               ListTile(
                 leading: const Icon(Icons.visibility_off),
                 title: const Text("I don't want to see this post"),
-                onTap: () {
+                onTap: () async {
                   Navigator.pop(context);
-                  _eventHandler.hidePost(post['id']);
+                  await _eventHandler.hidePost(post['id']);
+                  // Auto refresh after hiding post
+                  _refreshPosts();
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: const Text('Post hidden.'),
                       action: SnackBarAction(
                         label: 'Undo',
-                        onPressed: () => _eventHandler.unhidePost(post['id']),
+                        onPressed: () async {
+                          await _eventHandler.unhidePost(post['id']);
+                          _refreshPosts();
+                        },
                       ),
                     ),
                   );
@@ -168,37 +184,6 @@ class SharingScreenState extends State<SharingScreen> {
           ],
         );
       },
-    );
-  }
-
-  // Helper method to show a snackbar with refresh instructions
-  void _showRefreshSnackbar(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(message),
-            const SizedBox(height: 4),
-            const Row(
-              children: [
-                Icon(Icons.arrow_downward, size: 16, color: Colors.white70),
-                SizedBox(width: 8),
-                Text(
-                  'Scroll down or click to refresh if there is no changes',
-                  style: TextStyle(fontSize: 12, color: Colors.white70),
-                ),
-              ],
-            ),
-          ],
-        ),
-        duration: const Duration(seconds: 3),
-        action: SnackBarAction(
-          label: 'Refresh',
-          onPressed: _refreshPosts,
-        ),
-      ),
     );
   }
 
@@ -520,9 +505,13 @@ class SharingScreenState extends State<SharingScreen> {
     );
     if (confirm) {
       for (final id in selectedIds) {
-        _eventHandler.deletePost(id);
+        await _eventHandler.deletePost(id);
       }
-      _showRefreshSnackbar('${selectedIds.length} post(s) deleted');
+      // Auto refresh after batch deletion
+      await _refreshPosts();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('${selectedIds.length} post(s) deleted')),
+      );
     }
   }
 
@@ -538,9 +527,13 @@ class SharingScreenState extends State<SharingScreen> {
     );
     if (confirm) {
       for (final id in selectedIds) {
-        _eventHandler.togglePostVisibility(id);
+        await _eventHandler.togglePostVisibility(id);
       }
-      _showRefreshSnackbar('${selectedIds.length} post(s) are now $action');
+      // Auto refresh after batch visibility change
+      await _refreshPosts();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('${selectedIds.length} post(s) are now $action')),
+      );
     }
   }
 
