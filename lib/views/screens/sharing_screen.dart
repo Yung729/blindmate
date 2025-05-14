@@ -66,6 +66,17 @@ class SharingScreenState extends State<SharingScreen> {
     super.dispose();
   }
 
+  // Method to refresh posts when pulled down
+  Future<void> _refreshPosts() async {
+    // Reset any state if needed
+    setState(() {
+      _expandedPosts.clear();
+    });
+    
+    // Reinitialize data
+    await _eventHandler.init();
+  }
+
   String getTimeAgo(DateTime postTime) {
     final now = DateTime.now();
     final difference = now.difference(postTime);
@@ -169,49 +180,33 @@ class SharingScreenState extends State<SharingScreen> {
         );
 
         return Scaffold(
-          appBar: AppBar(title: const Text("Sharing Space")),
+          appBar: AppBar(
+            title: const Text("Sharing Space"),
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.refresh),
+                onPressed: _refreshPosts,
+                tooltip: 'Refresh posts',
+              ),
+            ],
+          ),
           body: Stack(
             children: [
               Column(
                 children: [
                   _buildCreatePostAndToggleRow(),
                   Expanded(
-                    child:
-                        _showMyPostsOnly
-                            ? MyPostsList(
-                              posts: displayedPosts,
-                              userId: widget.userId,
-                              avatarUrl: widget.avatarImg,
-                              scrollController: _scrollController,
-                              expandedPosts: _expandedPosts,
-                              maxLinesCollapsed: _maxLinesCollapsed,
-                              onShowPostOptions:
-                                  (post) => _showPostOptions(context, post),
-                              onPlayMusic: (post) {
-                                // Use MusicPlayerState to play music globally
-                                final musicUrl = post['musicUrl'];
-                                final musicTitle = post['musicTitle'];
-                                if (musicUrl != null) {
-                                  context.read<MusicPlayerState>().playMusic(
-                                    musicUrl,
-                                    musicTitle,
-                                  );
-                                }
-                              },
-                              getTimeAgo: getTimeAgo,
-                              onExpand: (postId) {
-                                setState(() => _expandedPosts.add(postId));
-                              },
-                              onCollapse: (postId) {
-                                setState(() => _expandedPosts.remove(postId));
-                              },
-                              onDeleteSelected: _handleDeleteSelected,
-                              onToggleVisibility: _handleToggleVisibility,
-                              isMusicPlaying: isMusicPlaying,
-                              musicPlayerHeight: musicPlayerHeight,
-                              musicPlayerExists: musicPlayerExists,
+                    child: RefreshIndicator(
+                      onRefresh: _refreshPosts,
+                      child: _showMyPostsOnly
+                          ? _buildMyPostsListWithRefresh(
+                              displayedPosts,
+                              isMusicPlaying,
+                              musicPlayerHeight,
+                              musicPlayerExists,
                             )
-                            : _buildSharedContentList(displayedPosts),
+                          : _buildSharedContentList(displayedPosts),
+                    ),
                   ),
                 ],
               ),
@@ -235,6 +230,46 @@ class SharingScreenState extends State<SharingScreen> {
           ),
         );
       },
+    );
+  }
+
+  Widget _buildMyPostsListWithRefresh(
+    List<Map<String, dynamic>> posts,
+    bool isMusicPlaying,
+    double musicPlayerHeight,
+    bool musicPlayerExists,
+  ) {
+    return MyPostsList(
+      posts: posts,
+      userId: widget.userId,
+      avatarUrl: widget.avatarImg,
+      scrollController: _scrollController,
+      expandedPosts: _expandedPosts,
+      maxLinesCollapsed: _maxLinesCollapsed,
+      onShowPostOptions: (post) => _showPostOptions(context, post),
+      onPlayMusic: (post) {
+        // Use MusicPlayerState to play music globally
+        final musicUrl = post['musicUrl'];
+        final musicTitle = post['musicTitle'];
+        if (musicUrl != null) {
+          context.read<MusicPlayerState>().playMusic(
+                musicUrl,
+                musicTitle,
+              );
+        }
+      },
+      getTimeAgo: getTimeAgo,
+      onExpand: (postId) {
+        setState(() => _expandedPosts.add(postId));
+      },
+      onCollapse: (postId) {
+        setState(() => _expandedPosts.remove(postId));
+      },
+      onDeleteSelected: _handleDeleteSelected,
+      onToggleVisibility: _handleToggleVisibility,
+      isMusicPlaying: isMusicPlaying,
+      musicPlayerHeight: musicPlayerHeight,
+      musicPlayerExists: musicPlayerExists,
     );
   }
 
@@ -331,7 +366,17 @@ class SharingScreenState extends State<SharingScreen> {
     }
 
     if (posts.isEmpty && !_sharingState.isLoading) {
-      return const Center(child: Text("No posts available."));
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Text("No posts available."),
+            const SizedBox(height: 16),
+            const Text("Pull down to refresh", style: TextStyle(color: Colors.grey)),
+            const Icon(Icons.arrow_downward, color: Colors.grey),
+          ],
+        ),
+      );
     }
 
     // Get music player status to determine padding
@@ -340,7 +385,7 @@ class SharingScreenState extends State<SharingScreen> {
 
     return ListView.builder(
       controller: _scrollController,
-      physics: const AlwaysScrollableScrollPhysics(),
+      physics: const AlwaysScrollableScrollPhysics(), // Important for pull-to-refresh
       // Add padding at the bottom when music player exists
       padding: EdgeInsets.only(
         bottom:
