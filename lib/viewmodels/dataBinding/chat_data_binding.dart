@@ -107,6 +107,14 @@ class ChatDataBinding {
   ) async {
     MessageModel messageToSend;
     String? moderationResult;
+    
+    // Check for rapid messaging (simple rate limiting)
+    final timingCheck = chatState.checkMessageTiming();
+    if (timingCheck['isSpam'] == true) {
+      chatState.setErrorMessage('⚠️ ${timingCheck['reason']}');
+      debugPrint("⚠️ Message blocked: ${timingCheck['reason']}");
+      return;
+    }
 
     // Track mission progress based on message type
     if (message.musicUrl != null && message.musicUrl!.isNotEmpty) {

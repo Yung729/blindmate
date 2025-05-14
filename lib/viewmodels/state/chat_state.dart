@@ -14,6 +14,11 @@ class ChatState extends ChangeNotifier {
   int safeMessageCount = 0;
   int warningMessageCount = 0;
   
+  // Anti-spam properties
+  final List<DateTime> _recentMessageTimestamps = [];
+  final int _maxMessagesPerWindow = 5; // Allow 5 messages in the time window
+  final int _timeWindowMs = 3000; // 3 second window for burst messages
+  
   // UI States
   bool isDrawerVisible = false;
   bool showStickers = false;
@@ -179,6 +184,28 @@ class ChatState extends ChangeNotifier {
   void setErrorMessage(String? message) {
     errorMessage = message;
     notifyListeners();
+  }
+    
+  /// Check if the user is sending messages too quickly
+  /// Returns a map with 'isSpam' boolean and 'reason' string if sending too fast
+  Map<String, dynamic> checkMessageTiming() {
+    final now = DateTime.now();
+    final result = {'isSpam': false, 'reason': ''};
+    
+    // First, clean up old timestamps outside our window
+    _recentMessageTimestamps.removeWhere((timestamp) => 
+        now.difference(timestamp).inMilliseconds > _timeWindowMs);
+    
+    // Check if too many messages were sent in the time window
+    if (_recentMessageTimestamps.length >= _maxMessagesPerWindow) {
+      result['isSpam'] = true;
+      result['reason'] = 'Please slow down. You can only send $_maxMessagesPerWindow messages every ${_timeWindowMs ~/ 1000} seconds.';
+      return result;
+    }
+    
+    // If we get here, the message is allowed
+    _recentMessageTimestamps.add(now);
+    return result;
   }
 
   void incrementMessageCount(String moderationStatus) {
