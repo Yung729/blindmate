@@ -115,6 +115,7 @@ class SharingScreenState extends State<SharingScreen> {
                   );
                   if (confirmDelete) {
                     _eventHandler.deletePost(post['id']);
+                    _showRefreshSnackbar('Post deleted');
                   }
                 },
               ),
@@ -133,6 +134,11 @@ class SharingScreenState extends State<SharingScreen> {
                   );
                   if (confirmVisibility) {
                     _eventHandler.togglePostVisibility(post['id']);
+                    _showRefreshSnackbar(
+                      isPublic 
+                          ? 'Post is now private' 
+                          : 'Post is now public'
+                    );
                   }
                 },
               ),
@@ -165,6 +171,37 @@ class SharingScreenState extends State<SharingScreen> {
     );
   }
 
+  // Helper method to show a snackbar with refresh instructions
+  void _showRefreshSnackbar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(message),
+            const SizedBox(height: 4),
+            const Row(
+              children: [
+                Icon(Icons.arrow_downward, size: 16, color: Colors.white70),
+                SizedBox(width: 8),
+                Text(
+                  'Scroll down or click to refresh if there is no changes',
+                  style: TextStyle(fontSize: 12, color: Colors.white70),
+                ),
+              ],
+            ),
+          ],
+        ),
+        duration: const Duration(seconds: 3),
+        action: SnackBarAction(
+          label: 'Refresh',
+          onPressed: _refreshPosts,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Consumer<SharingState>(
@@ -182,13 +219,6 @@ class SharingScreenState extends State<SharingScreen> {
         return Scaffold(
           appBar: AppBar(
             title: const Text("Sharing Space"),
-            actions: [
-              IconButton(
-                icon: const Icon(Icons.refresh),
-                onPressed: _refreshPosts,
-                tooltip: 'Refresh posts',
-              ),
-            ],
           ),
           body: Stack(
             children: [
@@ -492,6 +522,7 @@ class SharingScreenState extends State<SharingScreen> {
       for (final id in selectedIds) {
         _eventHandler.deletePost(id);
       }
+      _showRefreshSnackbar('${selectedIds.length} post(s) deleted');
     }
   }
 
@@ -509,6 +540,7 @@ class SharingScreenState extends State<SharingScreen> {
       for (final id in selectedIds) {
         _eventHandler.togglePostVisibility(id);
       }
+      _showRefreshSnackbar('${selectedIds.length} post(s) are now $action');
     }
   }
 
