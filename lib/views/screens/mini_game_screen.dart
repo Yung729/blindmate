@@ -575,78 +575,85 @@ class _MiniGameScreenState extends State<MiniGameScreen> {
     return Card(
       elevation: 4,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Container(
-        key: _paintKey,
-        width: MediaQuery.of(context).size.width > 600 ? 500 : MediaQuery.of(context).size.width * 0.85,
-        height: MediaQuery.of(context).size.width > 600 ? 500 : MediaQuery.of(context).size.width * 0.85,
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.1),
-              blurRadius: 4,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(12),
-          child: Stack(
-            children: [
-              // Background grid pattern
-              Container(
-                decoration: BoxDecoration(
-                  image: DecorationImage(
-                    image: NetworkImage('https://www.transparenttextures.com/patterns/graph-paper.png'),
-                    repeat: ImageRepeat.repeat,
-                    opacity: 0.2,
-                  ),
-                ),
+      child: NotificationListener<ScrollNotification>(
+        // Prevent scroll events from propagating when interacting with drawing area
+        onNotification: (ScrollNotification notification) {
+          // Return true to cancel the notification bubbling
+          return gameState.isDrawer;
+        },
+        child: Container(
+          key: _paintKey,
+          width: MediaQuery.of(context).size.width > 600 ? 500 : MediaQuery.of(context).size.width * 0.85,
+          height: MediaQuery.of(context).size.width > 600 ? 500 : MediaQuery.of(context).size.width * 0.85,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 4,
+                offset: const Offset(0, 2),
               ),
-              // Drawing area
-              GestureDetector(
-                onPanUpdate: gameState.isDrawer
-                    ? (details) {
-                        RenderBox renderBox =
-                            _paintKey.currentContext!.findRenderObject() as RenderBox;
-                        Offset localPosition = renderBox.globalToLocal(
-                          details.globalPosition,
-                        );
-
-                        final size = renderBox.size;
-                        if (GameValidator.isValidPoint(localPosition, size.width, size.height)) {
-                          _eventHandler.handleDrawing(localPosition);
-                          _gameState.resetInactivityTimer();
-                        }
-                      }
-                    : null,
-                onPanEnd: gameState.isDrawer
-                    ? (details) => _eventHandler.handleDrawingEnd()
-                    : null,
-                child: CustomPaint(
-                  painter: DrawingPainter(points: gameState.points),
-                  size: Size.infinite,
-                ),
-              ),
-              // Overlay message for guesser
-              if (!gameState.isDrawer)
-                Positioned(
-                  right: 8,
-                  top: 8,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: Colors.purple.withOpacity(0.7),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Text(
-                      "Guessing...",
-                      style: TextStyle(color: Colors.white, fontSize: 12),
-                    ),
-                  ),
-                ),
             ],
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: Stack(
+              children: [
+                // Background grid pattern
+                Container(
+                  decoration: BoxDecoration(
+                    image: DecorationImage(
+                      image: NetworkImage('https://www.transparenttextures.com/patterns/graph-paper.png'),
+                      repeat: ImageRepeat.repeat,
+                      opacity: 0.2,
+                    ),
+                  ),
+                ),
+                // Drawing area
+                GestureDetector(
+                  onPanUpdate: gameState.isDrawer
+                      ? (details) {
+                          RenderBox renderBox =
+                              _paintKey.currentContext!.findRenderObject() as RenderBox;
+                          Offset localPosition = renderBox.globalToLocal(
+                            details.globalPosition,
+                          );
+
+                          final size = renderBox.size;
+                          if (GameValidator.isValidPoint(localPosition, size.width, size.height)) {
+                            _eventHandler.handleDrawing(localPosition);
+                            _gameState.resetInactivityTimer();
+                          }
+                        }
+                      : null,
+                  onPanEnd: gameState.isDrawer
+                      ? (details) => _eventHandler.handleDrawingEnd()
+                      : null,
+                  child: CustomPaint(
+                    painter: DrawingPainter(points: gameState.points),
+                    size: Size.infinite,
+                  ),
+                ),
+                // Overlay message for guesser
+                if (!gameState.isDrawer)
+                  Positioned(
+                    right: 8,
+                    top: 8,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.purple.withOpacity(0.7),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Text(
+                        "Guessing...",
+                        style: TextStyle(color: Colors.white, fontSize: 12),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
           ),
         ),
       ),
