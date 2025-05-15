@@ -9,7 +9,7 @@ class GameModel {
   final String opponentId;
   final bool isDrawer;
   final String word;
-  final List<Offset?> points;
+  final List<Map<String, dynamic>?> points;
   final Map<String, String> roles;
   final Map<String, int> scores;
   final String? winner;
@@ -35,7 +35,7 @@ class GameModel {
       opponentId: data['opponentId'] ?? '',
       isDrawer: data['isDrawer'] ?? false,
       word: data['word'] ?? '',
-      points: GameUtils.pointsFromMap(data['points'] as List?),
+      points: data['points'] as List<Map<String, dynamic>?> ?? [],
       roles: Map<String, String>.from(data['roles'] ?? {}),
       scores: Map<String, int>.from(data['scores'] ?? {}),
       winner: data['winner'],
@@ -52,7 +52,7 @@ class GameModel {
       'opponentId': opponentId,
       'isDrawer': isDrawer,
       'word': word,
-      'points': GameUtils.pointsToMap(points),
+      'points': points,
       'roles': roles,
       'scores': scores,
       'winner': winner,
