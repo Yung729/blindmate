@@ -248,15 +248,15 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   Future<void> _showReportDialog() async {
     final shouldReport = await showConfirmDialog(
       context,
-      "Report User",
-      "Are you sure you want to report this user? You will not be matched with them again.",
+      "Dislike User",
+      "Are you sure you want to dislike this user? You will not be matched with them again.",
     );
     if (shouldReport) {
       await _chatEventHandler.reportUser();
       if (mounted) {
         CustomSnackBar.show(
           context: context,
-          message: "User reported. You will not match again.",
+          message: "User disliked. You will not match again.",
           status: "SUCCESS",
         );
       }
@@ -635,16 +635,6 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     return AppBar(
       title: Row(
         children: [
-          CircleAvatar(
-            radius: 18,
-            backgroundImage:
-                (authState.currentUser?.avatarImg != null &&
-                        authState.currentUser!.avatarImg.isNotEmpty)
-                    ? NetworkImage(authState.currentUser!.avatarImg)
-                    : const AssetImage('assets/default_pic.jpg')
-                        as ImageProvider,
-          ),
-          const SizedBox(width: 8),
           const Text("Chat"),
         ],
       ),
@@ -664,7 +654,7 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       actions: [
         if (_chatState.otherUserId != null)
           IconButton(
-            icon: const Icon(Icons.flag, color: Colors.red),
+            icon: Image.asset('assets/dislike.png', width: 24, height: 24),
             onPressed: () => _showReportDialog(),
           ),
       ],

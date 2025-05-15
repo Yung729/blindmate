@@ -96,6 +96,13 @@ flutter:
       - assets/bottle.json
       - assets/sea_background.webp
       - assets/flower.gif
+      - assets/happy.png
+      - assets/sad.png
+      - assets/fear.png
+      - assets/disgusted.png
+      - assets/angry.png
+      - assets/suprise.png
+      - assets/dislike.png
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

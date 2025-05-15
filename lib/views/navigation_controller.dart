@@ -49,22 +49,23 @@ class _NavigationControllerState extends State<NavigationController> {
     }
   }
 
-  IconData _getEmotionIcon(String emotion) {
+  Widget _getEmotionWidget(String? emotion) {
     switch (emotion) {
       case 'happy':
-        return Icons.sentiment_satisfied_alt;
+        return Image.asset('assets/happy.png', width: 24, height: 24);
       case 'sad':
-        return Icons.sentiment_dissatisfied;
+        return Image.asset('assets/sad.png', width: 24, height: 24);
       case 'fear':
-        return Icons.mood_bad;
+        // No fear.png found, using sad as fallback
+        return Image.asset('assets/fear.png', width: 24, height: 24);
       case 'disgust':
-        return Icons.sick;
+        return Image.asset('assets/disgusted.png', width: 24, height: 24);
       case 'anger':
-        return Icons.sentiment_very_dissatisfied;
+        return Image.asset('assets/angry.png', width: 24, height: 24);
       case 'surprise':
-        return Icons.sentiment_very_satisfied;
+        return Image.asset('assets/suprise.png', width: 24, height: 24);
       default:
-        return Icons.person;
+        return const Icon(Icons.person);
     }
   }
 
@@ -73,20 +74,32 @@ class _NavigationControllerState extends State<NavigationController> {
       {
         'label': 'Happy',
         'value': 'happy',
-        'icon': Icons.sentiment_satisfied_alt,
+        'imageAsset': 'assets/happy.png',
       },
-      {'label': 'Sad', 'value': 'sad', 'icon': Icons.sentiment_dissatisfied},
-      {'label': 'Fear', 'value': 'fear', 'icon': Icons.mood_bad},
-      {'label': 'Disgust', 'value': 'disgust', 'icon': Icons.sick},
+      {
+        'label': 'Sad', 
+        'value': 'sad', 
+        'imageAsset': 'assets/sad.png'
+      },
+      {
+        'label': 'Fear', 
+        'value': 'fear', 
+        'imageAsset': 'assets/fear.png'
+      },
+      {
+        'label': 'Disgust', 
+        'value': 'disgust', 
+        'imageAsset': 'assets/disgusted.png'
+      },
       {
         'label': 'Anger',
         'value': 'anger',
-        'icon': Icons.sentiment_very_dissatisfied,
+        'imageAsset': 'assets/angry.png',
       },
       {
         'label': 'Surprise',
         'value': 'surprise',
-        'icon': Icons.sentiment_very_satisfied,
+        'imageAsset': 'assets/suprise.png',
       },
     ];
 
@@ -111,9 +124,10 @@ class _NavigationControllerState extends State<NavigationController> {
                 return Container(
                   color: isSelected ? Colors.blue.withOpacity(0.15) : null,
                   child: ListTile(
-                    leading: Icon(
-                      emotion['icon'] as IconData,
-                      color: isSelected ? Colors.blue : null,
+                    leading: Image.asset(
+                      emotion['imageAsset'] as String,
+                      width: 24,
+                      height: 24,
                     ),
                     title: Text(
                       emotion['label'] as String,
@@ -562,10 +576,10 @@ class _NavigationControllerState extends State<NavigationController> {
                                 child: Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    Icon(
-                                      _getEmotionIcon(currentUserState.currentUser!.emotionStatus),
-                                      color: Colors.black,
-                                      size: 28,
+                                    SizedBox(
+                                      width: 28,
+                                      height: 28,
+                                      child: _getEmotionWidget(currentUserState.currentUser!.emotionStatus),
                                     ),
                                     const SizedBox(width: 4),
                                     const Icon(
