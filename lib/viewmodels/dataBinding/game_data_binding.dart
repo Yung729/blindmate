@@ -71,12 +71,9 @@ class GameDataBinding {
 
       // Only update points if they've actually changed
       if (data['points'] != null) {
-        final newPoints = data['points'] as List;
+        final newPoints = GameUtils.pointsFromMap(data['points'] as List);
         if (newPoints.length != _gameState.points.length) {
-          _gameState.setPoints(newPoints.map((point) {
-            if (point == null) return null;
-            return point as Map<String, dynamic>;
-          }).toList());
+          _gameState.setPoints(newPoints);
         }
       }
 
@@ -103,7 +100,7 @@ class GameDataBinding {
     });
   }
 
-  Future<void> updatePoints(String chatRoomId, List<Map<String, dynamic>?> points) async {
+  Future<void> updatePoints(String chatRoomId, List<Offset?> points) async {
     try {
       await _gameService.updatePoints(chatRoomId, points);
     } catch (e) {

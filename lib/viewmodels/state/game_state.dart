@@ -3,7 +3,7 @@ import 'dart:ui' show Offset;
 import 'dart:async';
 
 class GameState extends ChangeNotifier {
-  List<Map<String, dynamic>?> _points = []; // Changed to store both offset and color
+  List<Offset?> _points = [];
   bool _isDrawer = false;
   bool _guessCorrect = false;
   bool _isInitialized = false;
@@ -20,9 +20,8 @@ class GameState extends ChangeNotifier {
   static const Duration _inactivityThreshold = Duration(minutes: 1);
   static const Duration _gameOverThreshold = Duration(minutes: 2);
   bool _showIncorrectGuess = false;
-  Color _brushColor = Colors.blue.shade800;
 
-  List<Map<String, dynamic>?> get points => _points;
+  List<Offset?> get points => _points;
   bool get isDrawer => _isDrawer;
   bool get guessCorrect => _guessCorrect;
   bool get isInitialized => _isInitialized;
@@ -37,35 +36,14 @@ class GameState extends ChangeNotifier {
   Timer? get inactivityTimer => _inactivityTimer;
   Timer? get gameOverTimer => _gameOverTimer;
   bool get showIncorrectGuess => _showIncorrectGuess;
-  Color get brushColor => _brushColor;
-  
-  // Helper method to get offset from point map
-  Offset? getOffsetFromPoint(Map<String, dynamic>? point) {
-    if (point == null) return null;
-    final dx = point['dx'] as double?;
-    final dy = point['dy'] as double?;
-    if (dx == null || dy == null) return null;
-    return Offset(dx, dy);
-  }
-  
-  // Helper method to get color from point map
-  Color getColorFromPoint(Map<String, dynamic>? point) {
-    if (point == null) return Colors.blue.shade800;
-    final colorValue = point['color'] as int?;
-    return colorValue != null ? Color(colorValue) : Colors.blue.shade800;
-  }
 
-  void setPoints(List<Map<String, dynamic>?> points) {
+  void setPoints(List<Offset?> points) {
     _points = points;
     notifyListeners();
   }
 
   void addPoint(Offset point) {
-    _points.add({
-      'dx': point.dx,
-      'dy': point.dy,
-      'color': _brushColor.value,
-    });
+    _points.add(point);
     notifyListeners();
   }
 
@@ -169,11 +147,6 @@ class GameState extends ChangeNotifier {
     notifyListeners();
   }
 
-  void setBrushColor(Color color) {
-    _brushColor = color;
-    notifyListeners();
-  }
-
   void decrementAttempts() {
     if (_remainingAttempts > 0) {
       _remainingAttempts--;
@@ -195,7 +168,6 @@ class GameState extends ChangeNotifier {
     _scores = {};
     _winner = null;
     _showIncorrectGuess = false;
-    _brushColor = Colors.blue.shade800;
     _inactivityTimer?.cancel();
     _gameOverTimer?.cancel();
     _inactivityTimer = null;

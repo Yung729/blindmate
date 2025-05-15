@@ -25,11 +25,11 @@ class GameService {
     return GameModel.fromMap(doc.data()!);
   }
 
-  Future<void> updatePoints(String chatRoomId, List<Map<String, dynamic>?> points) async {
-    await _firestore.collection('games').doc(chatRoomId).update({
-      'points': points,
-    });
-  }
+  Future<void> updatePoints(String chatRoomId, List<Offset?> points) async {
+  await _firestore.collection('games').doc(chatRoomId).update({
+    'points': GameUtils.pointsToMap(points),
+  });
+}
 
   Future<void> updateRoles(String chatRoomId, Map<String, String> roles) async {
     await _firestore.collection('games').doc(chatRoomId).update({
