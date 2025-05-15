@@ -59,19 +59,17 @@ class _MiniGameScreenState extends State<MiniGameScreen> {
         final data = snapshot.data() as Map<String, dynamic>;
         final pointsData = data['points'] as List<dynamic>? ?? [];
         final updatedPoints =
-          pointsData
-              .map(
-                (point) {
-                  if (point == null) return null;
-                  // Convert to the new format that includes color
-                  return {
-                    'dx': (point['dx'] as num?)?.toDouble(),
-                    'dy': (point['dy'] as num?)?.toDouble(),
-                    'color': point['color'] as int? ?? Colors.blue.shade800.value,
-                  };
-                },
-              )
-              .toList();
+            pointsData
+                .map(
+                  (point) =>
+                      point == null
+                          ? null
+                          : Offset(
+                            (point['dx'] as num).toDouble(),
+                            (point['dy'] as num).toDouble(),
+                          ),
+                )
+                .toList();
 
         _gameState.setPoints(updatedPoints); // <-- This triggers UI update
 
@@ -465,13 +463,7 @@ class _MiniGameScreenState extends State<MiniGameScreen> {
                     if (gameState.guessCorrect) _buildCorrectGuessMessage(),
                     if (gameState.showIncorrectGuess)
                       _buildIncorrectGuessMessage(gameState),
-                    if (gameState.isDrawer) Column(
-      children: [
-        _buildColorPicker(gameState),
-        const SizedBox(height: 8),
-        _buildClearButton(),
-      ],
-    ),
+                    if (gameState.isDrawer) _buildClearButton(),
                     const SizedBox(height: 16),
                   ],
                 ),
@@ -598,13 +590,10 @@ class _MiniGameScreenState extends State<MiniGameScreen> {
             ),
           ],
         ),
-        // Use NotificationListener to prevent scroll events from propagating when interacting with drawing area
-        child: NotificationListener<ScrollNotification>(
-          onNotification: (_) => true, // Blocks scroll notifications from propagating
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(12),
-            child: Stack(
-              children: [
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(12),
+          child: Stack(
+            children: [
               // Background grid pattern
               Container(
                 decoration: BoxDecoration(
@@ -636,11 +625,7 @@ class _MiniGameScreenState extends State<MiniGameScreen> {
                     ? (details) => _eventHandler.handleDrawingEnd()
                     : null,
                 child: CustomPaint(
-                  painter: DrawingPainter(
-                    points: gameState.points,
-                    brushColor: gameState.brushColor,
-                    gameState: gameState,
-                  ),
+                  painter: DrawingPainter(points: gameState.points),
                   size: Size.infinite,
                 ),
               ),
@@ -662,7 +647,6 @@ class _MiniGameScreenState extends State<MiniGameScreen> {
                   ),
                 ),
             ],
-          ),
           ),
         ),
       ),
@@ -827,119 +811,41 @@ class _MiniGameScreenState extends State<MiniGameScreen> {
       ),
     );
   }
-  
-  Widget _buildColorPicker(GameState gameState) {
-    // Define a list of colors for the color picker
-    final List<Color> colors = [
-      Colors.black,
-      Colors.blue.shade800,
-      Colors.red.shade700,
-      Colors.green.shade700,
-      Colors.purple.shade700,
-      Colors.orange.shade700,
-      Colors.teal.shade700,
-      Colors.pink.shade700,
-    ];
-    
-    return Container(
-      width: MediaQuery.of(context).size.width > 600 ? 500 : MediaQuery.of(context).size.width * 0.85,
-      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-      decoration: BoxDecoration(
-        color: Colors.grey.shade100,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(Icons.palette, color: Colors.blue.shade700),
-              const SizedBox(width: 8),
-              Text(
-                "Brush Color",
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.blue.shade700,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 12,
-            runSpacing: 12,
-            children: colors.map((color) {
-              final isSelected = gameState.brushColor.value == color.value;
-              return GestureDetector(
-                onTap: () {
-                  gameState.setBrushColor(color);
-                },
-                child: Container(
-                  width: 36,
-                  height: 36,
-                  decoration: BoxDecoration(
-                    color: color,
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: isSelected ? Colors.white : Colors.grey.shade300,
-                      width: isSelected ? 3 : 1,
-                    ),
-                    boxShadow: [
-                      if (isSelected)
-                        BoxShadow(
-                          color: color.withOpacity(0.5),
-                          blurRadius: 8,
-                          spreadRadius: 1,
-                        ),
-                    ],
-                  ),
-                ),
-              );
-            }).toList(),
-          ),
-        ],
-      ),
-    );
-  }
 }
 
 class DrawingPainter extends CustomPainter {
-  final List<Map<String, dynamic>?> points;
-  final Color brushColor;
-  final GameState gameState;
+  final List<Offset?> points;
 
-  DrawingPainter({
-    required this.points,
-    required this.brushColor,
-    required this.gameState,
-  });
+  DrawingPainter({required this.points});
 
   @override
   void paint(Canvas canvas, Size size) {
     // Draw a subtle grid background
     _drawGrid(canvas, size);
     
-    // Group points into continuous segments with their colors
-    List<List<Map<String, dynamic>>> segments = [];
-    List<Map<String, dynamic>> currentSegment = [];
+    // Main drawing paint
+    final paint = Paint()
+      ..color = Colors.blue.shade800
+      ..strokeCap = StrokeCap.round
+      ..strokeWidth = 5.0
+      ..isAntiAlias = true
+      ..strokeJoin = StrokeJoin.round;
+    
+    // Shadow paint for depth effect
+    final shadowPaint = Paint()
+      ..color = Colors.black.withOpacity(0.2)
+      ..strokeCap = StrokeCap.round
+      ..strokeWidth = 5.0
+      ..isAntiAlias = true
+      ..strokeJoin = StrokeJoin.round;
 
-    for (var pointData in points) {
-      if (pointData != null) {
-        final offset = gameState.getOffsetFromPoint(pointData);
-        if (offset != null) {
-          currentSegment.add({
-            'offset': offset,
-            'color': gameState.getColorFromPoint(pointData),
-          });
-        }
+    // Group points into continuous segments
+    List<List<Offset>> segments = [];
+    List<Offset> currentSegment = [];
+
+    for (var point in points) {
+      if (point != null) {
+        currentSegment.add(point);
       } else if (currentSegment.isNotEmpty) {
         segments.add(List.from(currentSegment));
         currentSegment.clear();
@@ -954,59 +860,24 @@ class DrawingPainter extends CustomPainter {
     for (var segment in segments) {
       if (segment.length < 2) continue;
 
+      // Draw shadow with slight offset
       for (int i = 0; i < segment.length - 1; i++) {
-        final currentPoint = segment[i]['offset'] as Offset;
-        final nextPoint = segment[i + 1]['offset'] as Offset;
-        final currentColor = segment[i]['color'] as Color;
-        
-        // Create a paint for this specific line segment with its color
-        final segmentPaint = Paint()
-          ..color = currentColor
-          ..strokeCap = StrokeCap.round
-          ..strokeWidth = 5.0
-          ..isAntiAlias = true
-          ..strokeJoin = StrokeJoin.round;
-          
-        // Create shadow paint for this segment
-        final segmentShadowPaint = Paint()
-          ..color = Colors.black.withOpacity(0.2)
-          ..strokeCap = StrokeCap.round
-          ..strokeWidth = 5.0
-          ..isAntiAlias = true
-          ..strokeJoin = StrokeJoin.round;
-          
-        // Draw shadow with slight offset
         canvas.drawLine(
-          currentPoint + const Offset(1.5, 1.5), 
-          nextPoint + const Offset(1.5, 1.5), 
-          segmentShadowPaint
+          segment[i] + const Offset(1.5, 1.5), 
+          segment[i + 1] + const Offset(1.5, 1.5), 
+          shadowPaint
         );
-        
-        // Draw the actual line with its color
-        canvas.drawLine(currentPoint, nextPoint, segmentPaint);
+      }
+      
+      // Draw the actual line
+      for (int i = 0; i < segment.length - 1; i++) {
+        canvas.drawLine(segment[i], segment[i + 1], paint);
       }
       
       // Draw dots at the start and end of each segment for better appearance
       if (segment.isNotEmpty) {
-        final firstPoint = segment.first['offset'] as Offset;
-        final lastPoint = segment.last['offset'] as Offset;
-        final firstColor = segment.first['color'] as Color;
-        final lastColor = segment.last['color'] as Color;
-        
-        final firstPaint = Paint()
-          ..color = firstColor
-          ..strokeCap = StrokeCap.round
-          ..strokeWidth = 5.0
-          ..isAntiAlias = true;
-          
-        final lastPaint = Paint()
-          ..color = lastColor
-          ..strokeCap = StrokeCap.round
-          ..strokeWidth = 5.0
-          ..isAntiAlias = true;
-          
-        canvas.drawCircle(firstPoint, 2.5, firstPaint);
-        canvas.drawCircle(lastPoint, 2.5, lastPaint);
+        canvas.drawCircle(segment.first, 2.5, paint);
+        canvas.drawCircle(segment.last, 2.5, paint);
       }
     }
   }
