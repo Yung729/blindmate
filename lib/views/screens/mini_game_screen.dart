@@ -59,17 +59,15 @@ class _MiniGameScreenState extends State<MiniGameScreen> {
         final data = snapshot.data() as Map<String, dynamic>;
         final pointsData = data['points'] as List<dynamic>? ?? [];
         final updatedPoints =
-            pointsData
-                .map(
-                  (point) =>
-                      point == null
-                          ? null
-                          : Offset(
-                            (point['dx'] as num).toDouble(),
-                            (point['dy'] as num).toDouble(),
-                          ),
-                )
-                .toList();
+            pointsData.map((point) {
+              if (point == null) return null;
+              // Convert to the new format that includes color
+              return {
+                'dx': (point['dx'] as num?)?.toDouble(),
+                'dy': (point['dy'] as num?)?.toDouble(),
+                'color': point['color'] as int? ?? Colors.blue.shade800.value,
+              };
+            }).toList();
 
         _gameState.setPoints(updatedPoints); // <-- This triggers UI update
 
@@ -89,11 +87,19 @@ class _MiniGameScreenState extends State<MiniGameScreen> {
   }
 
   void _handleOpponentLeft() {
-    if (_opponentLeft || !mounted || _isDialogShowing || _gameState.winner != null) return;
+    if (_opponentLeft ||
+        !mounted ||
+        _isDialogShowing ||
+        _gameState.winner != null)
+      return;
 
     // Use addPostFrameCallback to ensure setState is called after the build phase if needed
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted || _opponentLeft || _isDialogShowing || _gameState.winner != null) return; // Re-check
+      if (!mounted ||
+          _opponentLeft ||
+          _isDialogShowing ||
+          _gameState.winner != null)
+        return; // Re-check
       setState(() {
         _opponentLeft = true;
       });
@@ -107,15 +113,17 @@ class _MiniGameScreenState extends State<MiniGameScreen> {
     _gameSubscription?.cancel();
     _gameSubscription = null;
 
-    if (!isForfeit) { // For regular game end (win, draw, opponent left, inactivity timeout)
+    if (!isForfeit) {
+      // For regular game end (win, draw, opponent left, inactivity timeout)
       await _eventHandler.resetGame();
-    } else { // For user explicitly exiting/forfeiting
+    } else {
+      // For user explicitly exiting/forfeiting
       await _eventHandler.handleExitGame();
     }
 
     if (mounted) {
       // Pop only the current game screen to return to the previous screen (chat screen)
-      Navigator.of(context).pop(); 
+      Navigator.of(context).pop();
     }
   }
 
@@ -126,23 +134,24 @@ class _MiniGameScreenState extends State<MiniGameScreen> {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (dialogContext) => WillPopScope(
-        onWillPop: () async => false,
-        child: AlertDialog(
-          title: const Text("Opponent Left"),
-          content: const Text("Your opponent has left the game."),
-          actions: [
-            TextButton(
-              onPressed: () async {
-                Navigator.of(dialogContext).pop(); // Dismiss this dialog
-                await _performEndGameCleanupAndExit();
-                // _isDialogShowing will be reset by .then() on showDialog
-              },
-              child: const Text("Back to Chat"),
+      builder:
+          (dialogContext) => WillPopScope(
+            onWillPop: () async => false,
+            child: AlertDialog(
+              title: const Text("Opponent Left"),
+              content: const Text("Your opponent has left the game."),
+              actions: [
+                TextButton(
+                  onPressed: () async {
+                    Navigator.of(dialogContext).pop(); // Dismiss this dialog
+                    await _performEndGameCleanupAndExit();
+                    // _isDialogShowing will be reset by .then() on showDialog
+                  },
+                  child: const Text("Back to Chat"),
+                ),
+              ],
             ),
-          ],
-        ),
-      ),
+          ),
     ).then((_) => _isDialogShowing = false);
   }
 
@@ -159,47 +168,48 @@ class _MiniGameScreenState extends State<MiniGameScreen> {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (dialogContext) => WillPopScope(
-        onWillPop: () async => false,
-        child: AlertDialog(
-          title: Text("🏁 Game Over"),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                "🎉 $winnerName won the game!",
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+      builder:
+          (dialogContext) => WillPopScope(
+            onWillPop: () async => false,
+            child: AlertDialog(
+              title: Text("🏁 Game Over"),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    "🎉 $winnerName won the game!",
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  SizedBox(height: 8),
+                  Text("😢 $loserName lost!", style: TextStyle(fontSize: 16)),
+                  SizedBox(height: 16),
+                  Text(
+                    "Final Score:",
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                  Text(
+                    "$winnerName: ${_gameState.scores[winnerId] ?? 0} - $loserName: ${_gameState.scores[isSelf ? widget.opponentId : widget.currentUserId] ?? 0}",
+                    style: TextStyle(fontSize: 16),
+                  ),
+                ],
               ),
-              SizedBox(height: 8),
-              Text("😢 $loserName lost!", style: TextStyle(fontSize: 16)),
-              SizedBox(height: 16),
-              Text(
-                "Final Score:",
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-              ),
-              Text(
-                "$winnerName: ${_gameState.scores[winnerId] ?? 0} - $loserName: ${_gameState.scores[isSelf ? widget.opponentId : widget.currentUserId] ?? 0}",
-                style: TextStyle(fontSize: 16),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () async {
-                Navigator.of(dialogContext).pop(); // Dismiss this dialog
-                await _performEndGameCleanupAndExit();
-                 // _isDialogShowing will be reset by .then() on showDialog
-              },
-              child: const Text("Back to Chat"),
+              actions: [
+                TextButton(
+                  onPressed: () async {
+                    Navigator.of(dialogContext).pop(); // Dismiss this dialog
+                    await _performEndGameCleanupAndExit();
+                    // _isDialogShowing will be reset by .then() on showDialog
+                  },
+                  child: const Text("Back to Chat"),
+                ),
+              ],
             ),
-          ],
-        ),
-      ),
+          ),
     ).then((_) {
-        _isDialogShowing = false;
-        if(mounted) {
-            _gameState.setWinnerDialogShown(false); // Reset flag in GameState
-        }
+      _isDialogShowing = false;
+      if (mounted) {
+        _gameState.setWinnerDialogShown(false); // Reset flag in GameState
+      }
     });
   }
 
@@ -211,35 +221,38 @@ class _MiniGameScreenState extends State<MiniGameScreen> {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text("Inactivity Warning"),
-        content: const Text(
-          "You have been inactive for 1 minute. Please continue playing or the game will end.",
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.of(dialogContext).pop(); // Dismiss this dialog
-              _gameState.resetInactivityTimer(); // This also sets isInactiveWarningShown to false
-              // _isDialogShowing will be reset by .then() on showDialog
-            },
-            child: const Text("Continue Playing"),
+      builder:
+          (dialogContext) => AlertDialog(
+            title: const Text("Inactivity Warning"),
+            content: const Text(
+              "You have been inactive for 1 minute. Please continue playing or the game will end.",
+            ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.of(dialogContext).pop(); // Dismiss this dialog
+                  _gameState
+                      .resetInactivityTimer(); // This also sets isInactiveWarningShown to false
+                  // _isDialogShowing will be reset by .then() on showDialog
+                },
+                child: const Text("Continue Playing"),
+              ),
+              TextButton(
+                onPressed: () async {
+                  Navigator.of(dialogContext).pop(); // Dismiss this dialog
+                  // This is a user-initiated forfeit from inactivity warning
+                  await _performEndGameCleanupAndExit(isForfeit: true);
+                  // _isDialogShowing will be reset by .then() on showDialog
+                },
+                child: const Text("Exit Game"),
+              ),
+            ],
           ),
-          TextButton(
-            onPressed: () async {
-              Navigator.of(dialogContext).pop(); // Dismiss this dialog
-              // This is a user-initiated forfeit from inactivity warning
-              await _performEndGameCleanupAndExit(isForfeit: true);
-              // _isDialogShowing will be reset by .then() on showDialog
-            },
-            child: const Text("Exit Game"),
-          ),
-        ],
-      ),
     ).then((_) => _isDialogShowing = false);
   }
 
-  void _showGameOverDialog() { // Due to inactivity
+  void _showGameOverDialog() {
+    // Due to inactivity
     if (!mounted || _isDialogShowing) return;
     _isDialogShowing = true;
     // gameState.isGameOver is already true, set by GameState timer
@@ -247,28 +260,31 @@ class _MiniGameScreenState extends State<MiniGameScreen> {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (dialogContext) => WillPopScope(
-        onWillPop: () async => false,
-        child: AlertDialog(
-          title: const Text("Game Over"),
-          content: const Text("The game has ended due to inactivity."),
-          actions: [
-            TextButton(
-              onPressed: () async {
-                Navigator.of(dialogContext).pop(); // Dismiss this dialog
-                await _performEndGameCleanupAndExit();
-                // _isDialogShowing will be reset by .then() on showDialog
-              },
-              child: const Text("Back to Chat"),
+      builder:
+          (dialogContext) => WillPopScope(
+            onWillPop: () async => false,
+            child: AlertDialog(
+              title: const Text("Game Over"),
+              content: const Text("The game has ended due to inactivity."),
+              actions: [
+                TextButton(
+                  onPressed: () async {
+                    Navigator.of(dialogContext).pop(); // Dismiss this dialog
+                    await _performEndGameCleanupAndExit();
+                    // _isDialogShowing will be reset by .then() on showDialog
+                  },
+                  child: const Text("Back to Chat"),
+                ),
+              ],
             ),
-          ],
-        ),
-      ),
+          ),
     ).then((_) {
-        _isDialogShowing = false;
-        if(mounted) {
-            _gameState.setIsGameOver(false); // Reset flag in GameState after dialog dismissal
-        }
+      _isDialogShowing = false;
+      if (mounted) {
+        _gameState.setIsGameOver(
+          false,
+        ); // Reset flag in GameState after dialog dismissal
+      }
     });
   }
 
@@ -280,10 +296,10 @@ class _MiniGameScreenState extends State<MiniGameScreen> {
       gameState: _gameState,
       currentUserId: widget.currentUserId,
     );
-    
+
     // Get mission state from provider
     final missionState = Provider.of<MissionState>(context, listen: false);
-    
+
     _eventHandler = GameEventHandler(
       gameState: _gameState,
       dataBinding: _dataBinding,
@@ -321,20 +337,23 @@ class _MiniGameScreenState extends State<MiniGameScreen> {
     final confirmExit = await showDialog<bool>(
       context: context,
       barrierDismissible: false,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text("Exit Game"),
-        content: const Text("Are you sure you want to exit the game? Your opponent will win."),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: const Text("Cancel"),
+      builder:
+          (dialogContext) => AlertDialog(
+            title: const Text("Exit Game"),
+            content: const Text(
+              "Are you sure you want to exit the game? Your opponent will win.",
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(false),
+                child: const Text("Cancel"),
+              ),
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(true),
+                child: const Text("Exit"),
+              ),
+            ],
           ),
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: const Text("Exit"),
-          ),
-        ],
-      ),
     );
 
     if (confirmExit == true) {
@@ -360,9 +379,14 @@ class _MiniGameScreenState extends State<MiniGameScreen> {
       child: Consumer<GameState>(
         builder: (context, gameState, child) {
           // Show winner dialog at the highest priority
-          if (gameState.winner != null && gameState.winnerDialogShown && !_isDialogShowing) {
+          if (gameState.winner != null &&
+              gameState.winnerDialogShown &&
+              !_isDialogShowing) {
             WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (mounted && gameState.winner != null && !_isDialogShowing && gameState.winnerDialogShown) {
+              if (mounted &&
+                  gameState.winner != null &&
+                  !_isDialogShowing &&
+                  gameState.winnerDialogShown) {
                 _showWinnerDialog(gameState.winner!);
               }
             });
@@ -371,27 +395,43 @@ class _MiniGameScreenState extends State<MiniGameScreen> {
           }
 
           // Only show loading when no end-game conditions and not initialized
-          if (!gameState.isInitialized && !gameState.isGameEnded && gameState.winner == null) {
+          if (!gameState.isInitialized &&
+              !gameState.isGameEnded &&
+              gameState.winner == null) {
             return _buildLoadingScreen();
           }
 
           // Check for inactivity warning
           // GameState's timer sets isInactiveWarningShown to true directly.
-          if (gameState.isInactiveWarningShown && !_isDialogShowing && gameState.winner == null && !_opponentLeft) {
-             WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (gameState.isInactiveWarningShown &&
+              !_isDialogShowing &&
+              gameState.winner == null &&
+              !_opponentLeft) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
               // Re-check flags just before showing to handle race conditions
-              if (mounted && gameState.isInactiveWarningShown && !_isDialogShowing && gameState.winner == null && !_opponentLeft) {
+              if (mounted &&
+                  gameState.isInactiveWarningShown &&
+                  !_isDialogShowing &&
+                  gameState.winner == null &&
+                  !_opponentLeft) {
                 _showInactivityWarningDialog();
               }
             });
           }
-          
+
           // Check for game over due to inactivity
           // GameState's timer sets isGameOver to true directly.
-          if (gameState.isGameOver && !_isDialogShowing && gameState.winner == null && !_opponentLeft) {
+          if (gameState.isGameOver &&
+              !_isDialogShowing &&
+              gameState.winner == null &&
+              !_opponentLeft) {
             WidgetsBinding.instance.addPostFrameCallback((_) {
               // Re-check flags just before showing
-              if (mounted && gameState.isGameOver && !_isDialogShowing && gameState.winner == null && !_opponentLeft ) {
+              if (mounted &&
+                  gameState.isGameOver &&
+                  !_isDialogShowing &&
+                  gameState.winner == null &&
+                  !_opponentLeft) {
                 _showGameOverDialog();
               }
             });
@@ -429,48 +469,62 @@ class _MiniGameScreenState extends State<MiniGameScreen> {
 
   Widget _buildGameScreen(GameState gameState) {
     return WillPopScope(
-        onWillPop: _handleUserExitRequest,
-        child: Scaffold(
-          key: _scaffoldKey,
-          appBar: AppBar(
-            title: const Text("Draw & Guess", style: TextStyle(fontWeight: FontWeight.bold)),
-            backgroundColor: Colors.blue.shade700,
-            elevation: 4,
-            leading: IconButton(
-              icon: const Icon(Icons.arrow_back),
-              onPressed: _handleUserExitRequest, // Directly call, it handles pop if confirmed
-            ),
+      onWillPop: _handleUserExitRequest,
+      child: Scaffold(
+        key: _scaffoldKey,
+        appBar: AppBar(
+          title: const Text(
+            "Draw & Guess",
+            style: TextStyle(fontWeight: FontWeight.bold),
           ),
-          body: Center(
-            child: SingleChildScrollView(
-              physics: const BouncingScrollPhysics(),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    _buildGameInfo(gameState),
-                    const SizedBox(height: 16),
-                    _buildScoreDisplay(gameState),
-                    const SizedBox(height: 8),
-                    if (!gameState.isDrawer) _buildAttemptsDisplay(gameState),
-                    const SizedBox(height: 8),
-                    _buildDrawingArea(gameState),
-                    const SizedBox(height: 16),
-                    if (!gameState.isDrawer && !gameState.guessCorrect)
-                      _buildGuessInput(gameState),
-                    if (gameState.guessCorrect) _buildCorrectGuessMessage(),
-                    if (gameState.showIncorrectGuess)
-                      _buildIncorrectGuessMessage(gameState),
-                    if (gameState.isDrawer) _buildClearButton(),
-                    const SizedBox(height: 16),
-                  ],
-                ),
+          backgroundColor: Colors.blue.shade700,
+          elevation: 4,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed:
+                _handleUserExitRequest, // Directly call, it handles pop if confirmed
+          ),
+        ),
+        body: Center(
+          child: SingleChildScrollView(
+            physics: const BouncingScrollPhysics(),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 16.0,
+                vertical: 8.0,
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  _buildGameInfo(gameState),
+                  const SizedBox(height: 16),
+                  _buildScoreDisplay(gameState),
+                  const SizedBox(height: 8),
+                  if (!gameState.isDrawer) _buildAttemptsDisplay(gameState),
+                  const SizedBox(height: 8),
+                  _buildDrawingArea(gameState),
+                  const SizedBox(height: 16),
+                  if (!gameState.isDrawer && !gameState.guessCorrect)
+                    _buildGuessInput(gameState),
+                  if (gameState.guessCorrect) _buildCorrectGuessMessage(),
+                  if (gameState.showIncorrectGuess)
+                    _buildIncorrectGuessMessage(gameState),
+                  if (gameState.isDrawer)
+                    Column(
+                      children: [
+                        _buildColorPicker(gameState),
+                        const SizedBox(height: 8),
+                        _buildClearButton(),
+                      ],
+                    ),
+                  const SizedBox(height: 16),
+                ],
               ),
             ),
           ),
         ),
+      ),
     );
   }
 
@@ -478,7 +532,8 @@ class _MiniGameScreenState extends State<MiniGameScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 16.0),
       decoration: BoxDecoration(
-        color: gameState.isDrawer ? Colors.blue.shade100 : Colors.purple.shade100,
+        color:
+            gameState.isDrawer ? Colors.blue.shade100 : Colors.purple.shade100,
         borderRadius: BorderRadius.circular(12.0),
         boxShadow: [
           BoxShadow(
@@ -493,17 +548,25 @@ class _MiniGameScreenState extends State<MiniGameScreen> {
         children: [
           Icon(
             gameState.isDrawer ? Icons.brush : Icons.search,
-            color: gameState.isDrawer ? Colors.blue.shade700 : Colors.purple.shade700,
+            color:
+                gameState.isDrawer
+                    ? Colors.blue.shade700
+                    : Colors.purple.shade700,
             size: 24,
           ),
           const SizedBox(width: 8),
           Flexible(
             child: Text(
-              gameState.isDrawer ? "Draw: ${gameState.currentWord}" : "Guess the word!",
+              gameState.isDrawer
+                  ? "Draw: ${gameState.currentWord}"
+                  : "Guess the word!",
               style: TextStyle(
-                fontSize: 20, 
+                fontSize: 20,
                 fontWeight: FontWeight.bold,
-                color: gameState.isDrawer ? Colors.blue.shade700 : Colors.purple.shade700,
+                color:
+                    gameState.isDrawer
+                        ? Colors.blue.shade700
+                        : Colors.purple.shade700,
               ),
               textAlign: TextAlign.center,
             ),
@@ -542,10 +605,11 @@ class _MiniGameScreenState extends State<MiniGameScreen> {
   }
 
   Widget _buildAttemptsDisplay(GameState gameState) {
-    final attemptsColor = gameState.remainingAttempts > 2 
-        ? Colors.green 
-        : (gameState.remainingAttempts > 1 ? Colors.orange : Colors.red);
-        
+    final attemptsColor =
+        gameState.remainingAttempts > 2
+            ? Colors.green
+            : (gameState.remainingAttempts > 1 ? Colors.orange : Colors.red);
+
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 6.0, horizontal: 12.0),
       decoration: BoxDecoration(
@@ -583,8 +647,14 @@ class _MiniGameScreenState extends State<MiniGameScreen> {
         },
         child: Container(
           key: _paintKey,
-          width: MediaQuery.of(context).size.width > 600 ? 500 : MediaQuery.of(context).size.width * 0.85,
-          height: MediaQuery.of(context).size.width > 600 ? 500 : MediaQuery.of(context).size.width * 0.85,
+          width:
+              MediaQuery.of(context).size.width > 600
+                  ? 500
+                  : MediaQuery.of(context).size.width * 0.85,
+          height:
+              MediaQuery.of(context).size.width > 600
+                  ? 500
+                  : MediaQuery.of(context).size.width * 0.85,
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(12),
@@ -612,26 +682,37 @@ class _MiniGameScreenState extends State<MiniGameScreen> {
                 ),
                 // Drawing area
                 GestureDetector(
-                  onPanUpdate: gameState.isDrawer
-                      ? (details) {
-                          RenderBox renderBox =
-                              _paintKey.currentContext!.findRenderObject() as RenderBox;
-                          Offset localPosition = renderBox.globalToLocal(
-                            details.globalPosition,
-                          );
+                  onPanUpdate:
+                      gameState.isDrawer
+                          ? (details) {
+                            RenderBox renderBox =
+                                _paintKey.currentContext!.findRenderObject()
+                                    as RenderBox;
+                            Offset localPosition = renderBox.globalToLocal(
+                              details.globalPosition,
+                            );
 
-                          final size = renderBox.size;
-                          if (GameValidator.isValidPoint(localPosition, size.width, size.height)) {
-                            _eventHandler.handleDrawing(localPosition);
-                            _gameState.resetInactivityTimer();
+                            final size = renderBox.size;
+                            if (GameValidator.isValidPoint(
+                              localPosition,
+                              size.width,
+                              size.height,
+                            )) {
+                              _eventHandler.handleDrawing(localPosition);
+                              _gameState.resetInactivityTimer();
+                            }
                           }
-                        }
-                      : null,
-                  onPanEnd: gameState.isDrawer
-                      ? (details) => _eventHandler.handleDrawingEnd()
-                      : null,
+                          : null,
+                  onPanEnd:
+                      gameState.isDrawer
+                          ? (details) => _eventHandler.handleDrawingEnd()
+                          : null,
                   child: CustomPaint(
-                    painter: DrawingPainter(points: gameState.points),
+                    painter: DrawingPainter(
+                      points: gameState.points,
+                      brushColor: gameState.brushColor,
+                      gameState: gameState,
+                    ),
                     size: Size.infinite,
                   ),
                 ),
@@ -641,7 +722,10 @@ class _MiniGameScreenState extends State<MiniGameScreen> {
                     right: 8,
                     top: 8,
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
                       decoration: BoxDecoration(
                         color: Colors.purple.withOpacity(0.7),
                         borderRadius: BorderRadius.circular(12),
@@ -662,7 +746,10 @@ class _MiniGameScreenState extends State<MiniGameScreen> {
 
   Widget _buildGuessInput(GameState gameState) {
     return Container(
-      width: MediaQuery.of(context).size.width > 600 ? 500 : MediaQuery.of(context).size.width * 0.85,
+      width:
+          MediaQuery.of(context).size.width > 600
+              ? 500
+              : MediaQuery.of(context).size.width * 0.85,
       padding: const EdgeInsets.all(16.0),
       decoration: BoxDecoration(
         color: Colors.purple.shade50,
@@ -685,15 +772,23 @@ class _MiniGameScreenState extends State<MiniGameScreen> {
             decoration: InputDecoration(
               labelText: "Enter your guess",
               labelStyle: TextStyle(color: Colors.purple.shade700),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
                 borderSide: BorderSide(color: Colors.purple.shade700, width: 2),
               ),
               filled: true,
               fillColor: Colors.white,
-              prefixIcon: Icon(Icons.lightbulb_outline, color: Colors.purple.shade700),
-              contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+              prefixIcon: Icon(
+                Icons.lightbulb_outline,
+                color: Colors.purple.shade700,
+              ),
+              contentPadding: const EdgeInsets.symmetric(
+                vertical: 12,
+                horizontal: 16,
+              ),
             ),
             onChanged: (_) => _gameState.resetInactivityTimer(),
           ),
@@ -710,10 +805,15 @@ class _MiniGameScreenState extends State<MiniGameScreen> {
               backgroundColor: Colors.purple.shade700,
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(vertical: 12),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
               elevation: 2,
             ),
-            child: const Text("Submit Guess", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            child: const Text(
+              "Submit Guess",
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
           ),
         ],
       ),
@@ -722,7 +822,10 @@ class _MiniGameScreenState extends State<MiniGameScreen> {
 
   Widget _buildCorrectGuessMessage() {
     return Container(
-      width: MediaQuery.of(context).size.width > 600 ? 500 : MediaQuery.of(context).size.width * 0.85,
+      width:
+          MediaQuery.of(context).size.width > 600
+              ? 500
+              : MediaQuery.of(context).size.width * 0.85,
       margin: const EdgeInsets.symmetric(vertical: 12),
       padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
       decoration: BoxDecoration(
@@ -744,7 +847,11 @@ class _MiniGameScreenState extends State<MiniGameScreen> {
           const SizedBox(width: 12),
           const Text(
             "You guessed it right!",
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.green),
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.green,
+            ),
           ),
           const SizedBox(width: 8),
           const Icon(Icons.celebration, color: Colors.amber, size: 24),
@@ -755,7 +862,10 @@ class _MiniGameScreenState extends State<MiniGameScreen> {
 
   Widget _buildIncorrectGuessMessage(GameState gameState) {
     return Container(
-      width: MediaQuery.of(context).size.width > 600 ? 500 : MediaQuery.of(context).size.width * 0.85,
+      width:
+          MediaQuery.of(context).size.width > 600
+              ? 500
+              : MediaQuery.of(context).size.width * 0.85,
       margin: const EdgeInsets.symmetric(vertical: 12),
       padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
       decoration: BoxDecoration(
@@ -779,7 +889,11 @@ class _MiniGameScreenState extends State<MiniGameScreen> {
               const SizedBox(width: 8),
               const Text(
                 "Incorrect guess!",
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.red),
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.red,
+                ),
               ),
             ],
           ),
@@ -789,9 +903,15 @@ class _MiniGameScreenState extends State<MiniGameScreen> {
               child: Text(
                 "Try again! You have ${gameState.remainingAttempts} ${gameState.remainingAttempts == 1 ? 'attempt' : 'attempts'} left.",
                 style: TextStyle(
-                  fontSize: 16, 
-                  color: gameState.remainingAttempts == 1 ? Colors.red.shade700 : Colors.orange.shade700,
-                  fontWeight: gameState.remainingAttempts == 1 ? FontWeight.bold : FontWeight.normal,
+                  fontSize: 16,
+                  color:
+                      gameState.remainingAttempts == 1
+                          ? Colors.red.shade700
+                          : Colors.orange.shade700,
+                  fontWeight:
+                      gameState.remainingAttempts == 1
+                          ? FontWeight.bold
+                          : FontWeight.normal,
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -807,7 +927,10 @@ class _MiniGameScreenState extends State<MiniGameScreen> {
       child: ElevatedButton.icon(
         onPressed: () => _eventHandler.clearCanvas(),
         icon: const Icon(Icons.delete_sweep),
-        label: const Text("Clear Drawing", style: TextStyle(fontWeight: FontWeight.bold)),
+        label: const Text(
+          "Clear Drawing",
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.blue.shade700,
           foregroundColor: Colors.white,
@@ -818,41 +941,124 @@ class _MiniGameScreenState extends State<MiniGameScreen> {
       ),
     );
   }
+
+  Widget _buildColorPicker(GameState gameState) {
+    // Define a list of colors for the color picker
+    final List<Color> colors = [
+      Colors.black,
+      Colors.blue.shade800,
+      Colors.red.shade700,
+      Colors.green.shade700,
+      Colors.purple.shade700,
+      Colors.orange.shade700,
+      Colors.teal.shade700,
+      Colors.pink.shade700,
+    ];
+
+    return Container(
+      width:
+          MediaQuery.of(context).size.width > 600
+              ? 500
+              : MediaQuery.of(context).size.width * 0.85,
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade100,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.palette, color: Colors.blue.shade700),
+              const SizedBox(width: 8),
+              Text(
+                "Brush Color",
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.blue.shade700,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            children:
+                colors.map((color) {
+                  final isSelected = gameState.brushColor.value == color.value;
+                  return GestureDetector(
+                    onTap: () {
+                      gameState.setBrushColor(color);
+                    },
+                    child: Container(
+                      width: 36,
+                      height: 36,
+                      decoration: BoxDecoration(
+                        color: color,
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color:
+                              isSelected ? Colors.white : Colors.grey.shade300,
+                          width: isSelected ? 3 : 1,
+                        ),
+                        boxShadow: [
+                          if (isSelected)
+                            BoxShadow(
+                              color: color.withOpacity(0.5),
+                              blurRadius: 8,
+                              spreadRadius: 1,
+                            ),
+                        ],
+                      ),
+                    ),
+                  );
+                }).toList(),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class DrawingPainter extends CustomPainter {
-  final List<Offset?> points;
+  final List<Map<String, dynamic>?> points;
+  final Color brushColor;
+  final GameState gameState;
 
-  DrawingPainter({required this.points});
+  DrawingPainter({
+    required this.points,
+    required this.brushColor,
+    required this.gameState,
+  });
 
   @override
   void paint(Canvas canvas, Size size) {
     // Draw a subtle grid background
     _drawGrid(canvas, size);
-    
-    // Main drawing paint
-    final paint = Paint()
-      ..color = Colors.blue.shade800
-      ..strokeCap = StrokeCap.round
-      ..strokeWidth = 5.0
-      ..isAntiAlias = true
-      ..strokeJoin = StrokeJoin.round;
-    
-    // Shadow paint for depth effect
-    final shadowPaint = Paint()
-      ..color = Colors.black.withOpacity(0.2)
-      ..strokeCap = StrokeCap.round
-      ..strokeWidth = 5.0
-      ..isAntiAlias = true
-      ..strokeJoin = StrokeJoin.round;
 
-    // Group points into continuous segments
-    List<List<Offset>> segments = [];
-    List<Offset> currentSegment = [];
+    // Group points into continuous segments with their colors
+    List<List<Map<String, dynamic>>> segments = [];
+    List<Map<String, dynamic>> currentSegment = [];
 
-    for (var point in points) {
-      if (point != null) {
-        currentSegment.add(point);
+    for (var pointData in points) {
+      if (pointData != null) {
+        final offset = gameState.getOffsetFromPoint(pointData);
+        if (offset != null) {
+          currentSegment.add({
+            'offset': offset,
+            'color': gameState.getColorFromPoint(pointData),
+          });
+        }
       } else if (currentSegment.isNotEmpty) {
         segments.add(List.from(currentSegment));
         currentSegment.clear();
@@ -867,40 +1073,80 @@ class DrawingPainter extends CustomPainter {
     for (var segment in segments) {
       if (segment.length < 2) continue;
 
-      // Draw shadow with slight offset
       for (int i = 0; i < segment.length - 1; i++) {
+        final currentPoint = segment[i]['offset'] as Offset;
+        final nextPoint = segment[i + 1]['offset'] as Offset;
+        final currentColor = segment[i]['color'] as Color;
+
+        // Create a paint for this specific line segment with its color
+        final segmentPaint =
+            Paint()
+              ..color = currentColor
+              ..strokeCap = StrokeCap.round
+              ..strokeWidth = 5.0
+              ..isAntiAlias = true
+              ..strokeJoin = StrokeJoin.round;
+
+        // Create shadow paint for this segment
+        final segmentShadowPaint =
+            Paint()
+              ..color = Colors.black.withOpacity(0.2)
+              ..strokeCap = StrokeCap.round
+              ..strokeWidth = 5.0
+              ..isAntiAlias = true
+              ..strokeJoin = StrokeJoin.round;
+
+        // Draw shadow with slight offset
         canvas.drawLine(
-          segment[i] + const Offset(1.5, 1.5), 
-          segment[i + 1] + const Offset(1.5, 1.5), 
-          shadowPaint
+          currentPoint + const Offset(1.5, 1.5),
+          nextPoint + const Offset(1.5, 1.5),
+          segmentShadowPaint,
         );
+
+        // Draw the actual line with its color
+        canvas.drawLine(currentPoint, nextPoint, segmentPaint);
       }
-      
-      // Draw the actual line
-      for (int i = 0; i < segment.length - 1; i++) {
-        canvas.drawLine(segment[i], segment[i + 1], paint);
-      }
-      
+
       // Draw dots at the start and end of each segment for better appearance
       if (segment.isNotEmpty) {
-        canvas.drawCircle(segment.first, 2.5, paint);
-        canvas.drawCircle(segment.last, 2.5, paint);
+        final firstPoint = segment.first['offset'] as Offset;
+        final lastPoint = segment.last['offset'] as Offset;
+        final firstColor = segment.first['color'] as Color;
+        final lastColor = segment.last['color'] as Color;
+
+        final firstPaint =
+            Paint()
+              ..color = firstColor
+              ..strokeCap = StrokeCap.round
+              ..strokeWidth = 5.0
+              ..isAntiAlias = true;
+
+        final lastPaint =
+            Paint()
+              ..color = lastColor
+              ..strokeCap = StrokeCap.round
+              ..strokeWidth = 5.0
+              ..isAntiAlias = true;
+
+        canvas.drawCircle(firstPoint, 2.5, firstPaint);
+        canvas.drawCircle(lastPoint, 2.5, lastPaint);
       }
     }
   }
-  
+
   void _drawGrid(Canvas canvas, Size size) {
-    final gridPaint = Paint()
-      ..color = Colors.grey.withOpacity(0.1)
-      ..strokeWidth = 0.5;
-      
+    final gridPaint =
+        Paint()
+          ..color = Colors.grey.withOpacity(0.1)
+          ..strokeWidth = 0.5;
+
     const gridSize = 20.0;
-    
+
     // Draw vertical lines
     for (double i = 0; i <= size.width; i += gridSize) {
       canvas.drawLine(Offset(i, 0), Offset(i, size.height), gridPaint);
     }
-    
+
     // Draw horizontal lines
     for (double i = 0; i <= size.height; i += gridSize) {
       canvas.drawLine(Offset(0, i), Offset(size.width, i), gridPaint);
