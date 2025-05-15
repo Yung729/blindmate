@@ -633,7 +633,6 @@ class _MyPostsListState extends State<MyPostsList> {
                                   avatarUrl: widget.avatarUrl,
                                   timeAgo: widget.getTimeAgo(postTime),
                                   isPublic: post['visibility'] == 'public',
-                                  onOptions: () => widget.onShowPostOptions(post),
                                   isTripJournal: hasTripJournals,
                                   onTripJournalTap: hasTripJournals 
                                       ? () => _showTripJournalDialog(context, post)
