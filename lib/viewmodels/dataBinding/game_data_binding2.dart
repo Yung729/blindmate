@@ -23,32 +23,47 @@ class GameDataBinding2 {
     final game = await _gameService.getGame(chatRoomId);
 
     if (game != null) {
-      _gameState.setBoard(
-        List<String>.from(game['board'] ?? List.filled(9, '')),
-      );
-      _gameState.setRoles(Map<String, String>.from(game['roles'] ?? {}));
-      _gameState.setWinner(game['winner']);
-      _gameState.setIsPlayerX(game['roles'][currentUserId] == 'X');
-      _gameState.setIsCurrentPlayer(game['currentPlayer'] == currentUserId);
+      final roles = Map<String, String>.from(game['roles'] ?? {});
+      if (roles.containsKey(currentUserId) && roles.containsKey(opponentId)) {
+        _gameState.setBoard(
+          List<String>.from(game['board'] ?? List.filled(9, '')),
+        );
+        _gameState.setRoles(roles);
+        _gameState.setWinner(game['winner']);
+        _gameState.setIsPlayerX(roles[currentUserId] == 'X');
+        _gameState.setIsCurrentPlayer(game['currentPlayer'] == currentUserId);
+      } else {
+        await _gameService.clearGame(chatRoomId);
+        await _initializeNewGame(chatRoomId, currentUserId, opponentId, isPlayerX);
+      }
     } else {
-      final newGame = {
-        'board': List<String>.filled(9, ''),
-        'roles': <String, String>{
-          currentUserId: isPlayerX ? 'X' : 'O',
-          opponentId: isPlayerX ? 'O' : 'X',
-        },
-        'currentPlayer': currentUserId,
-        'winner': null,
-      };
-
-      await _gameService.createGame(chatRoomId, newGame);
-      _gameState.setBoard(newGame['board'] as List<String>);
-      _gameState.setRoles(newGame['roles'] as Map<String, String>);
-      _gameState.setIsPlayerX(isPlayerX);
-      _gameState.setIsCurrentPlayer(true);
+      await _initializeNewGame(chatRoomId, currentUserId, opponentId, isPlayerX);
     }
 
     _gameState.setIsInitialized(true);
+  }
+
+  Future<void> _initializeNewGame(
+    String chatRoomId,
+    String currentUserId,
+    String opponentId,
+    bool isPlayerX,
+  ) async {
+    final newGame = {
+      'board': List<String>.filled(9, ''),
+      'roles': <String, String>{
+        currentUserId: isPlayerX ? 'X' : 'O',
+        opponentId: isPlayerX ? 'O' : 'X',
+      },
+      'currentPlayer': currentUserId,
+      'winner': null,
+    };
+
+    await _gameService.createGame(chatRoomId, newGame);
+    _gameState.setBoard(newGame['board'] as List<String>);
+    _gameState.setRoles(newGame['roles'] as Map<String, String>);
+    _gameState.setIsPlayerX(isPlayerX);
+    _gameState.setIsCurrentPlayer(true);
   }
 
   void listenToGame(String chatRoomId) {

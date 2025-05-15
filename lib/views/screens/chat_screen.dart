@@ -442,7 +442,7 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                 chatRoomId: chatRoomId,
                 currentUserId: widget.currentUserId,
                 opponentId: _chatState.otherUserId ?? '',
-                isPlayerX: true,
+                isPlayerX: true, // First player is always X
               ),
         ),
       );
