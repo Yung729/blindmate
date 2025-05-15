@@ -433,41 +433,29 @@ class _MiniGameScreenState extends State<MiniGameScreen> {
         child: Scaffold(
           key: _scaffoldKey,
           appBar: AppBar(
-            title: const Text("Draw & Guess", style: TextStyle(fontWeight: FontWeight.bold)),
-            backgroundColor: Colors.blue.shade700,
-            elevation: 4,
+            title: const Text("Draw & Guess"),
             leading: IconButton(
               icon: const Icon(Icons.arrow_back),
               onPressed: _handleUserExitRequest, // Directly call, it handles pop if confirmed
             ),
           ),
-          body: SafeArea(
-            child: SingleChildScrollView(
-              physics: const BouncingScrollPhysics(),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    _buildGameInfo(gameState),
-                    const SizedBox(height: 16),
-                    _buildScoreDisplay(gameState),
-                    const SizedBox(height: 8),
-                    if (!gameState.isDrawer) _buildAttemptsDisplay(gameState),
-                    const SizedBox(height: 8),
-                    _buildDrawingArea(gameState),
-                    const SizedBox(height: 16),
-                    if (!gameState.isDrawer && !gameState.guessCorrect)
-                      _buildGuessInput(gameState),
-                    if (gameState.guessCorrect) _buildCorrectGuessMessage(),
-                    if (gameState.showIncorrectGuess)
-                      _buildIncorrectGuessMessage(gameState),
-                    if (gameState.isDrawer) _buildClearButton(),
-                    const SizedBox(height: 16),
-                  ],
-                ),
-              ),
+          body: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                _buildGameInfo(gameState),
+                const SizedBox(height: 20),
+                _buildScoreDisplay(gameState),
+                if (!gameState.isDrawer) _buildAttemptsDisplay(gameState),
+                _buildDrawingArea(gameState),
+                const SizedBox(height: 20),
+                if (!gameState.isDrawer && !gameState.guessCorrect)
+                  _buildGuessInput(gameState),
+                if (gameState.guessCorrect) _buildCorrectGuessMessage(),
+                if (gameState.showIncorrectGuess)
+                  _buildIncorrectGuessMessage(gameState),
+                if (gameState.isDrawer) _buildClearButton(),
+              ],
             ),
           ),
         ),
@@ -475,103 +463,38 @@ class _MiniGameScreenState extends State<MiniGameScreen> {
   }
 
   Widget _buildGameInfo(GameState gameState) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 16.0),
-      decoration: BoxDecoration(
-        color: gameState.isDrawer ? Colors.blue.shade100 : Colors.purple.shade100,
-        borderRadius: BorderRadius.circular(12.0),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 4.0,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            gameState.isDrawer ? Icons.brush : Icons.search,
-            color: gameState.isDrawer ? Colors.blue.shade700 : Colors.purple.shade700,
-            size: 24,
-          ),
-          const SizedBox(width: 8),
-          Flexible(
-            child: Text(
-              gameState.isDrawer ? "Draw: ${gameState.currentWord}" : "Guess the word!",
-              style: TextStyle(
-                fontSize: 20, 
-                fontWeight: FontWeight.bold,
-                color: gameState.isDrawer ? Colors.blue.shade700 : Colors.purple.shade700,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ),
-        ],
-      ),
+    return Text(
+      gameState.isDrawer ? "Draw: ${gameState.currentWord}" : "Guess the word!",
+      style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
     );
   }
 
   Widget _buildScoreDisplay(GameState gameState) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
-      decoration: BoxDecoration(
-        color: Colors.amber.shade100,
-        borderRadius: BorderRadius.circular(8.0),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(Icons.emoji_events, color: Colors.amber, size: 20),
-          const SizedBox(width: 8),
-          Text(
-            "You: ${gameState.scores[widget.currentUserId] ?? 0}",
-            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(width: 8),
-          Container(height: 16, width: 1, color: Colors.grey),
-          const SizedBox(width: 8),
-          Text(
-            "Opponent: ${gameState.scores[widget.opponentId] ?? 0}",
-            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-          ),
-        ],
-      ),
+    return Text(
+      "Score: You ${gameState.scores[widget.currentUserId] ?? 0} - Opponent ${gameState.scores[widget.opponentId] ?? 0}",
+      style: TextStyle(fontSize: 16),
     );
   }
 
   Widget _buildAttemptsDisplay(GameState gameState) {
-    final attemptsColor = gameState.remainingAttempts > 2 
-        ? Colors.green 
-        : (gameState.remainingAttempts > 1 ? Colors.orange : Colors.red);
-        
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 6.0, horizontal: 12.0),
-      decoration: BoxDecoration(
-        color: attemptsColor.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(8.0),
-        border: Border.all(color: attemptsColor.withOpacity(0.5)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.replay, color: attemptsColor, size: 18),
-          const SizedBox(width: 4),
-          Text(
-            "Attempts: ${gameState.remainingAttempts}",
-            style: TextStyle(
-              fontSize: 16,
-              color: attemptsColor,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ],
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Text(
+        "Attempts remaining: ${gameState.remainingAttempts}",
+        style: TextStyle(
+          fontSize: 16,
+          color: gameState.remainingAttempts == 1 ? Colors.red : Colors.black,
+          fontWeight:
+              gameState.remainingAttempts == 1
+                  ? FontWeight.bold
+                  : FontWeight.normal,
+        ),
       ),
     );
   }
 
   Widget _buildDrawingArea(GameState gameState) {
+<<<<<<< HEAD
     return Card(
       elevation: 4,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -655,49 +578,56 @@ class _MiniGameScreenState extends State<MiniGameScreen> {
               ],
             ),
           ),
+=======
+    return Container(
+      key: _paintKey,
+      width: 300,
+      height: 300,
+      decoration: BoxDecoration(border: Border.all(color: Colors.grey)),
+      child: GestureDetector(
+        onPanUpdate:
+            gameState.isDrawer
+                ? (details) {
+                  RenderBox renderBox =
+                      _paintKey.currentContext!.findRenderObject() as RenderBox;
+                  Offset localPosition = renderBox.globalToLocal(
+                    details.globalPosition,
+                  );
+
+                  if (GameValidator.isValidPoint(localPosition, 300, 300)) {
+                    _eventHandler.handleDrawing(localPosition);
+                    _gameState.resetInactivityTimer();
+                  }
+                }
+                : null,
+        onPanEnd:
+            gameState.isDrawer
+                ? (details) => _eventHandler.handleDrawingEnd()
+                : null,
+        child: CustomPaint(
+          painter: DrawingPainter(points: gameState.points),
+          size: Size.infinite,
+>>>>>>> parent of 5b7d8d1 (game 1 ui)
         ),
       ),
     );
   }
 
   Widget _buildGuessInput(GameState gameState) {
-    return Container(
-      width: MediaQuery.of(context).size.width > 600 ? 500 : MediaQuery.of(context).size.width * 0.85,
-      padding: const EdgeInsets.all(16.0),
-      decoration: BoxDecoration(
-        color: Colors.purple.shade50,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 40.0),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           TextField(
             controller: _guessController,
             textAlign: TextAlign.center,
-            style: const TextStyle(fontSize: 16),
             decoration: InputDecoration(
               labelText: "Enter your guess",
-              labelStyle: TextStyle(color: Colors.purple.shade700),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: BorderSide(color: Colors.purple.shade700, width: 2),
-              ),
-              filled: true,
-              fillColor: Colors.white,
-              prefixIcon: Icon(Icons.lightbulb_outline, color: Colors.purple.shade700),
-              contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+              border: OutlineInputBorder(),
             ),
             onChanged: (_) => _gameState.resetInactivityTimer(),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
           ElevatedButton(
             onPressed: () {
               if (GameValidator.isValidGuess(_guessController.text)) {
@@ -706,14 +636,7 @@ class _MiniGameScreenState extends State<MiniGameScreen> {
                 _gameState.resetInactivityTimer();
               }
             },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.purple.shade700,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-              elevation: 2,
-            ),
-            child: const Text("Submit Guess", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            child: Text("Submit Guess"),
           ),
         ],
       ),
@@ -721,80 +644,28 @@ class _MiniGameScreenState extends State<MiniGameScreen> {
   }
 
   Widget _buildCorrectGuessMessage() {
-    return Container(
-      width: MediaQuery.of(context).size.width > 600 ? 500 : MediaQuery.of(context).size.width * 0.85,
-      margin: const EdgeInsets.symmetric(vertical: 12),
-      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
-      decoration: BoxDecoration(
-        color: Colors.green.shade100,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.green.shade300),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(Icons.check_circle, color: Colors.green, size: 28),
-          const SizedBox(width: 12),
-          const Text(
-            "You guessed it right!",
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.green),
-          ),
-          const SizedBox(width: 8),
-          const Icon(Icons.celebration, color: Colors.amber, size: 24),
-        ],
+    return Padding(
+      padding: const EdgeInsets.all(10.0),
+      child: Text(
+        "🎉 You guessed it right!",
+        style: TextStyle(fontSize: 18, color: Colors.green),
       ),
     );
   }
 
   Widget _buildIncorrectGuessMessage(GameState gameState) {
-    return Container(
-      width: MediaQuery.of(context).size.width > 600 ? 500 : MediaQuery.of(context).size.width * 0.85,
-      margin: const EdgeInsets.symmetric(vertical: 12),
-      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
-      decoration: BoxDecoration(
-        color: Colors.red.shade50,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.red.shade200),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
+    return Padding(
+      padding: const EdgeInsets.all(10.0),
       child: Column(
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.close, color: Colors.red, size: 24),
-              const SizedBox(width: 8),
-              const Text(
-                "Incorrect guess!",
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.red),
-              ),
-            ],
+          Text(
+            "❌ Incorrect guess!",
+            style: TextStyle(fontSize: 18, color: Colors.red),
           ),
           if (gameState.remainingAttempts > 0)
-            Padding(
-              padding: const EdgeInsets.only(top: 8),
-              child: Text(
-                "Try again! You have ${gameState.remainingAttempts} ${gameState.remainingAttempts == 1 ? 'attempt' : 'attempts'} left.",
-                style: TextStyle(
-                  fontSize: 16, 
-                  color: gameState.remainingAttempts == 1 ? Colors.red.shade700 : Colors.orange.shade700,
-                  fontWeight: gameState.remainingAttempts == 1 ? FontWeight.bold : FontWeight.normal,
-                ),
-                textAlign: TextAlign.center,
-              ),
+            Text(
+              "Try again!",
+              style: TextStyle(fontSize: 16, color: Colors.orange),
             ),
         ],
       ),
@@ -802,19 +673,12 @@ class _MiniGameScreenState extends State<MiniGameScreen> {
   }
 
   Widget _buildClearButton() {
-    return Container(
-      margin: const EdgeInsets.only(top: 12),
+    return Padding(
+      padding: const EdgeInsets.only(top: 20.0),
       child: ElevatedButton.icon(
         onPressed: () => _eventHandler.clearCanvas(),
-        icon: const Icon(Icons.delete_sweep),
-        label: const Text("Clear Drawing", style: TextStyle(fontWeight: FontWeight.bold)),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.blue.shade700,
-          foregroundColor: Colors.white,
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-          elevation: 2,
-        ),
+        icon: Icon(Icons.clear),
+        label: Text("Clear Drawing"),
       ),
     );
   }
@@ -827,24 +691,12 @@ class DrawingPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    // Draw a subtle grid background
-    _drawGrid(canvas, size);
-    
-    // Main drawing paint
-    final paint = Paint()
-      ..color = Colors.blue.shade800
-      ..strokeCap = StrokeCap.round
-      ..strokeWidth = 5.0
-      ..isAntiAlias = true
-      ..strokeJoin = StrokeJoin.round;
-    
-    // Shadow paint for depth effect
-    final shadowPaint = Paint()
-      ..color = Colors.black.withOpacity(0.2)
-      ..strokeCap = StrokeCap.round
-      ..strokeWidth = 5.0
-      ..isAntiAlias = true
-      ..strokeJoin = StrokeJoin.round;
+    final paint =
+        Paint()
+          ..color = Colors.black
+          ..strokeCap = StrokeCap.round
+          ..strokeWidth = 4.0
+          ..isAntiAlias = true;
 
     // Group points into continuous segments
     List<List<Offset>> segments = [];
@@ -863,47 +715,13 @@ class DrawingPainter extends CustomPainter {
       segments.add(currentSegment);
     }
 
-    // Draw each continuous segment with shadow effect
+    // Draw each continuous segment
     for (var segment in segments) {
       if (segment.length < 2) continue;
 
-      // Draw shadow with slight offset
-      for (int i = 0; i < segment.length - 1; i++) {
-        canvas.drawLine(
-          segment[i] + const Offset(1.5, 1.5), 
-          segment[i + 1] + const Offset(1.5, 1.5), 
-          shadowPaint
-        );
-      }
-      
-      // Draw the actual line
       for (int i = 0; i < segment.length - 1; i++) {
         canvas.drawLine(segment[i], segment[i + 1], paint);
       }
-      
-      // Draw dots at the start and end of each segment for better appearance
-      if (segment.isNotEmpty) {
-        canvas.drawCircle(segment.first, 2.5, paint);
-        canvas.drawCircle(segment.last, 2.5, paint);
-      }
-    }
-  }
-  
-  void _drawGrid(Canvas canvas, Size size) {
-    final gridPaint = Paint()
-      ..color = Colors.grey.withOpacity(0.1)
-      ..strokeWidth = 0.5;
-      
-    const gridSize = 20.0;
-    
-    // Draw vertical lines
-    for (double i = 0; i <= size.width; i += gridSize) {
-      canvas.drawLine(Offset(i, 0), Offset(i, size.height), gridPaint);
-    }
-    
-    // Draw horizontal lines
-    for (double i = 0; i <= size.height; i += gridSize) {
-      canvas.drawLine(Offset(0, i), Offset(size.width, i), gridPaint);
     }
   }
 
