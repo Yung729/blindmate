@@ -604,7 +604,7 @@ class _MiniGameScreenState extends State<MiniGameScreen> {
                 Container(
                   decoration: BoxDecoration(
                     image: DecorationImage(
-                      image: NetworkImage('https://www.transparenttextures.com/patterns/graph-paper.png'),
+                      image: AssetImage('assets/graphPaper.jpg'),
                       repeat: ImageRepeat.repeat,
                       opacity: 0.2,
                     ),
