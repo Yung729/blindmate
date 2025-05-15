@@ -441,7 +441,7 @@ class _MiniGameScreenState extends State<MiniGameScreen> {
               onPressed: _handleUserExitRequest, // Directly call, it handles pop if confirmed
             ),
           ),
-          body: Center (
+          body: SafeArea(
             child: SingleChildScrollView(
               physics: const BouncingScrollPhysics(),
               child: Padding(
@@ -600,10 +600,14 @@ class _MiniGameScreenState extends State<MiniGameScreen> {
             borderRadius: BorderRadius.circular(12),
             child: Stack(
               children: [
-                // Background with solid color instead of image
+                // Background grid pattern
                 Container(
                   decoration: BoxDecoration(
-                    color: Colors.grey[50],
+                    image: DecorationImage(
+                      image: AssetImage('assets/graphPaper.jpg'),
+                      repeat: ImageRepeat.repeat,
+                      opacity: 0.2,
+                    ),
                   ),
                 ),
                 // Drawing area
