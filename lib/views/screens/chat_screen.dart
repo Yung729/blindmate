@@ -151,7 +151,7 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     } else if (_chatState.isInactive) {
       // Auto close without showing dialog
       _chatEventHandler.handleChatExit(context, showSummary: true);
-    } 
+    }
   }
 
   void _handleGameInvitations(dynamic snapshot) {
@@ -434,6 +434,8 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
         ),
       );
     } else if (gameType == 'Tic Tac Toe') {
+      final isPlayerX =
+          widget.currentUserId.compareTo(_chatState.otherUserId ?? '') < 0;
       Navigator.push(
         context,
         MaterialPageRoute(
@@ -442,7 +444,7 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                 chatRoomId: chatRoomId,
                 currentUserId: widget.currentUserId,
                 opponentId: _chatState.otherUserId ?? '',
-                isPlayerX: true, // First player is always X
+                isPlayerX: isPlayerX, // Assign role dynamically
               ),
         ),
       );
@@ -544,7 +546,6 @@ class ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
             _handleErrorMessages();
           });
         }
-
 
         return PopScope(
           canPop: false,
