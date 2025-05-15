@@ -227,7 +227,7 @@ class ChatDataBinding {
           break;
         case 'UNSAFE':
           chatState.setErrorMessage(
-            "🚫 Message blocked: Inappropriate content detected",
+            "🚫 Inappropriate content detected",
           );
           // Check if this unsafe message is the 3rd one (count is incremented after this check)
           if (chatState.unsafeMessageCount >= 2) {

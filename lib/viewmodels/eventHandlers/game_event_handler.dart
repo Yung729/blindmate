@@ -34,7 +34,10 @@ class GameEventHandler {
        _chatRoomId = chatRoomId,
        _currentUserId = currentUserId,
        _opponentId = opponentId,
-       _missionEventHandler = missionState != null ? MissionEventHandler(missionState: missionState) : null;
+       _missionEventHandler =
+           missionState != null
+               ? MissionEventHandler(missionState: missionState)
+               : null;
 
   void setContext(BuildContext context) {
     _context = context;
@@ -123,6 +126,20 @@ class GameEventHandler {
       _gameState.incrementScore(_currentUserId);
       await _dataBinding.updateScores(_chatRoomId, _gameState.scores);
 
+      if (_context != null && _context!.mounted && !_gameState.isDrawer) {
+        ScaffoldMessenger.of(_context!).showSnackBar(
+          SnackBar(
+            content: Text(
+              "✅ Correct! The answer was ${_gameState.currentWord}",
+              style: TextStyle(color: Colors.white),
+            ),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 2),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+
       if (_gameState.scores[_currentUserId]! >= _winningScore) {
         await _dataBinding.setWinner(_chatRoomId, _currentUserId);
         _gameState.setIsGameEnded(true);
@@ -134,7 +151,7 @@ class GameEventHandler {
     } else {
       _gameState.decrementAttempts();
 
-      if (_context != null && _context!.mounted) {
+      if (_context != null && _context!.mounted && !_gameState.isDrawer) {
         ScaffoldMessenger.of(_context!).showSnackBar(
           SnackBar(
             content: Text(
@@ -150,6 +167,18 @@ class GameEventHandler {
 
       // Check if this was the final attempt
       if (_gameState.remainingAttempts <= 0) {
+        ScaffoldMessenger.of(_context!).showSnackBar(
+          SnackBar(
+            content: Text(
+              "❌ Correct Answer is : ${_gameState.currentWord}. Nice Try!",
+              style: TextStyle(color: Colors.white),
+            ),
+            backgroundColor: Colors.red,
+            duration: Duration(seconds: 2),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+
         _gameState.incrementScore(_opponentId);
         await _dataBinding.updateScores(_chatRoomId, _gameState.scores);
 
@@ -251,7 +280,7 @@ class GameEventHandler {
         actionType: 'game',
       );
     }
-    
+
     _gameState.setIsGameEnded(true);
     _inactivityTimer?.cancel();
     _gameOverTimer?.cancel();
