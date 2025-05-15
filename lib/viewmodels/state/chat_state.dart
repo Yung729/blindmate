@@ -16,7 +16,7 @@ class ChatState extends ChangeNotifier {
   
   // Anti-spam properties
   final List<DateTime> _recentMessageTimestamps = [];
-  final int _maxMessagesPerWindow = 5; // Allow 5 messages in the time window
+  final int _maxMessagesPerWindow = 3; // Allow 5 messages in the time window
   final int _timeWindowMs = 3000; // 3 second window for burst messages
   
   // UI States
