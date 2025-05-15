@@ -64,11 +64,29 @@ class _MiniGameScreenState extends State<MiniGameScreen> {
                 (point) {
                   if (point == null) return null;
                   // Convert to the new format that includes color
-                  return {
-                    'dx': (point['dx'] as num?)?.toDouble(),
-                    'dy': (point['dy'] as num?)?.toDouble(),
-                    'color': point['color'] as int? ?? Colors.blue.shade800.value,
-                  };
+                  Map<String, dynamic> newPoint = {};
+                  
+                  // Handle dx and dy values safely
+                  if (point['dx'] != null) {
+                    newPoint['dx'] = (point['dx'] is num) ? (point['dx'] as num).toDouble() : null;
+                  } else {
+                    newPoint['dx'] = null;
+                  }
+                  
+                  if (point['dy'] != null) {
+                    newPoint['dy'] = (point['dy'] is num) ? (point['dy'] as num).toDouble() : null;
+                  } else {
+                    newPoint['dy'] = null;
+                  }
+                  
+                  // Handle color value safely
+                  if (point['color'] != null) {
+                    newPoint['color'] = point['color'] is int ? point['color'] as int : Colors.blue.shade800.value;
+                  } else {
+                    newPoint['color'] = Colors.blue.shade800.value;
+                  }
+                  
+                  return newPoint;
                 },
               )
               .toList();
@@ -933,11 +951,23 @@ class DrawingPainter extends CustomPainter {
 
     for (var pointData in points) {
       if (pointData != null) {
-        final offset = gameState.getOffsetFromPoint(pointData);
-        if (offset != null) {
+        // Safely extract dx and dy values
+        final dx = pointData['dx'];
+        final dy = pointData['dy'];
+        
+        // Only proceed if we have valid coordinates
+        if (dx != null && dy != null && dx is double && dy is double) {
+          final offset = Offset(dx, dy);
+          
+          // Safely extract color value
+          int colorValue = Colors.blue.shade800.value;
+          if (pointData['color'] != null && pointData['color'] is int) {
+            colorValue = pointData['color'] as int;
+          }
+          
           currentSegment.add({
             'offset': offset,
-            'color': gameState.getColorFromPoint(pointData),
+            'color': Color(colorValue),
           });
         }
       } else if (currentSegment.isNotEmpty) {
