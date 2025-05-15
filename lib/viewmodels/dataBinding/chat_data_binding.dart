@@ -229,7 +229,8 @@ class ChatDataBinding {
           chatState.setErrorMessage(
             "🚫 Message blocked: Inappropriate content detected",
           );
-          if (chatState.unsafeMessageCount >= 3) {
+          // Check if this unsafe message is the 3rd one (count is incremented after this check)
+          if (chatState.unsafeMessageCount >= 2) {
             throw Exception("BANNED");
           }
           break;
