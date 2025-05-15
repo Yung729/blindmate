@@ -433,16 +433,7 @@ class _MiniGameScreenState extends State<MiniGameScreen> {
         child: Scaffold(
           key: _scaffoldKey,
           appBar: AppBar(
-            title: const Text("Draw & Guess", style: TextStyle(fontWeight: FontWeight.bold)),
-            flexibleSpace: Container(
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [Colors.blueAccent, Colors.lightBlueAccent],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-              ),
-            ),
+            title: const Text("Draw & Guess"),
             leading: IconButton(
               icon: const Icon(Icons.arrow_back),
               onPressed: _handleUserExitRequest, // Directly call, it handles pop if confirmed
@@ -472,242 +463,85 @@ class _MiniGameScreenState extends State<MiniGameScreen> {
   }
 
   Widget _buildGameInfo(GameState gameState) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: gameState.isDrawer 
-              ? [Colors.blue.shade100, Colors.blue.shade200] 
-              : [Colors.lightBlue.shade100, Colors.lightBlue.shade200],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            gameState.isDrawer ? Icons.brush : Icons.search,
-            color: gameState.isDrawer ? Colors.blue.shade700 : Colors.lightBlue.shade700,
-          ),
-          const SizedBox(width: 10),
-          Flexible(
-            child: Text(
-              gameState.isDrawer ? "Draw: ${gameState.currentWord}" : "Guess the word!",
-              style: TextStyle(
-                fontSize: 20, 
-                fontWeight: FontWeight.bold,
-                color: gameState.isDrawer ? Colors.blue.shade700 : Colors.lightBlue.shade700,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ),
-        ],
-      ),
+    return Text(
+      gameState.isDrawer ? "Draw: ${gameState.currentWord}" : "Guess the word!",
+      style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
     );
   }
 
   Widget _buildScoreDisplay(GameState gameState) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      decoration: BoxDecoration(
-        color: Colors.amber.shade100,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Colors.amber.shade300, width: 1),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(Icons.emoji_events, color: Colors.amber, size: 20),
-          const SizedBox(width: 8),
-          Text(
-            "You: ${gameState.scores[widget.currentUserId] ?? 0}",
-            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(width: 8),
-          Container(height: 16, width: 1, color: Colors.grey),
-          const SizedBox(width: 8),
-          Text(
-            "Opponent: ${gameState.scores[widget.opponentId] ?? 0}",
-            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-          ),
-        ],
-      ),
+    return Text(
+      "Score: You ${gameState.scores[widget.currentUserId] ?? 0} - Opponent ${gameState.scores[widget.opponentId] ?? 0}",
+      style: TextStyle(fontSize: 16),
     );
   }
 
   Widget _buildAttemptsDisplay(GameState gameState) {
-    final attemptsColor = gameState.remainingAttempts > 2 
-        ? Colors.green 
-        : (gameState.remainingAttempts > 1 ? Colors.orange : Colors.red);
-        
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
-      margin: const EdgeInsets.only(bottom: 10, top: 5),
-      decoration: BoxDecoration(
-        color: attemptsColor.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: attemptsColor.withOpacity(0.5)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.replay, color: attemptsColor, size: 18),
-          const SizedBox(width: 4),
-          Text(
-            "Attempts: ${gameState.remainingAttempts}",
-            style: TextStyle(
-              fontSize: 16,
-              color: attemptsColor,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ],
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Text(
+        "Attempts remaining: ${gameState.remainingAttempts}",
+        style: TextStyle(
+          fontSize: 16,
+          color: gameState.remainingAttempts == 1 ? Colors.red : Colors.black,
+          fontWeight:
+              gameState.remainingAttempts == 1
+                  ? FontWeight.bold
+                  : FontWeight.normal,
+        ),
       ),
     );
   }
 
   Widget _buildDrawingArea(GameState gameState) {
-    return Card(
-      elevation: 4,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: NotificationListener<ScrollNotification>(
-        // Prevent scroll events from propagating when interacting with drawing area
-        onNotification: (ScrollNotification notification) {
-          // Return true to cancel the notification bubbling
-          return gameState.isDrawer;
-        },
-        child: Container(
-          key: _paintKey,
-          width: 320,
-          height: 320,
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.1),
-                blurRadius: 4,
-                offset: const Offset(0, 2),
-              ),
-            ],
-            border: Border.all(color: Colors.blue.shade200, width: 2),
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(10),
-            child: Stack(
-              children: [
-                // Background with solid color
-                Container(
-                  decoration: BoxDecoration(
-                    color: Colors.grey[50],
-                  ),
-                ),
-                // Drawing area
-                GestureDetector(
-                  onPanUpdate: gameState.isDrawer
-                      ? (details) {
-                          RenderBox renderBox =
-                              _paintKey.currentContext!.findRenderObject() as RenderBox;
-                          Offset localPosition = renderBox.globalToLocal(
-                            details.globalPosition,
-                          );
+    return Container(
+      key: _paintKey,
+      width: 300,
+      height: 300,
+      decoration: BoxDecoration(border: Border.all(color: Colors.grey)),
+      child: GestureDetector(
+        onPanUpdate:
+            gameState.isDrawer
+                ? (details) {
+                  RenderBox renderBox =
+                      _paintKey.currentContext!.findRenderObject() as RenderBox;
+                  Offset localPosition = renderBox.globalToLocal(
+                    details.globalPosition,
+                  );
 
-                          final size = renderBox.size;
-                          if (GameValidator.isValidPoint(localPosition, size.width, size.height)) {
-                            _eventHandler.handleDrawing(localPosition);
-                            _gameState.resetInactivityTimer();
-                          }
-                        }
-                      : null,
-                  onPanEnd: gameState.isDrawer
-                      ? (details) => _eventHandler.handleDrawingEnd()
-                      : null,
-                  child: CustomPaint(
-                    painter: DrawingPainter(points: gameState.points),
-                    size: Size.infinite,
-                  ),
-                ),
-                // Overlay message for guesser
-                if (!gameState.isDrawer)
-                  Positioned(
-                    right: 8,
-                    top: 8,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: Colors.lightBlue.withOpacity(0.7),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Text(
-                        "Guessing...",
-                        style: TextStyle(color: Colors.white, fontSize: 12),
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-          ),
+                  if (GameValidator.isValidPoint(localPosition, 300, 300)) {
+                    _eventHandler.handleDrawing(localPosition);
+                    _gameState.resetInactivityTimer();
+                  }
+                }
+                : null,
+        onPanEnd:
+            gameState.isDrawer
+                ? (details) => _eventHandler.handleDrawingEnd()
+                : null,
+        child: CustomPaint(
+          painter: DrawingPainter(points: gameState.points),
+          size: Size.infinite,
         ),
       ),
     );
   }
 
   Widget _buildGuessInput(GameState gameState) {
-    return Container(
-      width: 320,
-      padding: const EdgeInsets.all(16),
-      margin: const EdgeInsets.only(top: 10),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Colors.lightBlue.shade50, Colors.lightBlue.shade100],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 40.0),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           TextField(
             controller: _guessController,
             textAlign: TextAlign.center,
-            style: const TextStyle(fontSize: 16),
             decoration: InputDecoration(
               labelText: "Enter your guess",
-              labelStyle: TextStyle(color: Colors.blue.shade700),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: BorderSide(color: Colors.blue.shade700, width: 2),
-              ),
-              filled: true,
-              fillColor: Colors.white,
-              prefixIcon: Icon(Icons.lightbulb_outline, color: Colors.blue.shade700),
-              contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+              border: OutlineInputBorder(),
             ),
             onChanged: (_) => _gameState.resetInactivityTimer(),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
           ElevatedButton(
             onPressed: () {
               if (GameValidator.isValidGuess(_guessController.text)) {
@@ -716,14 +550,7 @@ class _MiniGameScreenState extends State<MiniGameScreen> {
                 _gameState.resetInactivityTimer();
               }
             },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.blue.shade700,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-              elevation: 2,
-            ),
-            child: const Text("Submit Guess", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            child: Text("Submit Guess"),
           ),
         ],
       ),
@@ -731,80 +558,28 @@ class _MiniGameScreenState extends State<MiniGameScreen> {
   }
 
   Widget _buildCorrectGuessMessage() {
-    return Container(
-      width: 320,
-      margin: const EdgeInsets.symmetric(vertical: 12),
-      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
-      decoration: BoxDecoration(
-        color: Colors.green.shade100,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.green.shade300),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(Icons.check_circle, color: Colors.green, size: 28),
-          const SizedBox(width: 12),
-          const Text(
-            "You guessed it right!",
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.green),
-          ),
-          const SizedBox(width: 8),
-          const Icon(Icons.celebration, color: Colors.amber, size: 24),
-        ],
+    return Padding(
+      padding: const EdgeInsets.all(10.0),
+      child: Text(
+        "🎉 You guessed it right!",
+        style: TextStyle(fontSize: 18, color: Colors.green),
       ),
     );
   }
 
   Widget _buildIncorrectGuessMessage(GameState gameState) {
-    return Container(
-      width: 320,
-      margin: const EdgeInsets.symmetric(vertical: 12),
-      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
-      decoration: BoxDecoration(
-        color: Colors.red.shade50,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.red.shade200),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
+    return Padding(
+      padding: const EdgeInsets.all(10.0),
       child: Column(
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.close, color: Colors.red, size: 24),
-              const SizedBox(width: 8),
-              const Text(
-                "Incorrect guess!",
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.red),
-              ),
-            ],
+          Text(
+            "❌ Incorrect guess!",
+            style: TextStyle(fontSize: 18, color: Colors.red),
           ),
           if (gameState.remainingAttempts > 0)
-            Padding(
-              padding: const EdgeInsets.only(top: 8),
-              child: Text(
-                "Try again! You have ${gameState.remainingAttempts} ${gameState.remainingAttempts == 1 ? 'attempt' : 'attempts'} left.",
-                style: TextStyle(
-                  fontSize: 16, 
-                  color: gameState.remainingAttempts == 1 ? Colors.red.shade700 : Colors.orange.shade700,
-                  fontWeight: gameState.remainingAttempts == 1 ? FontWeight.bold : FontWeight.normal,
-                ),
-                textAlign: TextAlign.center,
-              ),
+            Text(
+              "Try again!",
+              style: TextStyle(fontSize: 16, color: Colors.orange),
             ),
         ],
       ),
@@ -812,19 +587,12 @@ class _MiniGameScreenState extends State<MiniGameScreen> {
   }
 
   Widget _buildClearButton() {
-    return Container(
-      margin: const EdgeInsets.only(top: 12),
+    return Padding(
+      padding: const EdgeInsets.only(top: 20.0),
       child: ElevatedButton.icon(
         onPressed: () => _eventHandler.clearCanvas(),
-        icon: const Icon(Icons.delete_sweep),
-        label: const Text("Clear Drawing", style: TextStyle(fontWeight: FontWeight.bold)),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.blue.shade700,
-          foregroundColor: Colors.white,
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-          elevation: 2,
-        ),
+        icon: Icon(Icons.clear),
+        label: Text("Clear Drawing"),
       ),
     );
   }
@@ -837,15 +605,12 @@ class DrawingPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    // Draw a subtle grid background
-    _drawGrid(canvas, size);
-    
-    final paint = Paint()
-      ..color = Colors.blue.shade800
-      ..strokeCap = StrokeCap.round
-      ..strokeWidth = 4.0
-      ..isAntiAlias = true
-      ..strokeJoin = StrokeJoin.round;
+    final paint =
+        Paint()
+          ..color = Colors.black
+          ..strokeCap = StrokeCap.round
+          ..strokeWidth = 4.0
+          ..isAntiAlias = true;
 
     // Group points into continuous segments
     List<List<Offset>> segments = [];
@@ -877,23 +642,5 @@ class DrawingPainter extends CustomPainter {
   @override
   bool shouldRepaint(DrawingPainter oldDelegate) {
     return oldDelegate.points.length != points.length;
-  }
-  
-  void _drawGrid(Canvas canvas, Size size) {
-    final gridPaint = Paint()
-      ..color = Colors.grey.withOpacity(0.1)
-      ..strokeWidth = 0.5;
-      
-    const gridSize = 20.0;
-    
-    // Draw vertical lines
-    for (double i = 0; i <= size.width; i += gridSize) {
-      canvas.drawLine(Offset(i, 0), Offset(i, size.height), gridPaint);
-    }
-    
-    // Draw horizontal lines
-    for (double i = 0; i <= size.height; i += gridSize) {
-      canvas.drawLine(Offset(0, i), Offset(size.width, i), gridPaint);
-    }
   }
 }
