@@ -223,7 +223,7 @@ class _TripJournalPanelState extends State<TripJournalPanel> {
                                         onPressed: () => _showTripJournalDialog(context, post),
                                         icon: const Icon(Icons.book, size: 16),
                                         label: const Text(
-                                          'Explore Journal Details',
+                                          'Explore Journal',
                                           style: TextStyle(
                                             fontSize: 14,
                                             fontWeight: FontWeight.w500,
