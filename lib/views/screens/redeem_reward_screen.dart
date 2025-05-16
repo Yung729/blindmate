@@ -387,10 +387,47 @@ class RewardSection extends StatelessWidget {
                                         FilteringTextInputFormatter.digitsOnly,
                                       ],
                                       onChanged: (value) {
+                                        //   final intVal = int.tryParse(value);
+                                        //   if (intVal != null &&
+                                        //       intVal > 0 &&
+                                        //       intVal <= maxQuantity) {
+                                        //     setState(() {
+                                        //       quantity = intVal;
+                                        //     });
+                                        //   }
+                                        // },
                                         final intVal = int.tryParse(value);
-                                        if (intVal != null &&
-                                            intVal > 0 &&
-                                            intVal <= maxQuantity) {
+
+                                        if (intVal == null || intVal < 1) {
+                                          setState(() {
+                                            quantity = 1;
+                                            quantityController.text = '1';
+                                            quantityController.selection =
+                                                TextSelection.fromPosition(
+                                                  TextPosition(
+                                                    offset:
+                                                        quantityController
+                                                            .text
+                                                            .length,
+                                                  ),
+                                                );
+                                          });
+                                        } else if (intVal > maxQuantity) {
+                                          setState(() {
+                                            quantity = maxQuantity;
+                                            quantityController.text =
+                                                '$maxQuantity';
+                                            quantityController.selection =
+                                                TextSelection.fromPosition(
+                                                  TextPosition(
+                                                    offset:
+                                                        quantityController
+                                                            .text
+                                                            .length,
+                                                  ),
+                                                );
+                                          });
+                                        } else {
                                           setState(() {
                                             quantity = intVal;
                                           });
