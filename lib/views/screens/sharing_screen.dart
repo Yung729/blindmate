@@ -435,7 +435,7 @@ class SharingScreenState extends State<SharingScreen> {
                       userName:
                           post['userId'] == widget.userId
                               ? "You"
-                              : "Depression People",
+                              : "Blindmate",
                       avatarUrl: avatarUrl,
                       timeAgo: getTimeAgo(postTime),
                       isPublic: isPublic,
