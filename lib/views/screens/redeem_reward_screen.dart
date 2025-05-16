@@ -385,54 +385,55 @@ class RewardSection extends StatelessWidget {
                                       keyboardType: TextInputType.number,
                                       inputFormatters: [
                                         FilteringTextInputFormatter.digitsOnly,
+                                        FilteringTextInputFormatter.allow(
+                                          RegExp(r'^[1-9][0-9]*$'),
+                                        ),
                                       ],
                                       onChanged: (value) {
-                                        //   final intVal = int.tryParse(value);
-                                        //   if (intVal != null &&
-                                        //       intVal > 0 &&
-                                        //       intVal <= maxQuantity) {
-                                        //     setState(() {
-                                        //       quantity = intVal;
-                                        //     });
-                                        //   }
-                                        // },
                                         final intVal = int.tryParse(value);
-
-                                        if (intVal == null || intVal < 1) {
-                                          setState(() {
-                                            quantity = 1;
-                                            quantityController.text = '1';
-                                            quantityController.selection =
-                                                TextSelection.fromPosition(
-                                                  TextPosition(
-                                                    offset:
-                                                        quantityController
-                                                            .text
-                                                            .length,
-                                                  ),
-                                                );
-                                          });
-                                        } else if (intVal > maxQuantity) {
-                                          setState(() {
-                                            quantity = maxQuantity;
-                                            quantityController.text =
-                                                '$maxQuantity';
-                                            quantityController.selection =
-                                                TextSelection.fromPosition(
-                                                  TextPosition(
-                                                    offset:
-                                                        quantityController
-                                                            .text
-                                                            .length,
-                                                  ),
-                                                );
-                                          });
-                                        } else {
-                                          setState(() {
-                                            quantity = intVal;
-                                          });
+                                        if (intVal != null) {
+                                          setState(() => quantity = intVal);
                                         }
                                       },
+
+                                      // onChanged: (value) {
+                                      //   final intVal = int.tryParse(value);
+
+                                      //   if (intVal == null || intVal < 1) {
+                                      //     setState(() {
+                                      //       quantity = 1;
+                                      //       quantityController.text = '1';
+                                      //       quantityController.selection =
+                                      //           TextSelection.fromPosition(
+                                      //             TextPosition(
+                                      //               offset:
+                                      //                   quantityController
+                                      //                       .text
+                                      //                       .length,
+                                      //             ),
+                                      //           );
+                                      //     });
+                                      //   } else if (intVal > maxQuantity) {
+                                      //     setState(() {
+                                      //       quantity = maxQuantity;
+                                      //       quantityController.text =
+                                      //           '$maxQuantity';
+                                      //       quantityController.selection =
+                                      //           TextSelection.fromPosition(
+                                      //             TextPosition(
+                                      //               offset:
+                                      //                   quantityController
+                                      //                       .text
+                                      //                       .length,
+                                      //             ),
+                                      //           );
+                                      //     });
+                                      //   } else {
+                                      //     setState(() {
+                                      //       quantity = intVal;
+                                      //     });
+                                      //   }
+                                      // },
                                       decoration: InputDecoration(
                                         contentPadding: EdgeInsets.symmetric(
                                           vertical: 8,
@@ -477,6 +478,36 @@ class RewardSection extends StatelessWidget {
                           ),
                           TextButton(
                             onPressed: () {
+                              final text = quantityController.text.trim();
+                              if (text.isEmpty) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text("Quantity cannot be empty."),
+                                  ),
+                                );
+                                return;
+                              }
+                              if (quantity < 1) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text(
+                                      "Quantity must be at least 1.",
+                                    ),
+                                  ),
+                                );
+                                return;
+                              }
+
+                              if (quantity > maxQuantity) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                      "Maximum quantity is $maxQuantity.",
+                                    ),
+                                  ),
+                                );
+                                return;
+                              }
                               // Store the quantity in the reward object temporarily
                               reward.quantity = quantity;
                               Navigator.of(context).pop(true);
