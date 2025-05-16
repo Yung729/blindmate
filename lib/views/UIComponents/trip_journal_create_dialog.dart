@@ -731,7 +731,7 @@ class _TripJournalDialogState extends State<TripJournalDialog> {
                           ),
                           const SizedBox(width: 8),
                           const Text(
-                            'Activities',
+                            'Activities (Optional)',
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w600,
