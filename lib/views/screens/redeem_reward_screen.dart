@@ -385,14 +385,32 @@ class RewardSection extends StatelessWidget {
                                       keyboardType: TextInputType.number,
                                       inputFormatters: [
                                         FilteringTextInputFormatter.digitsOnly,
-                                        FilteringTextInputFormatter.allow(
-                                          RegExp(r'^[1-9][0-9]*$'),
-                                        ),
                                       ],
                                       onChanged: (value) {
+                                        // Allow empty field during typing
+                                        if (value.isEmpty) {
+                                          setState(() {
+                                            quantity = 0; // Temporary zero state
+                                          });
+                                          return;
+                                        }
+                                        
                                         final intVal = int.tryParse(value);
                                         if (intVal != null) {
-                                          setState(() => quantity = intVal);
+                                          // Only enforce max limit during typing
+                                          if (intVal > maxQuantity) {
+                                            setState(() {
+                                              quantity = maxQuantity;
+                                              quantityController.text = '$maxQuantity';
+                                              quantityController.selection = TextSelection.fromPosition(
+                                                TextPosition(offset: quantityController.text.length),
+                                              );
+                                            });
+                                          } else {
+                                            setState(() {
+                                              quantity = intVal;
+                                            });
+                                          }
                                         }
                                       },
 
@@ -479,15 +497,17 @@ class RewardSection extends StatelessWidget {
                           TextButton(
                             onPressed: () {
                               final text = quantityController.text.trim();
-                              if (text.isEmpty) {
+                              if (text.isEmpty || text == '0') {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   const SnackBar(
-                                    content: Text("Quantity cannot be empty."),
+                                    content: Text("Quantity cannot be empty or zero."),
                                   ),
                                 );
                                 return;
                               }
-                              if (quantity < 1) {
+                              
+                              final intVal = int.tryParse(text);
+                              if (intVal == null || intVal < 1) {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   const SnackBar(
                                     content: Text(
