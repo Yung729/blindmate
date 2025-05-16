@@ -60,9 +60,10 @@ class RewardService {
   Future<int> redeemReward(
     String userId,
     int fragmentCost,
-    String rewardId, [
+    String rewardId, {
     BuildContext? context,
-  ]) async {
+    int quantity = 1,
+  }) async {
     try {
       // Fetch reward info to check type
       final rewardDoc =
@@ -76,9 +77,9 @@ class RewardService {
         'fragmentNumber': FieldValue.increment(-fragmentCost),
       });
 
-      // 🔻 If reward is "flower", increment flower count
+      // 🔻 If reward is "flower", increment flower count by quantity
       if (reward.rewardTitle.toLowerCase() == 'flower') {
-        await userRef.update({'flower': FieldValue.increment(1)});
+        await userRef.update({'flower': FieldValue.increment(quantity)});
 
         // Get the updated flower count to update the AuthState
         final updatedUserDoc = await userRef.get();

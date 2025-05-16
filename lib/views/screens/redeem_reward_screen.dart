@@ -89,11 +89,12 @@ class _RedeemRewardScreenState extends State<RedeemRewardScreen> {
     final user = _authState.currentUser;
     final userFragments = user!.fragmentNumber;
     final rewardCost = reward.fragmentCost;
+    final totalCost = rewardCost * reward.quantity;
 
-    print("Attempting to redeem reward: ${reward.rewardTitle}");
-    print("Current fragments: $userFragments, Reward cost: $rewardCost");
+    print("Attempting to redeem reward: ${reward.rewardTitle} x${reward.quantity}");
+    print("Current fragments: $userFragments, Total cost: $totalCost");
 
-    if (userFragments >= rewardCost) {
+    if (userFragments >= totalCost) {
       print("User has enough fragments. Proceeding with redemption...");
 
       try {
@@ -101,6 +102,7 @@ class _RedeemRewardScreenState extends State<RedeemRewardScreen> {
           context,
           rewardCost,
           reward.redeemRewardId,
+          quantity: reward.quantity,
           onSuccess:
               (updatedFragmentNumber) => setState(() {
                 user.fragmentNumber = updatedFragmentNumber;
@@ -295,29 +297,115 @@ class RewardSection extends StatelessWidget {
     BuildContext context,
     RewardModel reward,
   ) async {
-    return await showDialog<bool>(
-          context: context,
-          builder:
-              (context) => AlertDialog(
-                title: const Text('Confirm Redemption'),
-                content: Text(
-                  'Redeem "${reward.rewardTitle}" for ${reward.fragmentCost} crystals?',
-                ),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.of(context).pop(false),
-                    child: const Text('Cancel'),
+    // For regular rewards, show simple confirmation
+    if (reward.rewardTitle != 'flower') {
+      return await showDialog<bool>(
+            context: context,
+            builder:
+                (context) => AlertDialog(
+                  title: const Text('Confirm Redemption'),
+                  content: Text(
+                    'Redeem "${reward.rewardTitle}" for ${reward.fragmentCost} crystals?',
                   ),
-                  TextButton(
-                    onPressed: () => Navigator.of(context).pop(true),
-                    child: const Text(
-                      'Yes',
-                      style: TextStyle(color: Colors.red),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.of(context).pop(false),
+                      child: const Text('Cancel'),
                     ),
-                  ),
-                ],
+                    TextButton(
+                      onPressed: () => Navigator.of(context).pop(true),
+                      child: const Text(
+                        'Yes',
+                        style: TextStyle(color: Colors.red),
+                      ),
+                    ),
+                  ],
+                ),
+          ) ??
+          false;
+    } 
+    // For flower rewards, show quantity selector
+    else {
+      final user = Provider.of<AuthState>(context, listen: false).currentUser;
+      if (user == null) return false;
+      
+      int quantity = 1; // Default quantity
+      final maxQuantity = (user.fragmentNumber / reward.fragmentCost).floor();
+      
+      return await showDialog<bool>(
+        context: context,
+        builder: (context) => StatefulBuilder(
+          builder: (context, setState) => AlertDialog(
+            title: const Text('Select Quantity'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'How many flowers do you want to redeem?',
+                  style: TextStyle(fontSize: 16),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    IconButton(
+                      onPressed: quantity > 1 
+                        ? () => setState(() => quantity--)
+                        : null,
+                      icon: Icon(Icons.remove_circle_outline),
+                      color: Colors.red,
+                    ),
+                    Container(
+                      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.grey),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(
+                        '$quantity',
+                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: quantity < maxQuantity 
+                        ? () => setState(() => quantity++)
+                        : null,
+                      icon: Icon(Icons.add_circle_outline),
+                      color: Colors.green,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Total cost: ${quantity * reward.fragmentCost} fragments',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                Text(
+                  'Your fragments: ${user.fragmentNumber}',
+                  style: TextStyle(color: Colors.grey[600]),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: const Text('Cancel'),
               ),
-        ) ??
-        false;
+              TextButton(
+                onPressed: () {
+                  // Store the quantity in the reward object temporarily
+                  reward.quantity = quantity;
+                  Navigator.of(context).pop(true);
+                },
+                child: const Text(
+                  'Redeem',
+                  style: TextStyle(color: Colors.red),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ) ?? false;
+    }
   }
 }

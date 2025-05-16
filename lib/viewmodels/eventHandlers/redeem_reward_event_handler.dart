@@ -19,14 +19,19 @@ class RedeemRewardEventHandler {
     int rewardCost,
     String rewardId, {
     Function(int updatedFragmentNumber)? onSuccess,
+    int quantity = 1,
   }) async {
     try {
-      // Call redeemReward method from DataBinding
+      // Calculate total cost for multiple redemptions
+      final totalCost = rewardCost * quantity;
+      
+      // Call redeemReward method from DataBinding with the total cost
       await dataBinding.redeemReward(
         context,
-        rewardCost,
+        totalCost,
         rewardId,
         onSuccess: onSuccess,
+        quantity: quantity,
       );
     } catch (e) {
       // Handle any errors that might have occurred

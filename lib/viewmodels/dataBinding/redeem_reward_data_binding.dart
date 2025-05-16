@@ -14,14 +14,16 @@ class RedeemRewardDataBinding {
     int rewardCost,
     String rewardId, {
     Function(int updatedFragmentNumber)? onSuccess,
+    int quantity = 1,
   }) async {
     try {
       if (user.fragmentNumber >= rewardCost) {
-        print("User has enough fragments. Proceeding with redemption...");
+        print("User has enough fragments. Proceeding with redemption of $quantity items...");
         final updatedFragmentNumber = await rewardService.redeemReward(
           user.userId,
           rewardCost,
           rewardId,
+          quantity: quantity,
         );
         user.fragmentNumber = updatedFragmentNumber;
         if (onSuccess != null) onSuccess(updatedFragmentNumber);
@@ -29,7 +31,9 @@ class RedeemRewardDataBinding {
           "Reward redeemed successfully! Updated fragment number: $updatedFragmentNumber",
         );
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Reward redeemed successfully!')),
+          SnackBar(content: Text(quantity > 1 
+            ? 'Redeemed $quantity flowers successfully!' 
+            : 'Reward redeemed successfully!')),
         );
       } else {
         print("Not enough fragments to redeem reward.");

@@ -5,12 +5,15 @@ class RewardModel {
   final int fragmentCost;
   final String imageUrl;
   final String rewardTitle;
+  // Non-final property to temporarily store quantity for multiple redemptions
+  int quantity = 1;
 
   RewardModel({
     required this.redeemRewardId,
     required this.fragmentCost,
     required this.imageUrl,
     required this.rewardTitle,
+    this.quantity = 1,
   });
 
   factory RewardModel.fromFirestore(DocumentSnapshot doc) {
