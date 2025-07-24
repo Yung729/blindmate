@@ -7,7 +7,7 @@ import '../models/dataModels/message_model.dart';
 
 class ChatService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final String websocketUrl = "wss://blindmate-backend-chat.up.railway.app";
+  final String websocketUrl = "wss://blindmate-backend-chat-v1.up.railway.app";
 
   WebSocketChannel? _channel;
   final StreamController<MessageModel> _messageStreamController =
